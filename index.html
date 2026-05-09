@@ -542,12 +542,13 @@ async function onFbAuthChange(user) {
 function loginWithGoogle() {
   if (!fbAuth) { showToast('Firebase 설정을 먼저 완료해주세요'); return; }
   const provider = new firebase.auth.GoogleAuthProvider();
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (isMobile) {
-    fbAuth.signInWithRedirect(provider).catch(e => showToast('로그인 실패: ' + e.message));
-  } else {
-    fbAuth.signInWithPopup(provider).catch(e => showToast('로그인 실패: ' + (e.code === 'auth/popup-blocked' ? '팝업을 허용해주세요' : e.message)));
-  }
+  fbAuth.signInWithPopup(provider).catch(e => {
+    if (e.code === 'auth/popup-blocked') {
+      fbAuth.signInWithRedirect(provider).catch(e2 => showToast('로그인 실패: ' + e2.message));
+    } else {
+      showToast('로그인 실패: ' + e.message);
+    }
+  });
 }
 
 function logoutUser() {
