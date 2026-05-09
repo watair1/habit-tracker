@@ -517,7 +517,9 @@ function initFirebase() {
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
     fbAuth.onAuthStateChanged(onFbAuthChange);
-    fbAuth.getRedirectResult().catch(e => { if (e.code) showToast('로그인 실패: ' + e.message); });
+    fbAuth.getRedirectResult()
+      .then(r => { if (r && r.user) showToast(r.user.displayName + '님 로그인 성공'); })
+      .catch(e => { if (e.code && e.code !== 'auth/no-auth-event') alert('로그인 오류: ' + e.code + '\n' + e.message); });
   } catch(e) { console.warn('Firebase 초기화 실패:', e); }
 }
 
