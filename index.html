@@ -517,6 +517,7 @@ function initFirebase() {
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
     fbAuth.onAuthStateChanged(onFbAuthChange);
+    fbAuth.getRedirectResult().catch(e => { if (e.code) showToast('로그인 실패: ' + e.message); });
   } catch(e) { console.warn('Firebase 초기화 실패:', e); }
 }
 
@@ -538,8 +539,13 @@ async function onFbAuthChange(user) {
 
 function loginWithGoogle() {
   if (!fbAuth) { showToast('Firebase 설정을 먼저 완료해주세요'); return; }
-  fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
-    .catch(e => showToast('로그인 실패: ' + (e.code === 'auth/popup-blocked' ? '팝업을 허용해주세요' : e.message)));
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    fbAuth.signInWithRedirect(provider).catch(e => showToast('로그인 실패: ' + e.message));
+  } else {
+    fbAuth.signInWithPopup(provider).catch(e => showToast('로그인 실패: ' + (e.code === 'auth/popup-blocked' ? '팝업을 허용해주세요' : e.message)));
+  }
 }
 
 function logoutUser() {
