@@ -399,7 +399,7 @@
 <!-- ADD HABIT MODAL -->
 <div class="overlay" id="add-modal">
   <div class="sheet">
-    <div class="sheet-title">습관 추가</div>
+    <div class="sheet-title" id="add-modal-title">습관 추가</div>
     <div class="fg"><label>습관 이름</label><input id="m-name" placeholder="예: 물 2L 마시기" maxlength="30"/></div>
     <div class="fg"><label>카테고리</label>
       <select id="m-cat">
@@ -423,7 +423,7 @@
     </div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('add-modal')">취소</button>
-      <button class="btn-confirm" onclick="addHabit()">추가하기</button>
+      <button class="btn-confirm" id="add-modal-btn" onclick="addHabit()">추가하기</button>
     </div>
   </div>
 </div>
@@ -799,7 +799,14 @@ function switchTab(name, btn) {
 }
 
 function openModal(id) { $(id).classList.add('open'); }
-function closeModal(id) { $(id).classList.remove('open'); }
+function closeModal(id) {
+  $(id).classList.remove('open');
+  if (id === 'add-modal') {
+    editingHabitIdx = -1;
+    $('add-modal-title').textContent = '습관 추가';
+    $('add-modal-btn').textContent = '추가하기';
+  }
+}
 
 function openAddModal() {
   const v = $('new-habit').value.trim();
@@ -880,16 +887,30 @@ function render() {
             <span class="badge bt">${esc(h.timeSlot||'자유')}</span>
           </div>
         </div>
+        <button class="icon-btn" onclick="editHabit(${i})">✏</button>
         <button class="icon-btn del" onclick="delHabit(${i})">✕</button>
       </div>`;
   }).join('');
 }
 
 // ── HABIT ACTIONS ─────────────────────────────────────────
+let editingHabitIdx = -1;
+
 function addHabit() {
   const name = $('m-name').value.trim();
   if (!name) { showToast('습관 이름을 입력해주세요'); return; }
   const habits = loadHabits();
+  if (editingHabitIdx >= 0) {
+    const h = habits[editingHabitIdx];
+    h.name = name; h.category = $('m-cat').value; h.timeSlot = $('m-time').value;
+    saveHabits(habits);
+    editingHabitIdx = -1;
+    $('add-modal-title').textContent = '습관 추가';
+    $('add-modal-btn').textContent = '추가하기';
+    closeModal('add-modal'); render();
+    showToast('습관이 수정되었어요.');
+    return;
+  }
   habits.push({ id: uid(), name, createdAt: todayStr(), checked: {}, category: $('m-cat').value, timeSlot: $('m-time').value });
   saveHabits(habits);
   $('m-name').value = ''; $('new-habit').value = '';
@@ -897,6 +918,19 @@ function addHabit() {
   render(); checkAchs();
   showToast('습관이 추가되었어요.');
   if (habits.length === 1) addXP(20);
+}
+
+function editHabit(i) {
+  const habits = loadHabits();
+  const h = habits[i];
+  editingHabitIdx = i;
+  $('add-modal-title').textContent = '습관 수정';
+  $('add-modal-btn').textContent = '저장하기';
+  $('m-name').value = h.name;
+  $('m-cat').value = h.category || '건강';
+  $('m-time').value = h.timeSlot || '자유';
+  openModal('add-modal');
+  setTimeout(() => $('m-name').focus(), 80);
 }
 
 function toggle(i) {
