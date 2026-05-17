@@ -325,6 +325,17 @@
 <!-- ===== TAB: GOALS ===== -->
 <div id="tab-goals" class="tab">
   <div id="final-goal-card"></div>
+
+  <!-- TODO LIST -->
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-title">할 일</div>
+    <div class="add-bar" style="margin-bottom:10px;">
+      <input id="todo-input" placeholder="할 일 추가..." maxlength="50" onkeydown="if(event.key==='Enter')addTodo()"/>
+      <button class="btn btn-sm" onclick="addTodo()">추가</button>
+    </div>
+    <div id="todo-list"></div>
+  </div>
+
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div>
       <div style="font-weight:700;font-size:.98rem;">목표 관리</div>
@@ -570,6 +581,7 @@ async function doSync() {
       base.doc('goals').set({ d: loadGoals() }),
       base.doc('notif').set({ d: loadNotif() }),
       base.doc('finalgoal').set({ d: loadFinalGoal() }),
+      base.doc('todos').set({ d: loadTodos() }),
     ]);
   } catch(e) { console.warn('동기화 실패:', e); }
 }
@@ -578,25 +590,27 @@ async function loadFromCloud() {
   if (!fbUser || !fbDb) return;
   const base = fbDb.collection('users').doc(fbUser.uid).collection('data');
   try {
-    const [h, u, g, n, f] = await Promise.all([
+    const [h, u, g, n, f, t] = await Promise.all([
       base.doc('habits').get(),
       base.doc('user').get(),
       base.doc('goals').get(),
       base.doc('notif').get(),
       base.doc('finalgoal').get(),
+      base.doc('todos').get(),
     ]);
     if (h.exists) lsSet(K.h, h.data().d);
     if (u.exists) lsSet(K.u, u.data().d);
     if (g.exists) lsSet(K.g, g.data().d);
     if (n.exists) lsSet(K.n, n.data().d);
     if (f.exists) lsSet(K.f, f.data().d);
+    if (t.exists) lsSet(K.t, t.data().d);
     if (!h.exists) await doSync();
     showToast('클라우드에서 데이터를 불러왔어요.');
   } catch(e) { console.warn('클라우드 로드 실패:', e); }
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -619,6 +633,8 @@ const loadGoals = () => lsGet(K.g, []);
 function saveGoals(d)  { lsSet(K.g, d); scheduleSync(); }
 const loadFinalGoal = () => lsGet(K.f, null);
 function saveFinalGoal(d) { lsSet(K.f, d); scheduleSync(); }
+const loadTodos = () => lsGet(K.t, []);
+function saveTodos(d) { lsSet(K.t, d); scheduleSync(); }
 const loadNotif = () => lsGet(K.n, { morning: false, evening: false, streak: true });
 
 function saveNotif() {
@@ -794,7 +810,7 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   if (name === 'stats')    renderStats();
   if (name === 'growth')   renderGrowth();
-  if (name === 'goals')    { renderFinalGoal(); renderGoals(); }
+  if (name === 'goals')    { renderFinalGoal(); renderTodos(); renderGoals(); }
   if (name === 'analysis') renderAnalysis();
 }
 
@@ -1141,6 +1157,43 @@ function renderFinalGoal() {
     ${fg.desc ? `<div style="color:rgba(255,255,255,0.62);font-size:.8rem;line-height:1.55;">${esc(fg.desc)}</div>` : ''}
     ${dlText ? `<div style="margin-top:10px;display:inline-block;background:rgba(255,255,255,0.12);border-radius:20px;padding:3px 11px;color:rgba(255,255,255,0.7);font-size:.73rem;font-weight:700;">${fg.date} · ${dlText}</div>` : ''}
   </div>`;
+}
+
+// ── TODO LIST ─────────────────────────────────────────────
+function renderTodos() {
+  const todos = loadTodos();
+  const el = $('todo-list');
+  if (!todos.length) { el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;">할 일이 없어요</div>`; return; }
+  el.innerHTML = todos.map((t, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <button onclick="toggleTodo(${i})" style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${t.done?'var(--primary)':'#444'};background:${t.done?'var(--primary)':'transparent'};cursor:pointer;flex-shrink:0;font-size:.8rem;color:#000;">${t.done?'✓':''}</button>
+      <span style="flex:1;font-size:.88rem;${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.text)}</span>
+      <button class="icon-btn del" onclick="deleteTodo(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addTodo() {
+  const text = $('todo-input').value.trim();
+  if (!text) return;
+  const todos = loadTodos();
+  todos.push({ id: uid(), text, done: false, createdAt: todayStr() });
+  saveTodos(todos);
+  $('todo-input').value = '';
+  renderTodos();
+}
+
+function toggleTodo(i) {
+  const todos = loadTodos();
+  todos[i].done = !todos[i].done;
+  saveTodos(todos);
+  renderTodos();
+}
+
+function deleteTodo(i) {
+  const todos = loadTodos();
+  todos.splice(i, 1);
+  saveTodos(todos);
+  renderTodos();
 }
 
 function renderGoals() {
