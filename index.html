@@ -49,16 +49,18 @@
     /* BOTTOM NAV */
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
     .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; background: none; border: none; cursor: pointer; gap: 4px; color: #444; font-size: 0.72rem; font-weight: 700; transition: color .2s; letter-spacing: .3px; }
-    .nav-btn svg { width: 22px; height: 22px; stroke-width: 2px; }
+    .nav-btn svg { width: 22px; height: 22px; stroke-width: 2px; transition: transform .3s cubic-bezier(0.34,1.56,0.64,1); }
     .nav-btn.active { color: var(--primary); }
+    .nav-btn.active svg { transform: scale(1.15); }
 
     /* TABS */
     .tab { display: none; padding: 16px 16px 10px; }
-    .tab.active { display: block; animation: fadeIn .25s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .tab.active { display: block; animation: tabIn .3s cubic-bezier(0.32,0.72,0,1); }
+    @keyframes tabIn { from { opacity: 0; transform: translateY(14px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
     /* CARDS */
-    .card { background: var(--card); border-radius: var(--r); padding: 15px; border: 1px solid var(--border); margin-bottom: 12px; }
+    .card { background: var(--card); border-radius: var(--r); padding: 15px; border: 1px solid var(--border); margin-bottom: 12px; transition: transform .15s, border-color .2s; }
+    .card:active { transform: scale(0.99); }
     .card-title { font-size: 0.7rem; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 12px; }
 
     /* TODAY */
@@ -76,18 +78,21 @@
     .add-bar { display: flex; gap: 8px; margin-bottom: 14px; }
     .add-bar input { flex: 1; padding: 10px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: .88rem; outline: none; transition: border-color .2s; background: var(--card); color: var(--text); }
     .add-bar input:focus { border-color: var(--primary); }
-    .btn { padding: 10px 15px; background: var(--primary); color: #000; border: none; border-radius: 10px; font-size: .85rem; font-weight: 700; cursor: pointer; transition: opacity .2s; white-space: nowrap; }
-    .btn:hover { opacity: .85; }
+    .btn { padding: 10px 15px; background: var(--primary); color: #000; border: none; border-radius: 10px; font-size: .85rem; font-weight: 700; cursor: pointer; transition: opacity .2s, transform .15s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; }
+    .btn:hover { opacity: .88; }
+    .btn:active { transform: scale(0.94); opacity: .85; }
     .btn-sm { padding: 7px 12px; font-size: .78rem; }
     .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
     .btn-outline:hover { background: var(--primary-light); }
 
     /* HABIT CARDS */
-    .habit-card { background: var(--card); border-radius: var(--r); padding: 13px 15px; display: flex; align-items: center; gap: 11px; border: 1px solid var(--border); margin-bottom: 8px; transition: border-color .2s; }
-    .habit-card:hover { border-color: #333; }
-    .habit-card.done-card { opacity: .45; }
-    .check-btn { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #333; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; transition: all .2s; }
-    .check-btn.done { background: var(--primary); border-color: var(--primary); color: #000; }
+    .habit-card { background: var(--card); border-radius: var(--r); padding: 13px 15px; display: flex; align-items: center; gap: 11px; border: 1px solid var(--border); margin-bottom: 8px; transition: border-color .2s, transform .15s, opacity .3s; }
+    .habit-card:active { transform: scale(0.98); }
+    .habit-card.done-card { opacity: .4; }
+    .check-btn { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #333; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; transition: all .2s cubic-bezier(0.34,1.56,0.64,1); }
+    .check-btn:active { transform: scale(0.8); }
+    .check-btn.done { background: var(--primary); border-color: var(--primary); color: #000; animation: checkPop .35s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes checkPop { 0%{transform:scale(0.7)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
     .habit-info { flex: 1; min-width: 0; }
     .habit-name { font-size: .9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .badges { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
@@ -95,8 +100,9 @@
     .bs { background: rgba(250,204,21,0.12); color: #facc15; }
     .br { background: rgba(179,240,0,0.1); color: var(--primary); }
     .bt { background: rgba(255,255,255,0.06); color: #888; }
-    .icon-btn { background: none; border: none; cursor: pointer; color: #444; font-size: .9rem; padding: 4px 6px; border-radius: 6px; transition: color .2s; }
+    .icon-btn { background: none; border: none; cursor: pointer; color: #444; font-size: .9rem; padding: 4px 6px; border-radius: 6px; transition: color .2s, transform .15s; }
     .icon-btn:hover { color: var(--text); }
+    .icon-btn:active { transform: scale(0.85); }
     .icon-btn.del:hover { color: var(--danger); }
     @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
     .fire { display: inline-block; animation: pulse 1.5s infinite; }
