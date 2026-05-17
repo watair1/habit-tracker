@@ -228,6 +228,32 @@
     .hcomp-bar-bg { height: 5px; background: #1c1c1c; border-radius: 7px; overflow: hidden; }
     .hcomp-bar-fill { height: 100%; background: var(--primary); border-radius: 7px; transition: width .5s; }
 
+    /* AI ANALYSIS */
+    .ai-key-card { border-color: rgba(179,240,0,0.2); }
+    .ai-key-desc { font-size:.8rem; color:var(--muted); line-height:1.65; margin-bottom:2px; }
+    .ai-key-input-wrap { display:flex; margin-top:8px; }
+    .ai-key-input-wrap input { flex:1; border-radius:10px 0 0 10px; border-right:none; }
+    .ai-key-toggle { padding:0 13px; background:#1c1c1c; border:1px solid var(--border); border-radius:0 10px 10px 0; color:#888; font-size:.78rem; cursor:pointer; white-space:nowrap; transition:color .2s; }
+    .ai-key-toggle:hover { color:var(--text); }
+    .ai-key-link { display:inline-block; font-size:.75rem; color:var(--primary); text-decoration:none; margin-top:9px; }
+    .ai-key-link:hover { text-decoration:underline; }
+    .ai-key-warn { font-size:.7rem; color:#555; margin-top:7px; line-height:1.5; }
+    .ai-loading { display:flex; flex-direction:column; align-items:center; gap:14px; padding:30px 16px; }
+    .ai-spinner { width:34px; height:34px; border:3px solid #1e1e1e; border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .ai-loading-txt { font-size:.82rem; color:var(--muted); }
+    .ai-result-meta { font-size:.67rem; color:#3a3a3a; text-align:right; padding-bottom:8px; }
+    .ai-section { background:var(--card); border:1px solid var(--border); border-radius:var(--r); margin-bottom:10px; overflow:hidden; }
+    .ai-section-header { display:flex; align-items:center; gap:9px; padding:12px 15px 10px; border-bottom:1px solid var(--border); }
+    .ai-section-icon { font-size:1.1rem; }
+    .ai-section-title { font-size:.8rem; font-weight:700; color:var(--primary); }
+    .ai-section-body { padding:12px 15px; font-size:.8rem; color:#bbb; line-height:1.75; white-space:pre-wrap; }
+    .ai-section-body strong { color:var(--text); font-weight:700; }
+    .ai-error { background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.2); border-radius:var(--r); padding:14px 16px; margin-bottom:10px; }
+    .ai-error-title { font-size:.82rem; font-weight:700; color:#f87171; margin-bottom:5px; }
+    .ai-error-body { font-size:.78rem; color:#888; line-height:1.6; }
+    .btn-loading { opacity:.55; cursor:not-allowed; pointer-events:none; }
+
     /* MOOD SLIDER */
     .mood-slider-wrap { display: flex; align-items: center; gap: 18px; padding: 6px 4px; }
     .mood-track-area { display: flex; justify-content: center; align-items: center; width: 36px; flex-shrink: 0; }
@@ -419,7 +445,34 @@
 <!-- ===== TAB: ANALYSIS ===== -->
 <div id="tab-analysis" class="tab">
   <div style="font-weight:700;font-size:.98rem;margin-bottom:3px;">AI 맞춤 피드백</div>
-  <div class="section-sub">패턴 분석 기반 개인화 인사이트</div>
+  <div class="section-sub">Claude AI 기반 개인화 분석</div>
+
+  <!-- A: API 키 없을 때 -->
+  <div id="ai-key-setup" class="card ai-key-card" style="display:none;margin-bottom:13px;">
+    <div class="card-title" style="color:var(--primary);">Claude AI 연결</div>
+    <p class="ai-key-desc">Anthropic API 키를 입력하면 Claude AI가 내 습관 데이터를 분석해드려요.<br>키는 이 기기에만 저장되며 외부로 전송되지 않아요.</p>
+    <div class="ai-key-input-wrap">
+      <input id="ai-key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveApiKey()"/>
+      <button class="ai-key-toggle" id="ai-key-toggle-btn" onclick="toggleKeyVisibility()">보기</button>
+    </div>
+    <a class="ai-key-link" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">API 키 발급받기 →</a>
+    <p class="ai-key-warn">⚠ 공용 기기에서는 사용 후 키를 삭제해주세요.</p>
+    <button class="btn" style="width:100%;margin-top:13px;" onclick="saveApiKey()">저장하고 연결</button>
+  </div>
+
+  <!-- B: API 키 있을 때 -->
+  <div id="ai-control" class="card" style="display:none;margin-bottom:13px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-weight:700;font-size:.9rem;">Claude AI 분석</div>
+        <div id="ai-key-status" style="font-size:.7rem;color:var(--muted);margin-top:2px;"></div>
+      </div>
+      <button class="btn btn-sm btn-outline" onclick="clearApiKey()">키 삭제</button>
+    </div>
+    <button class="btn" id="ai-analyze-btn" style="width:100%;" onclick="requestAIAnalysis()">✦ AI 분석 받기</button>
+  </div>
+
+  <!-- C: 결과 영역 -->
   <div id="ai-feedback"></div>
   <div class="card">
     <div class="card-title">요일별 성공률</div>
@@ -701,7 +754,7 @@ async function loadFromCloud() {
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -1642,8 +1695,11 @@ function renderAnalysis() {
   $('n-evening').checked=$('n-evening').checked || notif.evening;
   $('n-streak').checked =$('n-streak').checked  || notif.streak;
 
+  renderAISection();
   const habits=loadHabits();
-  renderAIFeedback(habits);
+  if (!habits.length && !$('ai-feedback').innerHTML) {
+    $('ai-feedback').innerHTML = '<div class="fb-card"><div class="fb-title">📊 데이터 부족</div><div class="fb-body">습관을 추가하고 기록하면 AI 분석을 받을 수 있어요!</div></div>';
+  }
   renderDayAnalysis(habits);
   renderTimeAnalysis(habits);
   renderFailAnalysis(habits);
@@ -1659,24 +1715,187 @@ function getDayRates(habits) {
   return dd.map(d=>d.t?Math.round(d.s/d.t*100):0);
 }
 
-function renderAIFeedback(habits) {
-  if (!habits.length) { $('ai-feedback').innerHTML='<div class="fb-card"><div class="fb-title">📊 데이터 부족</div><div class="fb-body">습관을 추가하고 기록하면 맞춤 피드백을 드릴게요!</div></div>'; return; }
-  const today=todayStr(), avg=habits.reduce((s,h)=>s+successRate(h),0)/habits.length;
-  const best=[...habits].sort((a,b)=>successRate(b)-successRate(a))[0];
-  const worst=[...habits].sort((a,b)=>successRate(a)-successRate(b))[0];
-  const atRisk=habits.filter(h=>streakCount(h)>=3&&!h.checked[today]);
-  const dayRates=getDayRates(habits), dayNames=['일','월','화','수','목','금','토'];
-  const weakDay=dayNames[dayRates.indexOf(Math.min(...dayRates))];
-  const fbs=[];
+// ── AI ANALYSIS ───────────────────────────────────────────
+const loadApiKey  = () => lsGet(K.ak, null);
+function saveApiKey() {
+  const key = $('ai-key-input').value.trim();
+  if (!key.startsWith('sk-ant-')) { showToast('올바른 API 키 형식이 아니에요 (sk-ant- 로 시작해야 해요)'); return; }
+  lsSet(K.ak, key);
+  showToast('API 키가 저장됐어요!');
+  renderAISection();
+}
+function clearApiKey() {
+  localStorage.removeItem(K.ak);
+  $('ai-feedback').innerHTML = '';
+  renderAISection();
+}
+function toggleKeyVisibility() {
+  const inp = $('ai-key-input'), btn = $('ai-key-toggle-btn');
+  const isHidden = inp.type === 'password';
+  inp.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '숨기기' : '보기';
+}
+function renderAISection() {
+  const key = loadApiKey();
+  $('ai-key-setup').style.display = key ? 'none' : 'block';
+  $('ai-control').style.display   = key ? 'block' : 'none';
+  if (key) {
+    const masked = key.slice(0, 12) + '...' + key.slice(-4);
+    $('ai-key-status').textContent = '연결됨: ' + masked;
+  }
+}
 
-  if (successRate(best)>=70) fbs.push({ t:`"${best.name}" 최고 성과`, b:`성공률 ${successRate(best)}%로 가장 잘 유지 중이에요. 이 습관을 기반으로 다른 습관도 연결해보세요.` });
-  if (successRate(worst)<50&&Object.keys(worst.checked).length>=3) fbs.push({ t:`"${worst.name}" 개선 포인트`, b:`성공률 ${successRate(worst)}%예요. 더 작게 쪼개거나 실행 트리거를 만들어보세요.` });
-  if (atRisk.length) fbs.push({ t:'🚨 스트릭 위기!', b:`${atRisk.map(h=>`"${h.name}"`).join(', ')} 습관의 연속 기록이 오늘 끊길 수 있어요. 지금 바로 실행해보세요!` });
-  if (avg>=75) fbs.push({ t:'훌륭한 습관 관리', b:`평균 성공률 ${Math.round(avg)}%. 상위 25% 수준이에요. 꾸준함이 최고의 자산이에요.` });
-  else if (avg<40&&habits.length>=2) fbs.push({ t:'지금이 전환점', b:`평균 성공률 ${Math.round(avg)}%. 가장 쉬운 습관 하나에만 집중해보세요.` });
-  fbs.push({ t:`${weakDay}요일 집중 공략`, b:`${weakDay}요일 성공률 ${dayRates[dayNames.indexOf(weakDay)]}%로 가장 낮아요. 이 날을 위한 특별 루틴을 만들어보세요.` });
+function buildAnalysisData() {
+  const habits  = loadHabits();
+  const moods   = loadMoods();
+  const goals   = loadGoals();
+  const fg      = loadFinalGoal();
+  const today   = todayStr();
+  const dayRates = getDayRates(habits);
 
-  $('ai-feedback').innerHTML=fbs.map(f=>`<div class="fb-card"><div class="fb-title">${f.t}</div><div class="fb-body">${f.b}</div></div>`).join('');
+  const last7 = Array.from({length:7}, (_,i) => {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    return d.toISOString().slice(0,10);
+  }).reverse();
+
+  const avgSuccessRate = habits.length
+    ? Math.round(habits.reduce((s,h) => s+successRate(h), 0) / habits.length)
+    : 0;
+  const weeklyRate = habits.length
+    ? Math.round(last7.reduce((s,ds) => s + habits.filter(h=>!!h.checked[ds]).length/habits.length*100, 0) / 7)
+    : 0;
+  const todayDone = habits.filter(h => !!h.checked[today]).length;
+
+  const recentMoods = {};
+  Object.entries(moods).sort(([a],[b])=>b.localeCompare(a)).slice(0,14).forEach(([d,m])=>{ recentMoods[d]=m; });
+
+  return {
+    habits: habits.map(h => ({
+      name: h.name,
+      category: h.category || '기타',
+      timeSlot: h.timeSlot || '자유',
+      successRate: successRate(h),
+      streak: streakCount(h),
+      maxStreak: maxStreak(h),
+      totalChecks: Object.keys(h.checked).length,
+      last7days: last7.map(ds => !!h.checked[ds]),
+    })),
+    moods: recentMoods,
+    goals: goals.map(g => ({ title: g.title, type: g.type, dueDate: g.date||'미설정' })),
+    finalGoal: fg ? { title: fg.title, desc: fg.desc||'' } : null,
+    stats: { totalHabits: habits.length, avgSuccessRate, weeklyRate, dayRates, todayDone, todayTotal: habits.length },
+    today,
+  };
+}
+
+function buildPrompt(d) {
+  const moodLabel = { best:'최고😄', good:'좋음😊', neutral:'보통😐', bad:'나쁨😟', worst:'최악😭' };
+  const dayNames  = ['일','월','화','수','목','금','토'];
+  const habitText = d.habits.map(h =>
+    `- ${h.name}(${h.timeSlot}): 성공률 ${h.successRate}%, 현재 ${h.streak}일 연속, 최고 ${h.maxStreak}일, 최근7일=[${h.last7days.map(v=>v?'O':'X').join('')}]`
+  ).join('\n') || '없음';
+  const moodText = Object.entries(d.moods).map(([date,m])=>`${date}:${moodLabel[m]||m}`).join(', ') || '기록 없음';
+  const goalText = d.goals.map(g=>`- ${g.title}(${g.type==='long'?'장기':g.type==='mid'?'중기':'단기'}, 기한:${g.dueDate})`).join('\n') || '없음';
+  const dayRateText = dayNames.map((dn,i)=>`${dn}:${d.stats.dayRates[i]}%`).join(' ');
+
+  return `당신은 습관 코칭 전문가입니다. 아래 사용자 데이터를 분석하고 한국어로 개인화 피드백을 제공해주세요.
+
+[오늘] ${d.today}
+[습관 ${d.stats.totalHabits}개] 전체평균 ${d.stats.avgSuccessRate}%, 주간평균 ${d.stats.weeklyRate}%, 오늘 ${d.stats.todayDone}/${d.stats.todayTotal}
+${habitText}
+[요일별] ${dayRateText}
+[기분 기록] ${moodText}
+[최종목표] ${d.finalGoal ? d.finalGoal.title + (d.finalGoal.desc?' — '+d.finalGoal.desc:'') : '미설정'}
+[목표]
+${goalText}
+
+아래 5개 섹션을 ## 제목으로 각각 2~4문장씩 작성해주세요. 수치를 적극 활용하고 친근하고 실용적인 톤으로 써주세요.
+
+## 이번 주 성과 요약
+## 습관 개선 조언
+## 기분과 성공률의 관계
+## 다음 주 목표 추천
+## 응원 메시지`;
+}
+
+async function callClaudeAPI(prompt) {
+  const key = loadApiKey();
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-allow-browser': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1200,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!resp.ok) {
+    const msgs = { 401:'API 키가 유효하지 않아요. 키를 다시 확인해주세요.', 429:'요청이 너무 많아요. 잠시 후 다시 시도해주세요.' };
+    throw new Error(msgs[resp.status] || `Anthropic 서버 오류예요. 잠시 후 다시 시도해주세요. (${resp.status})`);
+  }
+  const data = await resp.json();
+  return data.content[0].text;
+}
+
+function parseAIResponse(text) {
+  const ICON_MAP = [
+    [/성과|요약/, '📊'], [/개선|조언/, '💡'], [/기분|상관/, '😊'],
+    [/목표|추천/, '🎯'], [/응원|메시지/, '✨'],
+  ];
+  const sections = text.split(/\n##\s+/).filter(Boolean);
+  if (sections.length <= 1) return [{ icon:'🤖', title:'AI 분석 결과', body: text.trim() }];
+  return sections.map(s => {
+    const lines = s.trim().split('\n');
+    const title = lines[0].replace(/^#+\s*/, '').trim();
+    const body  = lines.slice(1).join('\n').trim();
+    const icon  = (ICON_MAP.find(([re]) => re.test(title)) || [,'🤖'])[1];
+    return { icon, title, body };
+  });
+}
+
+function renderAILoading() {
+  $('ai-feedback').innerHTML = `<div class="ai-loading"><div class="ai-spinner"></div><div class="ai-loading-txt">Claude가 분석 중이에요...</div></div>`;
+}
+function renderAIError(msg) {
+  $('ai-feedback').innerHTML = `<div class="ai-error"><div class="ai-error-title">⚠ 분석 실패</div><div class="ai-error-body">${esc(msg)}</div></div>`;
+}
+function renderAIResult(sections) {
+  const now = new Date();
+  const ts  = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} 분석`;
+  $('ai-feedback').innerHTML = `<div class="ai-result-meta">${ts}</div>` +
+    sections.map(s => `
+      <div class="ai-section">
+        <div class="ai-section-header">
+          <span class="ai-section-icon">${s.icon}</span>
+          <span class="ai-section-title">${esc(s.title)}</span>
+        </div>
+        <div class="ai-section-body">${esc(s.body).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</div>
+      </div>`).join('');
+}
+
+async function requestAIAnalysis() {
+  const btn = $('ai-analyze-btn');
+  btn.textContent = '분석 중...';
+  btn.classList.add('btn-loading');
+  renderAILoading();
+  try {
+    const data     = buildAnalysisData();
+    const prompt   = buildPrompt(data);
+    const text     = await callClaudeAPI(prompt);
+    const sections = parseAIResponse(text);
+    renderAIResult(sections);
+    btn.textContent = '✦ 다시 분석하기';
+  } catch(e) {
+    renderAIError(e.message);
+    btn.textContent = '✦ AI 분석 받기';
+  } finally {
+    btn.classList.remove('btn-loading');
+  }
 }
 
 function renderDayAnalysis(habits) {
