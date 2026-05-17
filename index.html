@@ -266,6 +266,18 @@
     <button class="btn" onclick="openAddModal()">+ 추가</button>
   </div>
   <div id="habit-list"></div>
+
+  <!-- MEMO SECTION -->
+  <div class="card" style="margin-top:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="card-title" style="margin-bottom:0;">메모</div>
+      <button class="btn btn-sm" onclick="openMemoModal()">+ 새 메모</button>
+    </div>
+    <div class="add-bar" style="margin-bottom:10px;">
+      <input id="memo-search" placeholder="검색..." oninput="renderMemos()" style="font-size:.83rem;"/>
+    </div>
+    <div id="memo-list"></div>
+  </div>
 </div>
 
 <!-- ===== TAB: STATS ===== -->
@@ -462,6 +474,25 @@
   </div>
 </div>
 
+<!-- MEMO MODAL -->
+<div class="overlay" id="memo-modal">
+  <div class="sheet" style="max-height:85vh;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="sheet-title" style="margin-bottom:0;">메모</div>
+      <button class="icon-btn del" onclick="deleteMemoModal()" id="memo-del-btn" style="display:none;">삭제</button>
+    </div>
+    <div class="fg"><input id="memo-title-input" placeholder="제목..." maxlength="50" style="font-size:1rem;font-weight:700;"/></div>
+    <div class="fg" style="flex:1;">
+      <textarea id="memo-content-input" placeholder="내용... (#태그 를 쓰면 자동으로 태그가 생겨요)" style="resize:none;height:220px;font-size:.88rem;line-height:1.6;" oninput="onMemoInput()"></textarea>
+    </div>
+    <div id="memo-tags-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;min-height:20px;"></div>
+    <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px;" id="memo-autosave-status">자동 저장됨</div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('memo-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD GOAL MODAL -->
 <div class="overlay" id="goal-modal">
   <div class="sheet">
@@ -582,6 +613,7 @@ async function doSync() {
       base.doc('notif').set({ d: loadNotif() }),
       base.doc('finalgoal').set({ d: loadFinalGoal() }),
       base.doc('todos').set({ d: loadTodos() }),
+      base.doc('memos').set({ d: loadMemos() }),
     ]);
   } catch(e) { console.warn('동기화 실패:', e); }
 }
@@ -590,13 +622,14 @@ async function loadFromCloud() {
   if (!fbUser || !fbDb) return;
   const base = fbDb.collection('users').doc(fbUser.uid).collection('data');
   try {
-    const [h, u, g, n, f, t] = await Promise.all([
+    const [h, u, g, n, f, t, m] = await Promise.all([
       base.doc('habits').get(),
       base.doc('user').get(),
       base.doc('goals').get(),
       base.doc('notif').get(),
       base.doc('finalgoal').get(),
       base.doc('todos').get(),
+      base.doc('memos').get(),
     ]);
     if (h.exists) lsSet(K.h, h.data().d);
     if (u.exists) lsSet(K.u, u.data().d);
@@ -604,13 +637,14 @@ async function loadFromCloud() {
     if (n.exists) lsSet(K.n, n.data().d);
     if (f.exists) lsSet(K.f, f.data().d);
     if (t.exists) lsSet(K.t, t.data().d);
+    if (m.exists) lsSet(K.m, m.data().d);
     if (!h.exists) await doSync();
     showToast('클라우드에서 데이터를 불러왔어요.');
   } catch(e) { console.warn('클라우드 로드 실패:', e); }
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -635,6 +669,8 @@ const loadFinalGoal = () => lsGet(K.f, null);
 function saveFinalGoal(d) { lsSet(K.f, d); scheduleSync(); }
 const loadTodos = () => lsGet(K.t, []);
 function saveTodos(d) { lsSet(K.t, d); scheduleSync(); }
+const loadMemos = () => lsGet(K.m, []);
+function saveMemos(d) { lsSet(K.m, d); scheduleSync(); }
 const loadNotif = () => lsGet(K.n, { morning: false, evening: false, streak: true });
 
 function saveNotif() {
@@ -808,6 +844,7 @@ function switchTab(name, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   $('tab-' + name).classList.add('active');
   btn.classList.add('active');
+  if (name === 'today')    renderMemos();
   if (name === 'stats')    renderStats();
   if (name === 'growth')   renderGrowth();
   if (name === 'goals')    { renderFinalGoal(); renderTodos(); renderGoals(); }
@@ -907,6 +944,7 @@ function render() {
         <button class="icon-btn del" onclick="delHabit(${i})">✕</button>
       </div>`;
   }).join('');
+  renderMemos();
 }
 
 // ── HABIT ACTIONS ─────────────────────────────────────────
@@ -1159,6 +1197,99 @@ function renderFinalGoal() {
   </div>`;
 }
 
+// ── MEMOS ────────────────────────────────────────────────
+let currentMemoId = null, memoSaveTimer = null;
+
+function extractTags(text) {
+  return [...new Set((text.match(/#[\w가-힣]+/g) || []).map(t => t.slice(1)))];
+}
+
+function renderMemos() {
+  const q = ($('memo-search') ? $('memo-search').value.trim().toLowerCase() : '');
+  const memos = loadMemos();
+  const el = $('memo-list');
+  if (!el) return;
+  const filtered = q ? memos.filter(m =>
+    (m.title||'').toLowerCase().includes(q) ||
+    (m.content||'').toLowerCase().includes(q) ||
+    (m.tags||[]).some(t => t.toLowerCase().includes(q))
+  ) : memos;
+  if (!filtered.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;">${q ? '검색 결과가 없어요' : '메모가 없어요'}</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(m => `
+    <div onclick="openMemoModal('${m.id}')" style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+      <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;">${esc(m.title||'제목 없음')}</div>
+      <div style="color:var(--muted);font-size:.78rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc((m.content||'').replace(/#[\w가-힣]+/g,'').trim().slice(0,60))}</div>
+      ${m.tags&&m.tags.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;">${m.tags.map(t=>`<span style="background:var(--primary-light);color:var(--primary);font-size:.68rem;font-weight:700;padding:1px 7px;border-radius:4px;">#${esc(t)}</span>`).join('')}</div>` : ''}
+    </div>`).join('');
+}
+
+function openMemoModal(id) {
+  currentMemoId = id || null;
+  const memos = loadMemos();
+  if (id) {
+    const m = memos.find(x => x.id === id);
+    if (!m) return;
+    $('memo-title-input').value = m.title || '';
+    $('memo-content-input').value = m.content || '';
+    $('memo-del-btn').style.display = '';
+    updateMemoTagsPreview();
+  } else {
+    $('memo-title-input').value = '';
+    $('memo-content-input').value = '';
+    $('memo-del-btn').style.display = 'none';
+    $('memo-tags-preview').innerHTML = '';
+  }
+  $('memo-autosave-status').textContent = '자동 저장됨';
+  openModal('memo-modal');
+  setTimeout(() => (id ? $('memo-content-input') : $('memo-title-input')).focus(), 80);
+}
+
+function onMemoInput() {
+  $('memo-autosave-status').textContent = '저장 중...';
+  updateMemoTagsPreview();
+  clearTimeout(memoSaveTimer);
+  memoSaveTimer = setTimeout(autoSaveMemo, 800);
+}
+
+function updateMemoTagsPreview() {
+  const tags = extractTags($('memo-content-input').value);
+  $('memo-tags-preview').innerHTML = tags.map(t =>
+    `<span style="background:var(--primary-light);color:var(--primary);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:4px;">#${esc(t)}</span>`
+  ).join('');
+}
+
+function autoSaveMemo() {
+  const title = $('memo-title-input').value.trim();
+  const content = $('memo-content-input').value;
+  if (!title && !content) return;
+  const memos = loadMemos();
+  const tags = extractTags(content);
+  if (currentMemoId) {
+    const i = memos.findIndex(x => x.id === currentMemoId);
+    if (i >= 0) { memos[i].title = title; memos[i].content = content; memos[i].tags = tags; memos[i].updatedAt = todayStr(); }
+  } else {
+    const m = { id: uid(), title, content, tags, createdAt: todayStr(), updatedAt: todayStr() };
+    currentMemoId = m.id;
+    $('memo-del-btn').style.display = '';
+    memos.unshift(m);
+  }
+  saveMemos(memos);
+  renderMemos();
+  $('memo-autosave-status').textContent = '자동 저장됨';
+}
+
+function deleteMemoModal() {
+  if (!currentMemoId) return;
+  if (!confirm('이 메모를 삭제할까요?')) return;
+  const memos = loadMemos().filter(x => x.id !== currentMemoId);
+  saveMemos(memos);
+  renderMemos();
+  closeModal('memo-modal');
+}
+
 // ── TODO LIST ─────────────────────────────────────────────
 function renderTodos() {
   const todos = loadTodos();
@@ -1393,10 +1524,11 @@ function checkStreakRisk() {
 
 // ── KEYBOARD & EVENTS ─────────────────────────────────────
 $('new-habit').addEventListener('keydown', e=>{ if(e.key==='Enter') openAddModal(); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') { closeModal('add-modal'); closeModal('goal-modal'); closeModal('final-goal-modal'); } });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') { closeModal('add-modal'); closeModal('goal-modal'); closeModal('final-goal-modal'); closeModal('memo-modal'); } });
 $('add-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('add-modal'); });
 $('goal-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('goal-modal'); });
 $('final-goal-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('final-goal-modal'); });
+$('memo-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('memo-modal'); });
 
 // ── INIT ──────────────────────────────────────────────────
 (function init() {
