@@ -906,7 +906,8 @@ function motivMsg(habits) {
   const t = todayStr(), done = habits.filter(h => h.checked[t]).length, tot = habits.length;
   if (!tot) return '첫 습관을 추가해보세요.';
   if (done === tot) return `오늘 모든 습관 완료 — 완벽한 하루.`;
-  return `${done} / ${tot} 완료. ${MSGS[done % MSGS.length]}`;
+  const dayNum = Math.floor(new Date(t) / 86400000);
+  return `${done} / ${tot} 완료. ${MSGS[dayNum % MSGS.length]}`;
 }
 
 // ── TODAY RENDER ──────────────────────────────────────────
