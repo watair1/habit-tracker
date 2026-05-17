@@ -16,25 +16,27 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="manifest" id="pwa-manifest" />
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
       --primary: #b3f000; --primary-dark: #8fbe00; --primary-light: rgba(179,240,0,0.1);
+      --primary-rgb: 179,240,0;
       --success: #b3f000; --warning: #facc15; --danger: #f87171;
-      --bg: #0a0a0a; --card: #141414; --card2: #1c1c1c; --text: #f0f0f0; --muted: #555;
-      --border: #222; --r: 12px; --shadow: 0 1px 0 #222;
+      --bg: #000; --card: #0e0e0e; --card2: #161616; --text: #f0f0f0; --muted: #555;
+      --border: #1f1f1f; --r: 16px; --shadow: 0 1px 0 #1f1f1f;
     }
-    body { font-family: 'Segoe UI', -apple-system, sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
-    .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+    body { font-family: 'Pretendard', 'Segoe UI', -apple-system, sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); padding-bottom: calc(90px + env(safe-area-inset-bottom)); overflow-x: hidden; }
 
     /* HEADER */
-    .app-header { background: #0a0a0a; color: #fff; padding: 18px 16px 14px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+    .app-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: #fff; padding: 18px 18px 14px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
     .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .app-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -.3px; color: #fff; }
     .header-right { display: flex; gap: 8px; align-items: center; }
@@ -45,14 +47,15 @@
     .xp-fill { background: var(--primary); height: 100%; border-radius: 10px; transition: width .5s; }
 
     /* BOTTOM NAV */
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #0a0a0a; border-top: 1px solid var(--border); display: flex; z-index: 100; }
-    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 9px 4px 7px; background: none; border: none; cursor: pointer; gap: 2px; color: #444; font-size: 0.78rem; font-weight: 600; transition: color .2s; letter-spacing: .3px; }
-    .nav-btn .ni { font-size: 1.2rem; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; background: none; border: none; cursor: pointer; gap: 4px; color: #444; font-size: 0.72rem; font-weight: 700; transition: color .2s; letter-spacing: .3px; }
+    .nav-btn svg { width: 22px; height: 22px; stroke-width: 2px; }
     .nav-btn.active { color: var(--primary); }
 
     /* TABS */
-    .tab { display: none; padding: 14px 14px 10px; }
-    .tab.active { display: block; }
+    .tab { display: none; padding: 16px 16px 10px; }
+    .tab.active { display: block; animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     /* CARDS */
     .card { background: var(--card); border-radius: var(--r); padding: 15px; border: 1px solid var(--border); margin-bottom: 12px; }
@@ -159,9 +162,9 @@
     .day-pct { font-size: .7rem; color: var(--muted); width: 34px; text-align: right; flex-shrink: 0; }
 
     /* MODAL */
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: flex-end; justify-content: center; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 200; align-items: flex-end; justify-content: center; }
     .overlay.open { display: flex; }
-    .sheet { background: #141414; border-radius: 20px 20px 0 0; padding: 22px 18px 38px; width: 100%; max-width: 480px; animation: slideUp .28s ease; border-top: 1px solid #222; }
+    .sheet { background: #0c0c0c; border-radius: 24px 24px 0 0; padding: 26px 20px calc(36px + env(safe-area-inset-bottom)); width: 100%; max-width: 500px; animation: slideUp .3s cubic-bezier(0.32,0.72,0,1); border-top: 1px solid var(--border); }
     @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
     .sheet-title { font-size: 1rem; font-weight: 700; margin-bottom: 15px; color: var(--text); }
     .fg { margin-bottom: 13px; }
@@ -412,11 +415,11 @@
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <button class="nav-btn active" onclick="switchTab('today',this)"><span class="ni">🏠</span>오늘</button>
-  <button class="nav-btn" onclick="switchTab('stats',this)"><span class="ni">📊</span>통계</button>
-  <button class="nav-btn" onclick="switchTab('growth',this)"><span class="ni">🏆</span>성장</button>
-  <button class="nav-btn" onclick="switchTab('goals',this)"><span class="ni">🎯</span>목표</button>
-  <button class="nav-btn" onclick="switchTab('analysis',this)"><span class="ni">🤖</span>분석</button>
+  <button class="nav-btn active" onclick="switchTab('today',this)"><i data-lucide="check-circle"></i>오늘</button>
+  <button class="nav-btn" onclick="switchTab('stats',this)"><i data-lucide="bar-chart-3"></i>통계</button>
+  <button class="nav-btn" onclick="switchTab('growth',this)"><i data-lucide="trending-up"></i>성장</button>
+  <button class="nav-btn" onclick="switchTab('goals',this)"><i data-lucide="target"></i>목표</button>
+  <button class="nav-btn" onclick="switchTab('analysis',this)"><i data-lucide="activity"></i>분석</button>
 </nav>
 
 <!-- ADD HABIT MODAL -->
@@ -849,6 +852,7 @@ function switchTab(name, btn) {
   if (name === 'growth')   renderGrowth();
   if (name === 'goals')    { renderFinalGoal(); renderTodos(); renderGoals(); }
   if (name === 'analysis') renderAnalysis();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function openModal(id) { $(id).classList.add('open'); }
@@ -1541,6 +1545,7 @@ $('memo-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) cl
   setTimeout(checkStreakRisk, 3000);
   initPWA();
   initFirebase();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 })();
 
 // ── PWA SETUP ─────────────────────────────────────────────
