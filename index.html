@@ -272,6 +272,17 @@
     .hcomp-sub { font-size: .68rem; color: #444; margin-top: 3px; }
     .heatmap-legend { display: flex; gap: 7px; align-items: center; margin-top: 9px; font-size: .65rem; color: #444; }
     .hm-legend-box { width: 11px; height: 11px; border-radius: 2px; }
+    /* 상관 분석 바 */
+    .corr-group-lbl { font-size: .72rem; font-weight: 700; color: var(--text); margin-bottom: 7px; }
+    .corr-row { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+    .corr-lbl { font-size: .72rem; color: var(--muted); width: 96px; flex-shrink: 0; }
+    .corr-n { color: #3a3a3a; font-size: .62rem; }
+    .corr-track { flex: 1; height: 9px; background: var(--card2); border-radius: 9px; overflow: hidden; }
+    .corr-fill { height: 100%; border-radius: 9px; transition: width .5s; }
+    .corr-val { font-size: .72rem; font-weight: 800; color: var(--text); width: 34px; text-align: right; }
+    .corr-empty { flex: 1; font-size: .68rem; color: #3a3a3a; }
+    .corr-insight { margin-top: 11px; font-size: .78rem; line-height: 1.55; color: var(--text); background: var(--primary-light); border-radius: 9px; padding: 10px 12px; }
+    .corr-insight b { color: var(--primary); }
 
     /* ── 하루 관리 탭 ── */
     .nav-btn { font-size: .68rem; }            /* 탭 6개라 살짝 축소 */
@@ -347,7 +358,15 @@
     .rv-done-btn, .rv-rate-btn { flex: 1; padding: 11px 6px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: .8rem; font-weight: 700; cursor: pointer; }
     .rv-done-btn.sel, .rv-rate-btn.sel { border-color: var(--primary); color: var(--text); background: var(--primary-light); }
     /* 하루 마무리 기분 */
+    .day-sub-lbl { font-size: .68rem; color: var(--muted); font-weight: 700; margin: 2px 0 7px; text-transform: uppercase; letter-spacing: .5px; }
     .day-mood-row { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 12px; }
+    /* 수면 */
+    .sleep-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .sleep-field { display: flex; flex-direction: column; gap: 4px; }
+    .sleep-field span { font-size: .62rem; color: var(--muted); }
+    .sleep-field input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: #1c1c1c; color: var(--text); font-size: .82rem; font-family: inherit; }
+    .sleep-arrow { width: 16px; height: 16px; color: var(--muted); margin-top: 14px; }
+    .sleep-result { margin-left: auto; margin-top: 14px; font-size: .9rem; font-weight: 800; color: var(--primary); }
     .day-mood-btn { flex: 1; padding: 9px 0; font-size: 1.5rem; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; filter: grayscale(0.6); opacity: .6; transition: all .15s; }
     .day-mood-btn.sel { filter: none; opacity: 1; border-color: var(--primary); transform: scale(1.08); background: var(--primary-light); }
     .day-summary-ai { background: var(--primary-light); border: 1px solid rgba(179,240,0,0.25); border-radius: 10px; padding: 12px; margin-top: 12px; font-size: .85rem; line-height: 1.6; color: var(--text); }
@@ -503,12 +522,20 @@
   <!-- ⑤ 기분 / 하루 메모 -->
   <div class="card day-wrap-card">
     <div class="card-title">하루 마무리</div>
+    <div class="day-sub-lbl">오늘 기분</div>
     <div class="day-mood-row" id="day-mood-row">
-      <button class="day-mood-btn" data-m="1" onclick="setDayMood(1)">😞</button>
-      <button class="day-mood-btn" data-m="2" onclick="setDayMood(2)">😕</button>
+      <button class="day-mood-btn" data-m="1" onclick="setDayMood(1)">😭</button>
+      <button class="day-mood-btn" data-m="2" onclick="setDayMood(2)">😟</button>
       <button class="day-mood-btn" data-m="3" onclick="setDayMood(3)">😐</button>
-      <button class="day-mood-btn" data-m="4" onclick="setDayMood(4)">🙂</button>
+      <button class="day-mood-btn" data-m="4" onclick="setDayMood(4)">😊</button>
       <button class="day-mood-btn" data-m="5" onclick="setDayMood(5)">😄</button>
+    </div>
+    <div class="day-sub-lbl">수면 시간</div>
+    <div class="sleep-row">
+      <div class="sleep-field"><span>취침</span><input type="time" id="sleep-bed" onchange="setSleep()"></div>
+      <i data-lucide="moon" class="sleep-arrow"></i>
+      <div class="sleep-field"><span>기상</span><input type="time" id="sleep-wake" onchange="setSleep()"></div>
+      <div class="sleep-result" id="sleep-result">—</div>
     </div>
     <textarea id="day-memo" placeholder="오늘 하루를 한 줄로 남겨보세요..." style="resize:none;height:80px;width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:.88rem;line-height:1.6;background:#1c1c1c;color:var(--text);font-family:inherit;" oninput="onDayMemoInput()"></textarea>
     <button class="btn btn-outline btn-sm" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="requestDaySummary()"><i data-lucide="sparkles" style="width:14px;height:14px;"></i>AI 하루 총평</button>
@@ -553,6 +580,11 @@
     <div class="card-title">기분 & 성공률 주간 추이</div>
     <div class="chart-box" style="height:200px;"><canvas id="mood-chart"></canvas></div>
     <p id="mood-chart-empty" style="display:none;font-size:.8rem;color:var(--muted);text-align:center;margin-top:12px;">기분을 기록하면 여기에 그래프가 표시돼요</p>
+  </div>
+  <div class="card">
+    <div class="card-title">기분 · 수면과 습관 성공률</div>
+    <div class="section-sub" style="margin-bottom:10px;">최근 30일 · 기분/수면 상태별 평균 습관 실천율</div>
+    <div id="corr-analysis"></div>
   </div>
 </div>
 
@@ -1120,7 +1152,7 @@ function saveDayData(d) { lsSet(K.d, d); scheduleSync(); }
 // 특정 날짜의 하루 데이터를 꺼냄 (없으면 기본 껍데기 반환)
 function getDay(date) {
   const all = loadDayData();
-  const base = { highlight: null, todos: [], events: [], mood: null, memo: '' };
+  const base = { highlight: null, todos: [], events: [], memo: '', sleep: null };
   return Object.assign(base, all[date] || {});
 }
 // 특정 날짜의 하루 데이터를 통째로 저장
@@ -1534,6 +1566,63 @@ function renderStats() {
   }).join('');
 
   renderMoodChart();
+  renderCorrelation();
+}
+
+// ── 기분·수면 × 성공률 상관 ───────────────────────────────
+// 특정 날짜의 습관 실천율(그날 존재하던 습관 중 체크한 비율)
+function dayCompletionRate(date){
+  const habits=loadHabits().filter(h=>h.createdAt<=date);
+  if(!habits.length) return null;
+  const done=habits.filter(h=>h.checked && h.checked[date]).length;
+  return Math.round(done/habits.length*100);
+}
+// 값들의 평균
+function avg(arr){ return arr.length? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null; }
+function renderCorrelation(){
+  const el=$('corr-analysis');
+  const moods=loadMoods(), days=loadDayData();
+  // 최근 30일 날짜 목록
+  const dates=[]; const t=new Date(todayStr());
+  for(let i=0;i<30;i++){ const d=new Date(t); d.setDate(d.getDate()-i); dates.push(d.toISOString().slice(0,10)); }
+
+  // 기분: 좋음(good,best) vs 나쁨(bad,worst)
+  const goodRates=[], badRates=[];
+  dates.forEach(dt=>{
+    const mood=moods[dt]; if(!mood) return;
+    const rate=dayCompletionRate(dt); if(rate===null) return;
+    if(mood==='good'||mood==='best') goodRates.push(rate);
+    else if(mood==='bad'||mood==='worst') badRates.push(rate);
+  });
+  // 수면: 충분(≥7h) vs 부족(<6h)
+  const wellRates=[], poorRates=[];
+  dates.forEach(dt=>{
+    const s=(days[dt]||{}).sleep; const min=sleepMinutes(s); if(min===null) return;
+    const rate=dayCompletionRate(dt); if(rate===null) return;
+    if(min>=420) wellRates.push(rate);
+    else if(min<360) poorRates.push(rate);
+  });
+
+  const bar=(label,rate,n,color)=> rate===null
+    ? `<div class="corr-row"><div class="corr-lbl">${label}</div><div class="corr-empty">기록 부족</div></div>`
+    : `<div class="corr-row"><div class="corr-lbl">${label} <span class="corr-n">${n}일</span></div>
+        <div class="corr-track"><div class="corr-fill" style="width:${rate}%;background:${color};"></div></div>
+        <div class="corr-val">${rate}%</div></div>`;
+
+  const gAvg=avg(goodRates), bAvg=avg(badRates), wAvg=avg(wellRates), pAvg=avg(poorRates);
+  let insight='';
+  if(gAvg!==null && bAvg!==null) insight += gAvg>bAvg
+    ? `기분 좋은 날 실천율이 <b>${gAvg-bAvg}%p</b> 높아요. ` : (bAvg>gAvg?`기분 나쁜 날에도 잘 해내고 있어요. `:'');
+  if(wAvg!==null && pAvg!==null && wAvg>pAvg) insight += `잘 잔 날 실천율이 <b>${wAvg-pAvg}%p</b> 높아요.`;
+
+  el.innerHTML=`
+    <div class="corr-group-lbl">😊 기분</div>
+    ${bar('기분 좋은 날', gAvg, goodRates.length, 'var(--primary)')}
+    ${bar('기분 나쁜 날', bAvg, badRates.length, '#f87171')}
+    <div class="corr-group-lbl" style="margin-top:12px;">🌙 수면</div>
+    ${bar('잘 잔 날 (7h+)', wAvg, wellRates.length, 'var(--primary)')}
+    ${bar('못 잔 날 (6h-)', pAvg, poorRates.length, '#f87171')}
+    ${insight?`<div class="corr-insight">💡 ${insight}</div>`:'<div class="corr-insight" style="color:var(--muted);">기분·수면과 습관을 며칠 더 기록하면 상관관계를 분석해드려요</div>'}`;
 }
 
 // ── MOOD ──────────────────────────────────────────────────
@@ -2697,7 +2786,8 @@ let calYear, calMonth;   // 지금 달력에 보여주는 연/월(0-based month)
 // 해당 날짜에 기록(하이라이트/일정/할일/기분/메모)이나 습관 체크가 있는지
 function hasDayData(date){
   const rec=loadDayData()[date];
-  if(rec && (rec.highlight || (rec.events&&rec.events.length) || (rec.todos&&rec.todos.length) || rec.mood || (rec.memo&&rec.memo.trim()))) return true;
+  if(rec && (rec.highlight || (rec.events&&rec.events.length) || (rec.todos&&rec.todos.length) || (rec.sleep&&rec.sleep.bed) || (rec.memo&&rec.memo.trim()))) return true;
+  if(loadMoods()[date]) return true;
   return loadHabits().some(h=>h.checked && h.checked[date]);
 }
 function toggleDayCal(){
@@ -3087,21 +3177,50 @@ function toggleHabitDate(habitId, date){
   renderTimeline();
 }
 
-// ── ⑤ 하루 마무리(기분/메모) ──────────────────────────────
+// ── ⑤ 하루 마무리(기분/수면/메모) ─────────────────────────
 let _dayMemoTimer=null;
+// 기분은 '오늘' 탭과 같은 저장소(K.md)를 공유 — 1~5 <-> worst~best 매핑
+const NUM2MOOD=['','worst','bad','neutral','good','best'];
+const MOOD2NUM={worst:1,bad:2,neutral:3,good:4,best:5};
 function renderDayMoodMemo(){
   const d=getDay(dayCursor);
-  document.querySelectorAll('#day-mood-row .day-mood-btn').forEach(b=>b.classList.toggle('sel',Number(b.dataset.m)===d.mood));
+  const cur=MOOD2NUM[loadMoods()[dayCursor]]||0;
+  document.querySelectorAll('#day-mood-row .day-mood-btn').forEach(b=>b.classList.toggle('sel',Number(b.dataset.m)===cur));
   $('day-memo').value=d.memo||'';
+  renderSleep();
   $('day-summary-box').innerHTML='';
 }
 function setDayMood(m){
-  const d=getDay(dayCursor); d.mood = d.mood===m?null:m; setDay(dayCursor,d);
+  const moods=loadMoods();
+  const cur=MOOD2NUM[moods[dayCursor]]||0;
+  if(cur===m) delete moods[dayCursor]; else moods[dayCursor]=NUM2MOOD[m];
+  saveMoods(moods);
   renderDayMoodMemo();
+  if(dayCursor===todayStr()) renderMoodPicker();   // 오늘 탭 기분 슬라이더도 동기화
 }
 function onDayMemoInput(){
   clearTimeout(_dayMemoTimer);
   _dayMemoTimer=setTimeout(()=>{ const d=getDay(dayCursor); d.memo=$('day-memo').value; setDay(dayCursor,d); },600);
+}
+// 수면시간 계산 (자정을 넘겨도 처리)
+function sleepMinutes(sleep){
+  if(!sleep || !sleep.bed || !sleep.wake) return null;
+  let diff=hmToMin(sleep.wake)-hmToMin(sleep.bed);
+  if(diff<=0) diff+=1440;
+  return diff;
+}
+function setSleep(){
+  const d=getDay(dayCursor);
+  d.sleep={ bed:$('sleep-bed').value||null, wake:$('sleep-wake').value||null };
+  setDay(dayCursor,d);
+  renderSleep();
+}
+function renderSleep(){
+  const d=getDay(dayCursor), s=d.sleep||{};
+  $('sleep-bed').value=s.bed||'';
+  $('sleep-wake').value=s.wake||'';
+  const min=sleepMinutes(s);
+  $('sleep-result').textContent = min===null ? '—' : `${Math.floor(min/60)}시간 ${min%60}분`;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3126,8 +3245,10 @@ async function requestDaySummary(){
   const d=getDay(dayCursor), habits=loadHabits();
   const r=computeDayRate(dayCursor);
   try {
+    const sMin=sleepMinutes(d.sleep);
     const out=await aiCall('/api/day-summary',{
-      date:dayCursor, mood:d.mood, memo:d.memo, doneRate:r.pct,
+      date:dayCursor, mood:MOOD2NUM[loadMoods()[dayCursor]]||null, memo:d.memo, doneRate:r.pct,
+      sleepHours: sMin===null?null:+(sMin/60).toFixed(1),
       habits:habits.map(h=>({ name:h.name, done:!!h.checked[dayCursor] }))
     });
     box.innerHTML=`<div class="day-summary-ai">${esc(out.summary||'')}</div>`;

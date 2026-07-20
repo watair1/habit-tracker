@@ -114,12 +114,13 @@ router.post('/failure-analysis', async (req, res) => {
 
 // ── 6. 하루 회고 한 줄 총평 ───────────────────────────────
 router.post('/day-summary', async (req, res) => {
-  const { date, mood, memo, doneRate, habits } = req.body || {};
+  const { date, mood, memo, doneRate, habits, sleepHours } = req.body || {};
   try {
     const sys = `너는 다정한 하루 코치다. 사용자의 하루 데이터를 보고 따뜻한 한 줄 총평을 한국어로 해라.
 반드시 JSON만 출력: {"summary":"따뜻하고 구체적인 한 줄 총평"}`;
     const moodTxt = ['', '많이 힘듦', '조금 지침', '보통', '괜찮음', '아주 좋음'][mood] || '기록 없음';
-    const user = `날짜: ${date || ''}\n기분: ${moodTxt}\n실행률: ${doneRate ?? '-'}%\n메모: ${memo || '(없음)'}\n습관: ${(habits || []).map(h => `${h.name}(${h.done ? '완료' : '미완'})`).join(', ') || '없음'}`;
+    const sleepTxt = (sleepHours || sleepHours === 0) ? `${sleepHours}시간` : '기록 없음';
+    const user = `날짜: ${date || ''}\n기분: ${moodTxt}\n수면: ${sleepTxt}\n실행률: ${doneRate ?? '-'}%\n메모: ${memo || '(없음)'}\n습관: ${(habits || []).map(h => `${h.name}(${h.done ? '완료' : '미완'})`).join(', ') || '없음'}`;
     const out = await callGemini(sys, user, { json: true });
     res.json({ summary: out.summary || '' });
   } catch (e) { fail(res, e); }
