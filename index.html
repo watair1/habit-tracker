@@ -561,6 +561,13 @@
     <div id="todo-list"></div>
   </div>
 
+  <div class="card" style="background:rgba(179,240,0,0.04);border-color:rgba(179,240,0,0.15);">
+    <div class="card-title" style="color:var(--primary);">✨ AI 습관 추천</div>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px;line-height:1.5;">설정한 최종 목표를 이루는 데 필요한 습관을 AI가 추천해줘요.</p>
+    <button class="btn btn-outline btn-sm" style="width:100%;" onclick="requestGoalHabits()">최종 목표로 습관 추천받기</button>
+    <div id="goal-habits-box" style="margin-top:10px;"></div>
+  </div>
+
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div>
       <div style="font-weight:700;font-size:.98rem;">목표 관리</div>
@@ -612,6 +619,19 @@
 
   <!-- C: 결과 영역 -->
   <div id="ai-feedback"></div>
+
+  <!-- Gemini 서버 기반 AI 도우미 -->
+  <div class="card">
+    <div class="card-title" style="display:inline-flex;align-items:center;gap:6px;">📋 주간 리포트</div>
+    <button class="btn btn-outline btn-sm" style="width:100%;" onclick="requestWeeklyReport()">이번 주 리포트 받기</button>
+    <div id="weekly-report-box"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔍 AI 실패 패턴 분석</div>
+    <button class="btn btn-outline btn-sm" style="width:100%;" onclick="requestFailAnalysisAI()">실패 패턴 분석하기</button>
+    <div id="fail-ai-box"></div>
+  </div>
+
   <div class="card">
     <div class="card-title">요일별 성공률</div>
     <div id="day-analysis"></div>
@@ -742,7 +762,19 @@
 <div class="overlay" id="add-modal">
   <div class="sheet">
     <div class="sheet-title" id="add-modal-title">습관 추가</div>
-    <div class="fg"><label>습관 이름</label><input id="m-name" placeholder="예: 물 2L 마시기" maxlength="30"/></div>
+    <div class="fg">
+      <label>✨ AI로 입력 (말하듯 적어보세요)</label>
+      <div style="display:flex;gap:6px;">
+        <input id="ai-habit-nl" placeholder="예: 매일 아침 7시에 물 마시기" style="flex:1;" onkeydown="if(event.key==='Enter')aiParseHabit()"/>
+        <button class="btn btn-sm" id="ai-parse-btn" onclick="aiParseHabit()" style="flex:0 0 auto;">AI</button>
+      </div>
+    </div>
+    <div class="fg"><label>습관 이름</label>
+      <div style="display:flex;gap:6px;">
+        <input id="m-name" placeholder="예: 물 2L 마시기" maxlength="30" style="flex:1;"/>
+        <button class="btn btn-sm btn-outline" id="ai-refine-btn" onclick="aiRefineHabit()" style="flex:0 0 auto;">구체화</button>
+      </div>
+    </div>
     <div class="fg"><label>카테고리</label>
       <select id="m-cat">
         <option value="건강">💪 건강/운동</option>
@@ -2606,6 +2638,7 @@ $('recall-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) 
 //  하루 관리 탭 (Day tab)
 // ════════════════════════════════════════════════════════════
 let dayCursor = todayStr();                 // 지금 보고 있는 날짜
+let _lastScrolledCursor = null;              // 마지막으로 자동 스크롤한 날짜
 let _nowTimer = null;                        // 현재 시각 빨간 선 갱신 타이머
 const HOUR_PX = 60;                          // 1시간 = 60px = 60분
 const SNAP = 30;                             // 30분 스냅
@@ -2810,10 +2843,12 @@ function renderTimeline(){
     return `<button class="tl-hab" style="position:static;border-radius:8px;padding:4px 9px;background:${on?'rgba(179,240,0,0.2)':'rgba(179,240,0,0.06)'};border:1px solid ${on?'var(--primary)':'rgba(179,240,0,0.2)'};color:${on?'var(--primary)':'#7c8a4a'};" onclick="toggleHabitDate('${hb.id}','${dayCursor}')">${on?'✓ ':'○ '}${esc(hb.name)}</button>`;
   }).join('') : '';
 
-  // 최초 진입 시 06:00(또는 현재 시각) 근처로 스크롤
-  const scroll=$('tl-scroll');
-  const target = dayCursor===todayStr() && nowMin!==null ? Math.max(0,nowMin-120) : 6*HOUR_PX;
-  scroll.scrollTop=target;
+  // 날짜가 바뀐 경우에만 06:00(또는 현재 시각) 근처로 스크롤 (드래그 재렌더 시 튐 방지)
+  if(_lastScrolledCursor!==dayCursor){
+    const scroll=$('tl-scroll');
+    scroll.scrollTop = dayCursor===todayStr() && nowMin!==null ? Math.max(0,nowMin-120) : 6*HOUR_PX;
+    _lastScrolledCursor=dayCursor;
+  }
 
   // 현재 시각 선 1분마다 갱신
   if(_nowTimer) clearInterval(_nowTimer);
@@ -3050,6 +3085,104 @@ function applyAutoSchedule(){
   closeModal('autosched-modal');
   showToast(`${_autoSchedDraft.length}개 일정을 추가했어요`);
   _autoSchedDraft=[]; renderTimeline();
+}
+
+// HH:MM → 앱의 시간대(timeSlot) enum
+function timeToSlot(t){ if(!t) return '자유'; const h=+String(t).split(':')[0]; if(h<10)return'아침'; if(h<12)return'오전'; if(h<14)return'점심'; if(h<18)return'오후'; if(h<22)return'저녁'; return'자유'; }
+
+// 습관 추가 모달: 자연어 → 습관 파싱
+async function aiParseHabit(){
+  const inp=$('ai-habit-nl'), text=inp.value.trim();
+  if(!text){ showToast('무엇을 습관으로 만들지 적어주세요'); return; }
+  const btn=$('ai-parse-btn'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML=`<span class="ai-spin"></span>`;
+  try {
+    const out=await aiCall('/api/parse-habit',{ text });
+    const list=Array.isArray(out)?out:[];
+    if(!list.length){ showToast('습관을 못 알아들었어요. 다르게 적어보세요'); }
+    else {
+      // 첫 번째는 폼에 채워서 확인 후 저장하도록
+      $('m-name').value=list[0].habit||'';
+      $('m-time').value=timeToSlot(list[0].time);
+      inp.value='';
+      if(list.length>1) showToast(`${list.length}개 중 첫 번째를 채웠어요. 저장하면 등록돼요`);
+      else showToast('내용을 확인하고 추가하기를 눌러주세요');
+    }
+  } catch(err){ showToast(err.message); }
+  btn.disabled=false; btn.innerHTML=old;
+}
+
+// 습관 이름 구체화
+async function aiRefineHabit(){
+  const name=$('m-name').value.trim();
+  if(!name){ showToast('먼저 습관 이름을 적어주세요'); return; }
+  const btn=$('ai-refine-btn'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML=`<span class="ai-spin"></span>`;
+  try {
+    const out=await aiCall('/api/refine-habit',{ habitName:name });
+    if(out.refined){ $('m-name').value=out.refined.slice(0,30); showToast(out.reason||'더 구체적으로 바꿨어요'); }
+  } catch(err){ showToast(err.message); }
+  btn.disabled=false; btn.innerHTML=old;
+}
+
+// 분석 탭: 주간 리포트
+async function requestWeeklyReport(){
+  const box=$('weekly-report-box');
+  box.innerHTML=`<div class="day-summary-ai"><span class="ai-spin"></span> 주간 리포트 작성 중...</div>`;
+  const habits=loadHabits();
+  const weekStart=new Date(); weekStart.setDate(weekStart.getDate()-6);
+  try {
+    const out=await aiCall('/api/weekly-report',{
+      weekStart: weekStart.toISOString().slice(0,10),
+      habits: habits.map(h=>({ name:h.name, checkedDates:Object.keys(h.checked||{}).slice(-30) }))
+    });
+    box.innerHTML=`<div class="day-summary-ai">${esc(out.analysis||'')}<br><br>💪 ${esc(out.encouragement||'')}</div>`;
+  } catch(err){ box.innerHTML=''; showToast(err.message); }
+}
+
+// 분석 탭: 실패 패턴 분석
+async function requestFailAnalysisAI(){
+  const box=$('fail-ai-box');
+  box.innerHTML=`<div class="day-summary-ai"><span class="ai-spin"></span> 실패 패턴 분석 중...</div>`;
+  const habits=loadHabits();
+  try {
+    const out=await aiCall('/api/failure-analysis',{
+      habits: habits.map(h=>({ name:h.name, timeSlot:h.timeSlot||'자유', checkedDates:Object.keys(h.checked||{}).slice(-30) }))
+    });
+    const pats=(out.patterns||[]).map(p=>`• ${esc(p)}`).join('<br>');
+    box.innerHTML=`<div class="day-summary-ai">${pats}${pats?'<br><br>':''}💡 ${esc(out.advice||'')}</div>`;
+  } catch(err){ box.innerHTML=''; showToast(err.message); }
+}
+
+// 목표 탭: 최종 목표 → 실천 습관 추천
+let _goalHabitDraft=[];
+async function requestGoalHabits(){
+  const fg=loadFinalGoal();
+  const goalText = fg && fg.title ? (fg.title+(fg.desc?(' - '+fg.desc):'')) : '';
+  if(!goalText){ showToast('먼저 최종 목표를 설정해주세요'); return; }
+  const box=$('goal-habits-box');
+  box.innerHTML=`<div class="day-summary-ai"><span class="ai-spin"></span> 목표에 맞는 습관 찾는 중...</div>`;
+  try {
+    const out=await aiCall('/api/goal-to-habits',{ goal:goalText });
+    _goalHabitDraft=Array.isArray(out)?out:[];
+    if(!_goalHabitDraft.length){ box.innerHTML=''; showToast('추천 습관을 못 만들었어요'); return; }
+    box.innerHTML=_goalHabitDraft.map((h,i)=>`
+      <label class="hb-chk" style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;">
+        <input type="checkbox" checked data-i="${i}">
+        <span style="flex:1;font-size:.85rem;">${esc(h.habit)}</span>
+        <span class="badge bt" style="background:var(--primary-light);color:var(--primary);">${esc(h.timeSlot)}</span>
+      </label>`).join('')
+      +`<button class="btn" style="width:100%;margin-top:6px;" onclick="applyGoalHabits()">선택한 습관 등록</button>`;
+  } catch(err){ box.innerHTML=''; showToast(err.message); }
+}
+function applyGoalHabits(){
+  const habits=loadHabits(); let n=0;
+  document.querySelectorAll('#goal-habits-box input[type=checkbox]:checked').forEach(cb=>{
+    const h=_goalHabitDraft[+cb.dataset.i]; if(!h) return;
+    habits.push({ id:uid(), name:h.habit, createdAt:todayStr(), checked:{}, category:h.category||'생활', timeSlot:h.timeSlot||'자유' }); n++;
+  });
+  if(!n){ showToast('선택된 습관이 없어요'); return; }
+  saveHabits(habits); checkAchs();
+  $('goal-habits-box').innerHTML=''; _goalHabitDraft=[];
+  showToast(`${n}개 습관을 등록했어요`); render();
 }
 
 (function init() {
