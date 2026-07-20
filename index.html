@@ -280,7 +280,22 @@
     .day-nav-btn { background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .day-nav-btn svg { width: 20px; height: 20px; }
     .day-head-center { text-align: center; flex: 1; }
-    .day-head-date { font-size: 1rem; font-weight: 800; color: var(--text); }
+    .day-head-date { font-size: 1rem; font-weight: 800; color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    /* 월 달력 */
+    .day-cal { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 13px; animation: slideUp .2s ease; }
+    .day-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .day-cal-title { font-size: .9rem; font-weight: 800; color: var(--text); }
+    .day-cal-nav { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; width: 30px; height: 30px; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .day-cal-nav svg { width: 16px; height: 16px; }
+    .day-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .day-cal-wd { text-align: center; font-size: .6rem; color: var(--muted); padding: 3px 0; font-weight: 700; }
+    .day-cal-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 9px; font-size: .78rem; color: var(--text); cursor: pointer; position: relative; }
+    .day-cal-cell.empty { cursor: default; }
+    .day-cal-cell:not(.empty):hover { background: var(--card2); }
+    .day-cal-cell.today { color: var(--primary); font-weight: 800; }
+    .day-cal-cell.sel { background: var(--primary); color: #000; font-weight: 800; }
+    .day-cal-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }
+    .day-cal-cell.sel .day-cal-dot { background: #000; }
     .day-today-btn { margin-top: 3px; background: transparent; border: none; color: var(--primary); font-size: .72rem; font-weight: 700; cursor: pointer; }
     .day-today-btn.hidden { display: none; }
     .hl-card { background: linear-gradient(135deg, rgba(179,240,0,0.10), rgba(179,240,0,0.02)); border-color: rgba(179,240,0,0.25); cursor: pointer; }
@@ -436,10 +451,23 @@
   <div class="day-head">
     <button class="day-nav-btn" onclick="shiftDay(-1)"><i data-lucide="chevron-left"></i></button>
     <div class="day-head-center">
-      <div class="day-head-date" id="day-head-date">오늘</div>
+      <div class="day-head-date" id="day-head-date" onclick="toggleDayCal()">오늘</div>
       <button class="day-today-btn" id="day-today-btn" onclick="goToday()">오늘로</button>
     </div>
     <button class="day-nav-btn" onclick="shiftDay(1)"><i data-lucide="chevron-right"></i></button>
+  </div>
+
+  <!-- 월 달력 (헤더 날짜 탭하면 펼쳐짐) -->
+  <div class="day-cal" id="day-cal" style="display:none;">
+    <div class="day-cal-head">
+      <button class="day-cal-nav" onclick="calShiftMonth(-1)"><i data-lucide="chevron-left"></i></button>
+      <div class="day-cal-title" id="day-cal-title"></div>
+      <button class="day-cal-nav" onclick="calShiftMonth(1)"><i data-lucide="chevron-right"></i></button>
+    </div>
+    <div class="day-cal-grid">
+      <div class="day-cal-wd" style="color:#e06767;">일</div><div class="day-cal-wd">월</div><div class="day-cal-wd">화</div><div class="day-cal-wd">수</div><div class="day-cal-wd">목</div><div class="day-cal-wd">금</div><div class="day-cal-wd" style="color:#5b8def;">토</div>
+    </div>
+    <div class="day-cal-grid" id="day-cal-grid" style="margin-top:3px;"></div>
   </div>
 
   <!-- ① 하이라이트 -->
@@ -2664,9 +2692,54 @@ function shiftDay(delta){
 }
 function goToday(){ dayCursor=todayStr(); renderDay(); }
 
+// ── 월 달력 ────────────────────────────────────────────────
+let calYear, calMonth;   // 지금 달력에 보여주는 연/월(0-based month)
+// 해당 날짜에 기록(하이라이트/일정/할일/기분/메모)이나 습관 체크가 있는지
+function hasDayData(date){
+  const rec=loadDayData()[date];
+  if(rec && (rec.highlight || (rec.events&&rec.events.length) || (rec.todos&&rec.todos.length) || rec.mood || (rec.memo&&rec.memo.trim()))) return true;
+  return loadHabits().some(h=>h.checked && h.checked[date]);
+}
+function toggleDayCal(){
+  const el=$('day-cal');
+  if(el.style.display==='none'){
+    const c=new Date(dayCursor); calYear=c.getFullYear(); calMonth=c.getMonth();
+    el.style.display='block'; renderDayCal();
+  } else { el.style.display='none'; }
+}
+function calShiftMonth(delta){
+  calMonth+=delta;
+  if(calMonth<0){ calMonth=11; calYear--; }
+  else if(calMonth>11){ calMonth=0; calYear++; }
+  renderDayCal();
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function renderDayCal(){
+  $('day-cal-title').textContent=`${calYear}년 ${calMonth+1}월`;
+  const first=new Date(calYear,calMonth,1).getDay();     // 1일의 요일(0=일)
+  const dim=new Date(calYear,calMonth+1,0).getDate();    // 이번 달 일수
+  const today=todayStr();
+  let html='';
+  for(let i=0;i<first;i++) html+='<div class="day-cal-cell empty"></div>';
+  for(let d=1;d<=dim;d++){
+    const date=`${calYear}-${pad2(calMonth+1)}-${pad2(d)}`;
+    const cls=['day-cal-cell'];
+    if(date===today) cls.push('today');
+    if(date===dayCursor) cls.push('sel');
+    html+=`<div class="${cls.join(' ')}" onclick="pickCalDay('${date}')">${d}${hasDayData(date)?'<span class="day-cal-dot"></span>':''}</div>`;
+  }
+  $('day-cal-grid').innerHTML=html;
+}
+function pickCalDay(date){
+  dayCursor=date;
+  $('day-cal').style.display='none';
+  renderDay();
+}
+
 function renderDay(){
-  $('day-head-date').textContent = fmtDayHead(dayCursor);
+  $('day-head-date').innerHTML = esc(fmtDayHead(dayCursor)) + ' <i data-lucide="chevron-down" style="width:14px;height:14px;vertical-align:-2px;opacity:.6;"></i>';
   $('day-today-btn').classList.toggle('hidden', dayCursor===todayStr());
+  if($('day-cal').style.display!=='none') renderDayCal();   // 달력 열려있으면 선택 표시 갱신
   renderHighlight();
   renderDayRate();
   renderDayTodos();
