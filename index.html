@@ -2956,9 +2956,12 @@ function layoutEvents(evs){
 
 // 드래그(길게 눌러 이동) + 하단 핸들(길이 조절), 30분 스냅
 function bindEventDrag(el){
-  let mode=null, startY=0, origTop=0, origH=0, lpTimer=null, moved=false;
+  let mode=null, startY=0, origTop=0, origH=0, lpTimer=null, moved=false, ignore=false;
   const id=el.dataset.id;
   el.addEventListener('pointerdown',(e)=>{
+    // 배지(어땠어요?/완료 표시)를 눌렀으면 블록의 탭/드래그를 무시 (배지 자체 onclick이 처리)
+    if(e.target.closest('.tl-ev-badge')){ ignore=true; return; }
+    ignore=false;
     e.preventDefault();
     startY=e.clientY; origTop=parseFloat(el.style.top); origH=parseFloat(el.style.height); moved=false;
     el.setPointerCapture(e.pointerId);
@@ -2966,6 +2969,7 @@ function bindEventDrag(el){
     else { mode=null; lpTimer=setTimeout(()=>{ mode='move'; el.classList.add('dragging'); if(navigator.vibrate)navigator.vibrate(15); },300); }
   });
   el.addEventListener('pointermove',(e)=>{
+    if(ignore) return;
     const dy=e.clientY-startY;
     if(Math.abs(dy)>4) moved=true;
     if(mode==='move'){ el.style.top=Math.max(0,Math.min(1440-origH,origTop+dy))+'px'; }
@@ -2973,6 +2977,7 @@ function bindEventDrag(el){
     else if(moved && lpTimer){ clearTimeout(lpTimer); lpTimer=null; } // 길게 누르기 전에 움직이면 취소(스크롤로 간주)
   });
   el.addEventListener('pointerup',(e)=>{
+    if(ignore){ ignore=false; return; }
     if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; }
     el.classList.remove('dragging');
     if(mode==='move' || mode==='resize'){
