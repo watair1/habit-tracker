@@ -340,11 +340,22 @@
   <!-- MEMO SECTION -->
   <div class="card" style="margin-top:14px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div class="card-title" style="margin-bottom:0;">메모</div>
-      <button class="btn btn-sm" onclick="openMemoModal()">+ 새 메모</button>
+      <div class="card-title" style="margin-bottom:0;">아이디어</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="openRecallModal()" style="background:transparent;color:var(--primary);border:1px solid var(--primary);display:inline-flex;align-items:center;gap:5px;"><i data-lucide="lightbulb" style="width:14px;height:14px;"></i>다시 보기</button>
+        <button class="btn btn-sm" onclick="openMemoModal()">+ 새 메모</button>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <input id="quick-memo-input" placeholder="떠오른 생각을 던지세요 (Enter)" onkeydown="onQuickThrow(event)" style="font-size:.85rem;width:100%;padding:9px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);"/>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+      <button onclick="setMemoFilter('all')" id="mf-all" class="mf-btn" style="background:var(--primary);color:#000;border:1px solid var(--primary);padding:4px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;">전체</button>
+      <button onclick="setMemoFilter('starred')" id="mf-starred" class="mf-btn" style="background:transparent;color:var(--muted);border:1px solid var(--border);padding:4px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"><i data-lucide="star" style="width:11px;height:11px;"></i>즐겨찾기</button>
+      <button onclick="setMemoFilter('graduated')" id="mf-graduated" class="mf-btn" style="background:transparent;color:var(--muted);border:1px solid var(--border);padding:4px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"><i data-lucide="graduation-cap" style="width:11px;height:11px;"></i>졸업</button>
     </div>
     <div class="add-bar" style="margin-bottom:10px;">
-      <input id="memo-search" placeholder="검색..." oninput="renderMemos()" style="font-size:.83rem;"/>
+      <input id="memo-search" placeholder="검색 (메모 + 덧댄 생각)..." oninput="renderMemos()" style="font-size:.83rem;"/>
     </div>
     <div id="memo-list"></div>
   </div>
@@ -578,19 +589,70 @@
 
 <!-- MEMO MODAL -->
 <div class="overlay" id="memo-modal">
-  <div class="sheet" style="max-height:85vh;display:flex;flex-direction:column;">
+  <div class="sheet" style="max-height:90vh;display:flex;flex-direction:column;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div class="sheet-title" style="margin-bottom:0;">메모</div>
-      <button class="icon-btn del" onclick="deleteMemoModal()" id="memo-del-btn" style="display:none;">삭제</button>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button class="icon-btn" onclick="toggleStarred()" id="memo-star-btn" title="즐겨찾기"><i data-lucide="star" style="width:16px;height:16px;"></i></button>
+        <button class="icon-btn" onclick="toggleGraduated()" id="memo-grad-btn" title="졸업"><i data-lucide="graduation-cap" style="width:16px;height:16px;"></i></button>
+        <button class="icon-btn del" onclick="deleteMemoModal()" id="memo-del-btn" style="display:none;">삭제</button>
+      </div>
     </div>
     <div class="fg"><input id="memo-title-input" placeholder="제목..." maxlength="50" style="font-size:1rem;font-weight:700;"/></div>
-    <div class="fg" style="flex:1;">
-      <textarea id="memo-content-input" placeholder="내용... (#태그 를 쓰면 자동으로 태그가 생겨요)" style="resize:none;height:220px;font-size:.88rem;line-height:1.6;" oninput="onMemoInput()"></textarea>
+    <div class="fg">
+      <textarea id="memo-content-input" placeholder="내용... (#태그 를 쓰면 자동으로 태그가 생겨요)" style="resize:none;height:140px;font-size:.88rem;line-height:1.6;" oninput="onMemoInput()"></textarea>
     </div>
-    <div id="memo-tags-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;min-height:20px;"></div>
-    <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px;" id="memo-autosave-status">자동 저장됨</div>
+    <div id="memo-tags-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;min-height:0;"></div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:2px;width:42px;">중요도</span>
+      <button onclick="setImportance(1)" id="imp-btn-1" class="imp-btn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="circle-dot" style="width:11px;height:11px;"></i>보통</button>
+      <button onclick="setImportance(2)" id="imp-btn-2" class="imp-btn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="star" style="width:11px;height:11px;"></i>중요</button>
+      <button onclick="setImportance(3)" id="imp-btn-3" class="imp-btn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="sparkles" style="width:11px;height:11px;"></i>핵심</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="font-size:.72rem;color:var(--muted);margin-right:2px;width:42px;">평가</span>
+      <button onclick="setMemoRating('bad')" id="rate-btn-bad" class="rate-btn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="thumbs-down" style="width:11px;height:11px;"></i>별로</button>
+      <button onclick="setMemoRating('meh')" id="rate-btn-meh" class="rate-btn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="meh" style="width:11px;height:11px;"></i>그저그래</button>
+      <button onclick="setMemoRating('good')" id="rate-btn-good" class="rate-btn" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="thumbs-up" style="width:11px;height:11px;"></i>좋아</button>
+      <button onclick="setMemoRating(null)" id="rate-btn-clear" class="icon-btn" style="font-size:.7rem;color:var(--muted);">지우기</button>
+    </div>
+    <div id="memo-appendix-section" style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:8px;">
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:5px;"><i data-lucide="layers" style="width:12px;height:12px;"></i>덧댄 생각</div>
+      <div id="memo-appendix-list" style="max-height:120px;overflow-y:auto;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:6px;">
+        <input id="memo-appendix-input" placeholder="지금 든 생각 한 줄..." style="font-size:.82rem;flex:1;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);" onkeydown="if(event.key==='Enter')addAppendix()"/>
+        <button class="btn btn-sm" onclick="addAppendix()" style="padding:7px 10px;">+</button>
+      </div>
+    </div>
+    <div style="font-size:.7rem;color:var(--muted);margin-bottom:8px;" id="memo-autosave-status">자동 저장됨</div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('memo-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECALL MODAL -->
+<div class="overlay" id="recall-modal">
+  <div class="sheet" style="max-height:90vh;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="sheet-title" style="margin-bottom:0;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="lightbulb" style="width:18px;height:18px;color:var(--primary);"></i>다시 만난 아이디어</div>
+      <div id="recall-importance" style="font-size:.72rem;color:var(--muted);display:inline-flex;align-items:center;gap:3px;"></div>
+    </div>
+    <div id="recall-body" style="flex:1;overflow-y:auto;">
+      <!-- filled by openRecallModal -->
+    </div>
+    <div id="recall-appendix-row" style="display:flex;gap:6px;margin-top:10px;">
+      <input id="recall-appendix-input" placeholder="지금 든 생각 덧대기..." style="font-size:.82rem;flex:1;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);" onkeydown="if(event.key==='Enter')addRecallAppendix()"/>
+      <button class="btn btn-sm" onclick="addRecallAppendix()" style="padding:8px 12px;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="plus" style="width:12px;height:12px;"></i>덧대기</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-around;" id="recall-rating-row">
+      <button onclick="rateRecallMemo('bad')" class="rate-btn" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><i data-lucide="thumbs-down" style="width:14px;height:14px;"></i>별로</button>
+      <button onclick="rateRecallMemo('meh')" class="rate-btn" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><i data-lucide="meh" style="width:14px;height:14px;"></i>그저그래</button>
+      <button onclick="rateRecallMemo('good')" class="rate-btn" style="flex:1;background:var(--primary);border:1px solid var(--primary);color:#000;padding:10px;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;"><i data-lucide="thumbs-up" style="width:14px;height:14px;"></i>좋아</button>
+    </div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn-cancel" onclick="closeModal('recall-modal')">닫기</button>
+      <button class="btn" onclick="nextRecall()" style="display:inline-flex;align-items:center;gap:5px;"><i data-lucide="shuffle" style="width:14px;height:14px;"></i>다음</button>
     </div>
   </div>
 </div>
@@ -1484,32 +1546,159 @@ function renderFinalGoal() {
 }
 
 // ── MEMOS ────────────────────────────────────────────────
-let currentMemoId = null, memoSaveTimer = null;
+let currentMemoId = null, memoSaveTimer = null, currentMemoImportance = 1;
+let currentMemoRating = null, currentMemoStarred = false, currentMemoGraduated = false;
+let currentRecallId = null;
+let memoFilter = 'all';
 
 function extractTags(text) {
   return [...new Set((text.match(/#[\w가-힣]+/g) || []).map(t => t.slice(1)))];
 }
 
+function impIcon(imp) {
+  if (imp === 3) return '<i data-lucide="sparkles" style="width:11px;height:11px;color:var(--primary);"></i>';
+  if (imp === 2) return '<i data-lucide="star" style="width:11px;height:11px;color:var(--primary);"></i>';
+  return '';
+}
+
+function ratingIcon(r) {
+  if (r === 'good') return '<i data-lucide="thumbs-up" style="width:11px;height:11px;color:var(--primary);"></i>';
+  if (r === 'meh') return '<i data-lucide="meh" style="width:11px;height:11px;color:var(--muted);"></i>';
+  if (r === 'bad') return '<i data-lucide="thumbs-down" style="width:11px;height:11px;color:var(--muted);"></i>';
+  return '';
+}
+
 function renderMemos() {
   const q = ($('memo-search') ? $('memo-search').value.trim().toLowerCase() : '');
-  const memos = loadMemos();
+  let memos = loadMemos();
+  if (memoFilter === 'starred') memos = memos.filter(m => m.starred);
+  else if (memoFilter === 'graduated') memos = memos.filter(m => m.graduated);
+  else memos = memos.filter(m => !m.graduated);
   const el = $('memo-list');
   if (!el) return;
   const filtered = q ? memos.filter(m =>
     (m.title||'').toLowerCase().includes(q) ||
     (m.content||'').toLowerCase().includes(q) ||
-    (m.tags||[]).some(t => t.toLowerCase().includes(q))
+    (m.tags||[]).some(t => t.toLowerCase().includes(q)) ||
+    (m.appendix||[]).some(a => (a.text||'').toLowerCase().includes(q))
   ) : memos;
   if (!filtered.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;">${q ? '검색 결과가 없어요' : '메모가 없어요'}</div>`;
     return;
   }
-  el.innerHTML = filtered.map(m => `
+  el.innerHTML = filtered.map(m => {
+    const apxCount = (m.appendix||[]).length;
+    return `
     <div onclick="openMemoModal('${m.id}')" style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;">
-      <div style="font-weight:700;font-size:.88rem;margin-bottom:3px;">${esc(m.title||'제목 없음')}</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+        ${impIcon(m.importance||1)}
+        ${m.starred ? '<i data-lucide="star" style="width:11px;height:11px;color:#fbbf24;fill:#fbbf24;"></i>' : ''}
+        ${m.graduated ? '<i data-lucide="graduation-cap" style="width:11px;height:11px;color:var(--primary);"></i>' : ''}
+        <div style="font-weight:700;font-size:.88rem;flex:1;">${esc(m.title||'제목 없음')}</div>
+        ${ratingIcon(m.rating)}
+      </div>
       <div style="color:var(--muted);font-size:.78rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc((m.content||'').replace(/#[\w가-힣]+/g,'').trim().slice(0,60))}</div>
-      ${m.tags&&m.tags.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;">${m.tags.map(t=>`<span style="background:var(--primary-light);color:var(--primary);font-size:.68rem;font-weight:700;padding:1px 7px;border-radius:4px;">#${esc(t)}</span>`).join('')}</div>` : ''}
-    </div>`).join('');
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;align-items:center;">
+        ${(m.tags||[]).map(t=>`<span style="background:var(--primary-light);color:var(--primary);font-size:.68rem;font-weight:700;padding:1px 7px;border-radius:4px;">#${esc(t)}</span>`).join('')}
+        ${apxCount ? `<span style="color:var(--muted);font-size:.68rem;display:inline-flex;align-items:center;gap:3px;"><i data-lucide="layers" style="width:10px;height:10px;"></i>${apxCount}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function setMemoFilter(name) {
+  memoFilter = name;
+  ['all', 'starred', 'graduated'].forEach(f => {
+    const btn = $('mf-' + f);
+    if (!btn) return;
+    if (f === name) {
+      btn.style.background = 'var(--primary)';
+      btn.style.borderColor = 'var(--primary)';
+      btn.style.color = '#000';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--muted)';
+    }
+  });
+  renderMemos();
+}
+
+function setImportance(v) {
+  currentMemoImportance = v;
+  updateImportanceUI();
+  persistCurrentMemoMeta();
+}
+
+function setMemoRating(v) {
+  currentMemoRating = v;
+  updateMemoRatingUI();
+  persistCurrentMemoMeta();
+}
+
+function toggleStarred() {
+  currentMemoStarred = !currentMemoStarred;
+  updateStarredUI();
+  persistCurrentMemoMeta();
+}
+
+function toggleGraduated() {
+  currentMemoGraduated = !currentMemoGraduated;
+  updateGraduatedUI();
+  persistCurrentMemoMeta();
+}
+
+function persistCurrentMemoMeta() {
+  if (!currentMemoId) return;
+  const memos = loadMemos();
+  const i = memos.findIndex(x => x.id === currentMemoId);
+  if (i < 0) return;
+  memos[i].importance = currentMemoImportance;
+  memos[i].rating = currentMemoRating;
+  memos[i].starred = currentMemoStarred;
+  memos[i].graduated = currentMemoGraduated;
+  saveMemos(memos);
+  renderMemos();
+}
+
+function updateImportanceUI() {
+  for (let v = 1; v <= 3; v++) {
+    const btn = $('imp-btn-' + v);
+    if (!btn) continue;
+    if (v === currentMemoImportance) {
+      btn.style.background = 'var(--primary)'; btn.style.borderColor = 'var(--primary)'; btn.style.color = '#000';
+    } else {
+      btn.style.background = 'transparent'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted)';
+    }
+  }
+}
+
+function updateMemoRatingUI() {
+  ['bad','meh','good'].forEach(v => {
+    const btn = $('rate-btn-' + v);
+    if (!btn) return;
+    if (v === currentMemoRating) {
+      btn.style.background = 'var(--primary)'; btn.style.borderColor = 'var(--primary)'; btn.style.color = '#000';
+    } else {
+      btn.style.background = 'transparent'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--muted)';
+    }
+  });
+}
+
+function updateStarredUI() {
+  const btn = $('memo-star-btn');
+  if (!btn) return;
+  btn.style.color = currentMemoStarred ? '#fbbf24' : '';
+  const ic = btn.querySelector('i');
+  if (ic && currentMemoStarred) ic.style.fill = '#fbbf24';
+  else if (ic) ic.style.fill = '';
+}
+
+function updateGraduatedUI() {
+  const btn = $('memo-grad-btn');
+  if (!btn) return;
+  btn.style.color = currentMemoGraduated ? 'var(--primary)' : '';
 }
 
 function openMemoModal(id) {
@@ -1521,16 +1710,95 @@ function openMemoModal(id) {
     $('memo-title-input').value = m.title || '';
     $('memo-content-input').value = m.content || '';
     $('memo-del-btn').style.display = '';
+    currentMemoImportance = m.importance || 1;
+    currentMemoRating = m.rating || null;
+    currentMemoStarred = !!m.starred;
+    currentMemoGraduated = !!m.graduated;
     updateMemoTagsPreview();
+    renderAppendixList(m.appendix || []);
   } else {
     $('memo-title-input').value = '';
     $('memo-content-input').value = '';
     $('memo-del-btn').style.display = 'none';
+    currentMemoImportance = 1;
+    currentMemoRating = null;
+    currentMemoStarred = false;
+    currentMemoGraduated = false;
     $('memo-tags-preview').innerHTML = '';
+    renderAppendixList([]);
   }
+  updateImportanceUI();
+  updateMemoRatingUI();
+  updateStarredUI();
+  updateGraduatedUI();
+  $('memo-appendix-input').value = '';
   $('memo-autosave-status').textContent = '자동 저장됨';
   openModal('memo-modal');
   setTimeout(() => (id ? $('memo-content-input') : $('memo-title-input')).focus(), 80);
+}
+
+function renderAppendixList(list) {
+  const el = $('memo-appendix-list');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = `<div style="font-size:.74rem;color:var(--muted);padding:4px 0;">아직 덧댄 생각이 없어요</div>`;
+    return;
+  }
+  el.innerHTML = list.slice().reverse().map((a, idx) => {
+    const realIdx = list.length - 1 - idx;
+    return `<div style="padding:6px 0;border-bottom:1px dashed var(--border);font-size:.8rem;line-height:1.5;display:flex;gap:6px;align-items:flex-start;">
+      <div style="flex:1;"><span style="color:var(--muted);font-size:.68rem;">${esc(a.at||'')}</span> <span>${esc(a.text||'')}</span></div>
+      <button class="icon-btn del" onclick="deleteAppendix(${realIdx})" style="font-size:.7rem;padding:2px 5px;">×</button>
+    </div>`;
+  }).join('');
+}
+
+function addAppendix() {
+  const input = $('memo-appendix-input');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!currentMemoId) {
+    autoSaveMemo();
+    if (!currentMemoId) { alert('먼저 제목이나 내용을 적어주세요'); return; }
+  }
+  const memos = loadMemos();
+  const i = memos.findIndex(x => x.id === currentMemoId);
+  if (i < 0) return;
+  if (!memos[i].appendix) memos[i].appendix = [];
+  memos[i].appendix.push({ text, at: todayStr() });
+  saveMemos(memos);
+  input.value = '';
+  renderAppendixList(memos[i].appendix);
+  renderMemos();
+}
+
+function deleteAppendix(idx) {
+  if (!currentMemoId) return;
+  const memos = loadMemos();
+  const i = memos.findIndex(x => x.id === currentMemoId);
+  if (i < 0 || !memos[i].appendix) return;
+  memos[i].appendix.splice(idx, 1);
+  saveMemos(memos);
+  renderAppendixList(memos[i].appendix);
+  renderMemos();
+}
+
+function onQuickThrow(e) {
+  if (e.key !== 'Enter') return;
+  const input = e.target;
+  const text = input.value.trim();
+  if (!text) return;
+  const memos = loadMemos();
+  const tags = extractTags(text);
+  memos.unshift({
+    id: uid(), title: text.slice(0, 50), content: text, tags,
+    createdAt: todayStr(), updatedAt: todayStr(),
+    importance: 1, recallCount: 0, lastSeenAt: null, rating: null,
+    starred: false, graduated: false, appendix: []
+  });
+  saveMemos(memos);
+  input.value = '';
+  renderMemos();
 }
 
 function onMemoInput() {
@@ -1555,9 +1823,25 @@ function autoSaveMemo() {
   const tags = extractTags(content);
   if (currentMemoId) {
     const i = memos.findIndex(x => x.id === currentMemoId);
-    if (i >= 0) { memos[i].title = title; memos[i].content = content; memos[i].tags = tags; memos[i].updatedAt = todayStr(); }
+    if (i >= 0) {
+      memos[i].title = title; memos[i].content = content; memos[i].tags = tags;
+      memos[i].updatedAt = todayStr();
+      memos[i].importance = currentMemoImportance;
+      memos[i].rating = currentMemoRating;
+      memos[i].starred = currentMemoStarred;
+      memos[i].graduated = currentMemoGraduated;
+    }
   } else {
-    const m = { id: uid(), title, content, tags, createdAt: todayStr(), updatedAt: todayStr() };
+    const m = {
+      id: uid(), title, content, tags,
+      createdAt: todayStr(), updatedAt: todayStr(),
+      importance: currentMemoImportance,
+      recallCount: 0, lastSeenAt: null,
+      rating: currentMemoRating,
+      starred: currentMemoStarred,
+      graduated: currentMemoGraduated,
+      appendix: []
+    };
     currentMemoId = m.id;
     $('memo-del-btn').style.display = '';
     memos.unshift(m);
@@ -1574,6 +1858,114 @@ function deleteMemoModal() {
   saveMemos(memos);
   renderMemos();
   closeModal('memo-modal');
+}
+
+// ── RECALL (회수 루프) ─────────────────────────────────────
+function pickRecallMemo(excludeId) {
+  const memos = loadMemos();
+  const pool = memos.filter(m => m.rating !== 'bad' && !m.graduated && (!excludeId || m.id !== excludeId));
+  if (!pool.length) return null;
+  pool.sort((a, b) => {
+    const impDiff = (b.importance || 1) - (a.importance || 1);
+    if (impDiff !== 0) return impDiff;
+    const aSeen = a.lastSeenAt || '0000-00-00';
+    const bSeen = b.lastSeenAt || '0000-00-00';
+    return aSeen.localeCompare(bSeen);
+  });
+  return pool[0];
+}
+
+function openRecallModal() {
+  const m = pickRecallMemo();
+  if (!m) {
+    alert('다시 만날 아이디어가 없어요. 메모를 먼저 적어보세요!');
+    return;
+  }
+  currentRecallId = m.id;
+  $('recall-rating-row').style.display = '';
+  $('recall-appendix-row').style.display = '';
+  $('recall-appendix-input').value = '';
+  renderRecallContent(m);
+  openModal('recall-modal');
+}
+
+function renderRecallContent(m) {
+  const impLabel = (m.importance === 3) ? '<i data-lucide="sparkles" style="width:12px;height:12px;color:var(--primary);"></i> 핵심'
+                : (m.importance === 2) ? '<i data-lucide="star" style="width:12px;height:12px;color:var(--primary);"></i> 중요'
+                : '<i data-lucide="circle-dot" style="width:12px;height:12px;"></i> 보통';
+  $('recall-importance').innerHTML = impLabel;
+  const seen = m.lastSeenAt ? `마지막 만남: ${m.lastSeenAt}` : '처음 다시 만나요';
+  const apx = m.appendix || [];
+  const apxHtml = apx.length ? `
+    <div style="border-left:2px solid var(--primary);padding-left:10px;margin:14px 0;">
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="layers" style="width:11px;height:11px;"></i>덧댄 생각</div>
+      ${apx.map(a => `<div style="font-size:.82rem;line-height:1.5;margin-bottom:5px;"><span style="color:var(--muted);font-size:.7rem;">${esc(a.at||'')}</span> ${esc(a.text||'')}</div>`).join('')}
+    </div>` : '';
+  $('recall-body').innerHTML = `
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+      ${m.starred ? '<i data-lucide="star" style="width:14px;height:14px;color:#fbbf24;fill:#fbbf24;"></i>' : ''}
+      <span>${esc(m.title || '제목 없음')}</span>
+    </div>
+    <div style="font-size:.88rem;line-height:1.7;white-space:pre-wrap;color:var(--text);margin-bottom:10px;">${esc((m.content || '').replace(/#[\w가-힣]+/g, '').trim())}</div>
+    ${m.tags && m.tags.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">${m.tags.map(t => `<span style="background:var(--primary-light);color:var(--primary);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:4px;">#${esc(t)}</span>`).join('')}</div>` : ''}
+    ${apxHtml}
+    <div style="font-size:.72rem;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;">
+      <div>처음 작성: ${m.createdAt || '-'}</div>
+      <div>${seen}</div>
+      <div>재등장: ${m.recallCount || 0}번</div>
+    </div>
+  `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function addRecallAppendix() {
+  if (!currentRecallId) return;
+  const input = $('recall-appendix-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const memos = loadMemos();
+  const i = memos.findIndex(x => x.id === currentRecallId);
+  if (i < 0) return;
+  if (!memos[i].appendix) memos[i].appendix = [];
+  memos[i].appendix.push({ text, at: todayStr() });
+  saveMemos(memos);
+  input.value = '';
+  renderRecallContent(memos[i]);
+  renderMemos();
+}
+
+function rateRecallMemo(rating) {
+  if (!currentRecallId) return;
+  const memos = loadMemos();
+  const i = memos.findIndex(x => x.id === currentRecallId);
+  if (i < 0) return;
+  memos[i].rating = rating;
+  memos[i].lastSeenAt = todayStr();
+  memos[i].recallCount = (memos[i].recallCount || 0) + 1;
+  saveMemos(memos);
+  renderMemos();
+  nextRecall();
+}
+
+function nextRecall() {
+  const next = pickRecallMemo(currentRecallId);
+  if (!next) {
+    $('recall-body').innerHTML = `<div style="text-align:center;padding:30px 0;color:var(--muted);">
+      <i data-lucide="sparkles" style="width:32px;height:32px;color:var(--primary);"></i>
+      <div style="margin-top:10px;font-size:.9rem;">오늘 다시 만날 아이디어가 더 없어요!</div>
+    </div>`;
+    $('recall-importance').innerHTML = '';
+    $('recall-rating-row').style.display = 'none';
+    $('recall-appendix-row').style.display = 'none';
+    currentRecallId = null;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    return;
+  }
+  currentRecallId = next.id;
+  $('recall-rating-row').style.display = '';
+  $('recall-appendix-row').style.display = '';
+  $('recall-appendix-input').value = '';
+  renderRecallContent(next);
 }
 
 // ── TODO LIST ─────────────────────────────────────────────
@@ -1976,11 +2368,12 @@ function checkStreakRisk() {
 
 // ── KEYBOARD & EVENTS ─────────────────────────────────────
 $('new-habit').addEventListener('keydown', e=>{ if(e.key==='Enter') openAddModal(); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') { closeModal('add-modal'); closeModal('goal-modal'); closeModal('final-goal-modal'); closeModal('memo-modal'); } });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') { closeModal('add-modal'); closeModal('goal-modal'); closeModal('final-goal-modal'); closeModal('memo-modal'); closeModal('recall-modal'); } });
 $('add-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('add-modal'); });
 $('goal-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('goal-modal'); });
 $('final-goal-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('final-goal-modal'); });
 $('memo-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('memo-modal'); });
+$('recall-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('recall-modal'); });
 
 // ── INIT ──────────────────────────────────────────────────
 (function init() {
