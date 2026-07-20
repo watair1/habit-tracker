@@ -100,7 +100,10 @@
     .bs { background: rgba(250,204,21,0.12); color: #facc15; }
     .br { background: rgba(179,240,0,0.1); color: var(--primary); }
     .bt { background: rgba(255,255,255,0.06); color: #888; }
-    .icon-btn { background: none; border: none; cursor: pointer; color: #444; font-size: .9rem; padding: 4px 6px; border-radius: 6px; transition: color .2s, transform .15s; }
+    .icon-btn { background: none; border: none; cursor: pointer; color: #444; font-size: .9rem; padding: 4px 6px; border-radius: 6px; transition: color .2s, transform .15s; display: inline-flex; align-items: center; }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .check-btn svg { width: 18px; height: 18px; }
+    .day-todo-del svg { width: 15px; height: 15px; }
     .icon-btn:hover { color: var(--text); }
     .icon-btn:active { transform: scale(0.85); }
     .icon-btn.del:hover { color: var(--danger); }
@@ -1426,20 +1429,21 @@ function render() {
     const isDone = !!h.checked[today], s = streakCount(h), r = successRate(h);
     return `
       <div class="habit-card${isDone?' done-card':''}">
-        <button class="check-btn${isDone?' done':''}" onclick="toggle(${i})">${isDone?'✓':''}</button>
+        <button class="check-btn${isDone?' done':''}" onclick="toggle(${i})">${isDone?'<i data-lucide="check"></i>':''}</button>
         <div class="habit-info">
           <div class="habit-name">${esc(h.name)}</div>
           <div class="badges">
             ${s>0?`<span class="badge bs"><span class="fire">🔥</span> ${s}일 연속</span>`:''}
-            <span class="badge br">✅ ${r}%</span>
+            <span class="badge br"><i data-lucide="check-circle-2" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r}%</span>
             <span class="badge bt">${esc(h.timeSlot||'자유')}</span>
           </div>
         </div>
-        <button class="icon-btn" onclick="editHabit(${i})">✏</button>
-        <button class="icon-btn del" onclick="delHabit(${i})">✕</button>
+        <button class="icon-btn" onclick="editHabit(${i})"><i data-lucide="pencil"></i></button>
+        <button class="icon-btn del" onclick="delHabit(${i})"><i data-lucide="trash-2"></i></button>
       </div>`;
   }).join('');
   renderMemos();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ── HABIT ACTIONS ─────────────────────────────────────────
@@ -1910,8 +1914,8 @@ function renderFinalGoal() {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
       <div style="color:rgba(255,255,255,0.55);font-size:.72rem;font-weight:700;letter-spacing:.5px;">최종 목표</div>
       <div style="display:flex;gap:6px;">
-        <button class="icon-btn" style="color:rgba(255,255,255,0.5);" onclick="openFinalGoalModal()">✏️</button>
-        <button class="icon-btn del" style="color:rgba(255,255,255,0.4);" onclick="delFinalGoal()">✕</button>
+        <button class="icon-btn" style="color:rgba(255,255,255,0.5);" onclick="openFinalGoalModal()"><i data-lucide="pencil"></i></button>
+        <button class="icon-btn del" style="color:rgba(255,255,255,0.4);" onclick="delFinalGoal()"><i data-lucide="x"></i></button>
       </div>
     </div>
     <div style="color:#fff;font-size:1.08rem;font-weight:700;margin-bottom:${fg.desc?'7px':'0'}">${esc(fg.title)}</div>
@@ -2926,8 +2930,9 @@ function renderDayTodos(){
       <button class="day-todo-chk${t.done?' done':''}" onclick="toggleDayTodo('${t.id}')">${t.done?'✓':''}</button>
       <div class="day-todo-txt">${esc(t.text)}</div>
       ${t.time?`<span class="day-todo-time">${esc(t.time)}</span>`:''}
-      <button class="day-todo-del" onclick="delDayTodo('${t.id}')">✕</button>
+      <button class="day-todo-del" onclick="delDayTodo('${t.id}')"><i data-lucide="x"></i></button>
     </div>`).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 function toggleDayTodo(id){
   const d=getDay(dayCursor), t=d.todos.find(x=>x.id===id);
