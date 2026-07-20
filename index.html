@@ -272,6 +272,75 @@
     .hcomp-sub { font-size: .68rem; color: #444; margin-top: 3px; }
     .heatmap-legend { display: flex; gap: 7px; align-items: center; margin-top: 9px; font-size: .65rem; color: #444; }
     .hm-legend-box { width: 11px; height: 11px; border-radius: 2px; }
+
+    /* ── 하루 관리 탭 ── */
+    .nav-btn { font-size: .68rem; }            /* 탭 6개라 살짝 축소 */
+    .nav-btn svg { width: 20px; height: 20px; }
+    .day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 13px; }
+    .day-nav-btn { background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .day-nav-btn svg { width: 20px; height: 20px; }
+    .day-head-center { text-align: center; flex: 1; }
+    .day-head-date { font-size: 1rem; font-weight: 800; color: var(--text); }
+    .day-today-btn { margin-top: 3px; background: transparent; border: none; color: var(--primary); font-size: .72rem; font-weight: 700; cursor: pointer; }
+    .day-today-btn.hidden { display: none; }
+    .hl-card { background: linear-gradient(135deg, rgba(179,240,0,0.10), rgba(179,240,0,0.02)); border-color: rgba(179,240,0,0.25); cursor: pointer; }
+    .hl-label { font-size: .68rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+    .hl-text { font-size: 1.15rem; font-weight: 800; line-height: 1.4; color: var(--text); }
+    .hl-text.empty { color: var(--muted); font-weight: 600; font-size: .95rem; }
+    .hl-check { width: 30px; height: 30px; border-radius: 9px; border: 2px solid var(--primary); background: transparent; color: var(--primary); font-size: 1rem; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .hl-check.done { background: var(--primary); color: #000; }
+    .hl-row { display: flex; align-items: center; gap: 12px; }
+    .hl-done .hl-text { text-decoration: line-through; opacity: .6; }
+    .day-rate-card { display: flex; align-items: center; gap: 14px; }
+    .day-rate-ring { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
+    .day-rate-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 800; color: var(--primary); }
+    .day-rate-txt h3 { font-size: .95rem; font-weight: 800; }
+    .day-rate-txt p { font-size: .76rem; color: var(--muted); margin-top: 3px; }
+    .day-todo { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--border); }
+    .day-todo:last-child { border-bottom: none; }
+    .day-todo-chk { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--border); background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #000; font-size: .8rem; }
+    .day-todo-chk.done { background: var(--primary); border-color: var(--primary); }
+    .day-todo-txt { flex: 1; font-size: .88rem; color: var(--text); }
+    .day-todo.done-t .day-todo-txt { text-decoration: line-through; color: var(--muted); }
+    .day-todo-time { font-size: .68rem; color: var(--primary); background: var(--primary-light); padding: 2px 7px; border-radius: 6px; }
+    .day-todo-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; }
+    /* 타임라인 */
+    .tl-allday { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 0; }
+    .tl-allday:empty { display: none; }
+    .tl-allday-lbl { font-size: .62rem; color: var(--muted); align-self: center; margin-right: 2px; }
+    .tl-scroll { position: relative; height: 440px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: #0a0a0a; }
+    .tl-body { position: relative; height: 1440px; touch-action: pan-y; }
+    .tl-hour { position: absolute; left: 0; right: 0; height: 60px; border-top: 1px solid #141414; }
+    .tl-hour-lbl { position: absolute; left: 4px; top: -1px; font-size: .58rem; color: #3a3a3a; width: 40px; }
+    .tl-hablane { position: absolute; top: 0; left: 46px; width: 96px; bottom: 0; }
+    .tl-hab { position: absolute; left: 2px; right: 2px; border-radius: 6px; padding: 3px 5px; font-size: .6rem; font-weight: 700; overflow: hidden; cursor: pointer; border: 1px solid; display: flex; flex-direction: column; justify-content: center; line-height: 1.15; }
+    .tl-hab .tl-hab-chk { font-size: .7rem; }
+    .tl-events { position: absolute; top: 0; left: 146px; right: 5px; bottom: 0; }
+    .tl-ev { position: absolute; border-radius: 7px; padding: 4px 7px; font-size: .68rem; font-weight: 700; color: #fff; overflow: hidden; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.4); user-select: none; touch-action: none; }
+    .tl-ev.dragging { opacity: .85; z-index: 50; box-shadow: 0 4px 14px rgba(0,0,0,.6); }
+    .tl-ev-time { font-size: .58rem; font-weight: 600; opacity: .85; }
+    .tl-ev-handle { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; cursor: ns-resize; }
+    .tl-ev-badge { position: absolute; top: 3px; right: 4px; background: #fff; color: #000; font-size: .55rem; padding: 1px 5px; border-radius: 8px; font-weight: 800; }
+    .tl-now { position: absolute; left: 46px; right: 0; height: 2px; background: #ff4444; z-index: 40; pointer-events: none; }
+    .tl-now::before { content: ''; position: absolute; left: -1px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #ff4444; }
+    /* 이벤트 색상 선택 */
+    .ev-color-row { display: flex; gap: 9px; flex-wrap: wrap; }
+    .ev-color { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+    .ev-color.sel { border-color: var(--text); }
+    /* 리뷰 모달 */
+    .rv-done-row, .rv-rate-row { display: flex; gap: 8px; }
+    .rv-done-btn, .rv-rate-btn { flex: 1; padding: 11px 6px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: .8rem; font-weight: 700; cursor: pointer; }
+    .rv-done-btn.sel, .rv-rate-btn.sel { border-color: var(--primary); color: var(--text); background: var(--primary-light); }
+    /* 하루 마무리 기분 */
+    .day-mood-row { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 12px; }
+    .day-mood-btn { flex: 1; padding: 9px 0; font-size: 1.5rem; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; filter: grayscale(0.6); opacity: .6; transition: all .15s; }
+    .day-mood-btn.sel { filter: none; opacity: 1; border-color: var(--primary); transform: scale(1.08); background: var(--primary-light); }
+    .day-summary-ai { background: var(--primary-light); border: 1px solid rgba(179,240,0,0.25); border-radius: 10px; padding: 12px; margin-top: 12px; font-size: .85rem; line-height: 1.6; color: var(--text); }
+    .as-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 9px; margin-bottom: 6px; }
+    .as-item-time { font-size: .68rem; color: var(--primary); font-weight: 700; flex-shrink: 0; }
+    .as-item-title { font-size: .85rem; flex: 1; }
+    .ai-spin { display: inline-block; width: 15px; height: 15px; border: 2px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: aispin .7s linear infinite; vertical-align: middle; }
+    @keyframes aispin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -358,6 +427,64 @@
       <input id="memo-search" placeholder="검색 (메모 + 덧댄 생각)..." oninput="renderMemos()" style="font-size:.83rem;"/>
     </div>
     <div id="memo-list"></div>
+  </div>
+</div>
+
+<!-- ===== TAB: DAY (하루 관리) ===== -->
+<div id="tab-day" class="tab">
+  <!-- 날짜 헤더 -->
+  <div class="day-head">
+    <button class="day-nav-btn" onclick="shiftDay(-1)"><i data-lucide="chevron-left"></i></button>
+    <div class="day-head-center">
+      <div class="day-head-date" id="day-head-date">오늘</div>
+      <button class="day-today-btn" id="day-today-btn" onclick="goToday()">오늘로</button>
+    </div>
+    <button class="day-nav-btn" onclick="shiftDay(1)"><i data-lucide="chevron-right"></i></button>
+  </div>
+
+  <!-- ① 하이라이트 -->
+  <div class="card hl-card" id="day-highlight" onclick="openHighlightModal()"></div>
+
+  <!-- ② 오늘 실행률 요약 -->
+  <div class="card day-rate-card" id="day-rate"></div>
+
+  <!-- ③ 할 일 -->
+  <div class="card">
+    <div class="card-title">오늘의 할 일</div>
+    <div class="add-bar" style="margin-bottom:10px;">
+      <input id="day-todo-input" placeholder="할 일 추가..." maxlength="60" onkeydown="if(event.key==='Enter')addDayTodo()"/>
+      <input id="day-todo-time" type="time" step="1800" title="시간 지정(선택)" style="flex:0 0 auto;width:auto;padding:10px 8px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:.8rem;"/>
+      <button class="btn btn-sm" onclick="addDayTodo()">추가</button>
+    </div>
+    <div style="font-size:.66rem;color:var(--muted);margin:-4px 0 10px;">시간을 지정하면 타임라인과 실행률에 반영돼요</div>
+    <div id="day-todo-list"></div>
+  </div>
+
+  <!-- ④ 타임라인 -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="card-title" style="margin-bottom:0;">타임라인</div>
+      <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:5px;">✨ 자동 짜기</button>
+    </div>
+    <div class="tl-allday" id="tl-allday"></div>
+    <div class="tl-scroll" id="tl-scroll">
+      <div class="tl-body" id="tl-body"></div>
+    </div>
+  </div>
+
+  <!-- ⑤ 기분 / 하루 메모 -->
+  <div class="card day-wrap-card">
+    <div class="card-title">하루 마무리</div>
+    <div class="day-mood-row" id="day-mood-row">
+      <button class="day-mood-btn" data-m="1" onclick="setDayMood(1)">😞</button>
+      <button class="day-mood-btn" data-m="2" onclick="setDayMood(2)">😕</button>
+      <button class="day-mood-btn" data-m="3" onclick="setDayMood(3)">😐</button>
+      <button class="day-mood-btn" data-m="4" onclick="setDayMood(4)">🙂</button>
+      <button class="day-mood-btn" data-m="5" onclick="setDayMood(5)">😄</button>
+    </div>
+    <textarea id="day-memo" placeholder="오늘 하루를 한 줄로 남겨보세요..." style="resize:none;height:80px;width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:.88rem;line-height:1.6;background:#1c1c1c;color:var(--text);font-family:inherit;" oninput="onDayMemoInput()"></textarea>
+    <button class="btn btn-outline btn-sm" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="requestDaySummary()"><i data-lucide="sparkles" style="width:14px;height:14px;"></i>AI 하루 총평</button>
+    <div id="day-summary-box"></div>
   </div>
 </div>
 
@@ -523,9 +650,88 @@
   </div>
 </div>
 
+<!-- 하이라이트 편집 모달 -->
+<div class="overlay" id="hl-modal">
+  <div class="sheet">
+    <div class="sheet-title">오늘의 하이라이트</div>
+    <div class="fg">
+      <label>오늘 가장 중요한 일 하나</label>
+      <input id="hl-input" placeholder="오늘 가장 중요한 일은?" maxlength="60"/>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('hl-modal')">취소</button>
+      <button class="btn-confirm" onclick="saveHighlight()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 일정(이벤트) 추가/편집 모달 -->
+<div class="overlay" id="event-modal">
+  <div class="sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+      <div class="sheet-title" id="event-modal-title" style="margin-bottom:0;">일정 추가</div>
+      <button class="icon-btn del" id="event-del-btn" onclick="deleteEvent()" style="display:none;">삭제</button>
+    </div>
+    <div class="fg"><label>제목</label><input id="ev-title" placeholder="예: 운동, 회의, 공부" maxlength="40"/></div>
+    <div style="display:flex;gap:10px;">
+      <div class="fg" style="flex:1;"><label>시작</label><input type="time" id="ev-start" step="1800"/></div>
+      <div class="fg" style="flex:1;"><label>종료</label><input type="time" id="ev-end" step="1800"/></div>
+    </div>
+    <div class="fg">
+      <label>색상</label>
+      <div class="ev-color-row" id="ev-color-row"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('event-modal')">취소</button>
+      <button class="btn-confirm" onclick="saveEvent()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 일정 마감 피드백 모달 -->
+<div class="overlay" id="review-modal">
+  <div class="sheet">
+    <div class="sheet-title" id="review-title">어땠어요?</div>
+    <div class="fg">
+      <label>완료했나요?</label>
+      <div class="rv-done-row">
+        <button class="rv-done-btn" id="rv-done-yes" onclick="setReviewDone(true)">✅ 했어요</button>
+        <button class="rv-done-btn" id="rv-done-no" onclick="setReviewDone(false)">❌ 못했어요</button>
+      </div>
+    </div>
+    <div class="fg">
+      <label>어땠나요?</label>
+      <div class="rv-rate-row">
+        <button class="rv-rate-btn" data-r="good" onclick="setReviewRating('good')">😀 좋았어</button>
+        <button class="rv-rate-btn" data-r="ok" onclick="setReviewRating('ok')">😐 그럭저럭</button>
+        <button class="rv-rate-btn" data-r="bad" onclick="setReviewRating('bad')">😞 별로</button>
+      </div>
+    </div>
+    <div class="fg"><label>한줄 코멘트 (선택)</label><input id="rv-note" placeholder="느낀 점 한 줄..." maxlength="80"/></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('review-modal')">취소</button>
+      <button class="btn-confirm" onclick="saveReview()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI 자동 일정 짜기 모달 -->
+<div class="overlay" id="autosched-modal">
+  <div class="sheet" style="max-height:88vh;display:flex;flex-direction:column;">
+    <div class="sheet-title">✨ AI 일정 자동 짜기</div>
+    <div class="fg">
+      <label>오늘 뭘 할 건지 편하게 적어주세요</label>
+      <textarea id="as-input" rows="3" placeholder="예: 오전에 운동하고 점심 먹고 오후에 3시간 공부, 저녁엔 책 읽기" style="resize:none;font-family:inherit;"></textarea>
+    </div>
+    <button class="btn" style="width:100%;" id="as-run-btn" onclick="runAutoSchedule()">일정 만들기</button>
+    <div id="as-result" style="margin-top:14px;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-btn active" onclick="switchTab('today',this)"><i data-lucide="check-circle"></i>오늘</button>
+  <button class="nav-btn" onclick="switchTab('day',this)"><i data-lucide="calendar"></i>하루</button>
   <button class="nav-btn" onclick="switchTab('stats',this)"><i data-lucide="bar-chart-3"></i>통계</button>
   <button class="nav-btn" onclick="switchTab('growth',this)"><i data-lucide="trending-up"></i>성장</button>
   <button class="nav-btn" onclick="switchTab('goals',this)"><i data-lucide="target"></i>목표</button>
@@ -784,6 +990,7 @@ async function doSync() {
       base.doc('todos').set({ d: loadTodos() }),
       base.doc('memos').set({ d: loadMemos() }),
       base.doc('mood').set({ d: loadMoods() }),
+      base.doc('day').set({ d: loadDayData() }),
     ]);
   } catch(e) { console.warn('동기화 실패:', e); }
 }
@@ -792,7 +999,7 @@ async function loadFromCloud() {
   if (!fbUser || !fbDb) return;
   const base = fbDb.collection('users').doc(fbUser.uid).collection('data');
   try {
-    const [h, u, g, n, f, t, m, md] = await Promise.all([
+    const [h, u, g, n, f, t, m, md, day] = await Promise.all([
       base.doc('habits').get(),
       base.doc('user').get(),
       base.doc('goals').get(),
@@ -801,6 +1008,7 @@ async function loadFromCloud() {
       base.doc('todos').get(),
       base.doc('memos').get(),
       base.doc('mood').get(),
+      base.doc('day').get(),
     ]);
     if (h.exists) lsSet(K.h, h.data().d);
     if (u.exists) lsSet(K.u, u.data().d);
@@ -810,13 +1018,14 @@ async function loadFromCloud() {
     if (t.exists) lsSet(K.t, t.data().d);
     if (m.exists) lsSet(K.m, m.data().d);
     if (md.exists) lsSet(K.md, md.data().d);
+    if (day.exists) lsSet(K.d, day.data().d);
     if (!h.exists) await doSync();
     showToast('클라우드에서 데이터를 불러왔어요.');
   } catch(e) { console.warn('클라우드 로드 실패:', e); }
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -845,6 +1054,21 @@ const loadMemos = () => lsGet(K.m, []);
 function saveMemos(d) { lsSet(K.m, d); scheduleSync(); }
 const loadMoods = () => lsGet(K.md, {});
 function saveMoods(d) { lsSet(K.md, d); scheduleSync(); }
+// ── DAY (하루 관리) ───────────────────────────────────────
+const loadDayData = () => lsGet(K.d, {});
+function saveDayData(d) { lsSet(K.d, d); scheduleSync(); }
+// 특정 날짜의 하루 데이터를 꺼냄 (없으면 기본 껍데기 반환)
+function getDay(date) {
+  const all = loadDayData();
+  const base = { highlight: null, todos: [], events: [], mood: null, memo: '' };
+  return Object.assign(base, all[date] || {});
+}
+// 특정 날짜의 하루 데이터를 통째로 저장
+function setDay(date, obj) {
+  const all = loadDayData();
+  all[date] = obj;
+  saveDayData(all);
+}
 const loadNotif = () => lsGet(K.n, { morning: false, evening: false, streak: true });
 
 function saveNotif() {
@@ -1005,6 +1229,7 @@ async function doReset() {
     saveHabits([]);
     saveUser({ xp: 0, achievements: [], totalChecks: 0 });
     saveGoals([]);
+    saveDayData({});
     showToast('전체 데이터가 초기화됐어요');
   }
   if (fbUser && fbDb) await doSync();
@@ -1019,6 +1244,7 @@ function switchTab(name, btn) {
   $('tab-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'today')    renderMemos();
+  if (name === 'day')      renderDay();
   if (name === 'stats')    renderStats();
   if (name === 'growth')   renderGrowth();
   if (name === 'goals')    { renderFinalGoal(); renderTodos(); renderGoals(); }
@@ -2376,6 +2602,456 @@ $('memo-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) cl
 $('recall-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('recall-modal'); });
 
 // ── INIT ──────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+//  하루 관리 탭 (Day tab)
+// ════════════════════════════════════════════════════════════
+let dayCursor = todayStr();                 // 지금 보고 있는 날짜
+let _nowTimer = null;                        // 현재 시각 빨간 선 갱신 타이머
+const HOUR_PX = 60;                          // 1시간 = 60px = 60분
+const SNAP = 30;                             // 30분 스냅
+const EV_COLORS = ['#3b82f6','#ef4444','#f59e0b','#10b981','#8b5cf6','#ec4899','#14b8a6'];
+const SLOT_RANGE = { '아침':[6,10], '오전':[10,12], '점심':[12,14], '오후':[14,18], '저녁':[18,22] };
+
+// 시간 문자열 <-> 분 변환
+function hmToMin(s){ if(!s) return 0; const [h,m]=s.split(':').map(Number); return h*60+(m||0); }
+function minToHm(min){ min=Math.max(0,Math.min(1440,Math.round(min))); const h=Math.floor(min/60), m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+function snapMin(min){ return Math.round(min/SNAP)*SNAP; }
+
+function fmtDayHead(date){
+  const days=['일','월','화','수','목','금','토'];
+  if(date===todayStr()) return '오늘';
+  const d=new Date(date);
+  return `${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+}
+
+function shiftDay(delta){
+  const d=new Date(dayCursor); d.setDate(d.getDate()+delta);
+  dayCursor=d.toISOString().slice(0,10);
+  renderDay();
+}
+function goToday(){ dayCursor=todayStr(); renderDay(); }
+
+function renderDay(){
+  $('day-head-date').textContent = fmtDayHead(dayCursor);
+  $('day-today-btn').classList.toggle('hidden', dayCursor===todayStr());
+  renderHighlight();
+  renderDayRate();
+  renderDayTodos();
+  renderTimeline();
+  renderDayMoodMemo();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── ① 하이라이트 ──────────────────────────────────────────
+function renderHighlight(){
+  const d=getDay(dayCursor), hl=d.highlight;
+  const el=$('day-highlight');
+  if(!hl || !hl.text){
+    el.className='card hl-card';
+    el.innerHTML=`<div class="hl-label"><i data-lucide="star" style="width:12px;height:12px;"></i>오늘의 하이라이트</div>
+      <div class="hl-text empty">오늘 가장 중요한 일은?</div>`;
+    return;
+  }
+  el.className='card hl-card'+(hl.done?' hl-done':'');
+  el.innerHTML=`<div class="hl-label"><i data-lucide="star" style="width:12px;height:12px;"></i>오늘의 하이라이트</div>
+    <div class="hl-row">
+      <button class="hl-check${hl.done?' done':''}" onclick="event.stopPropagation();toggleHighlightDone()">${hl.done?'✓':''}</button>
+      <div class="hl-text">${esc(hl.text)}</div>
+    </div>`;
+}
+function openHighlightModal(){
+  const hl=getDay(dayCursor).highlight;
+  $('hl-input').value = hl?hl.text:'';
+  openModal('hl-modal');
+  setTimeout(()=>$('hl-input').focus(),80);
+}
+function saveHighlight(){
+  const text=$('hl-input').value.trim();
+  const d=getDay(dayCursor), old=d.highlight;
+  d.highlight = text ? { text, done: old?old.done:false, awarded: old?old.awarded:false } : null;
+  setDay(dayCursor,d);
+  closeModal('hl-modal');
+  renderHighlight(); renderDayRate();
+  if(typeof lucide!=='undefined') lucide.createIcons();
+}
+function toggleHighlightDone(){
+  const d=getDay(dayCursor);
+  if(!d.highlight) return;
+  d.highlight.done=!d.highlight.done;
+  if(d.highlight.done && !d.highlight.awarded){ addXP(15); d.highlight.awarded=true; showToast('하이라이트 완료 +15 XP'); }
+  setDay(dayCursor,d);
+  renderHighlight(); renderDayRate();
+  if(typeof lucide!=='undefined') lucide.createIcons();
+}
+
+// ── ② 실행률 ──────────────────────────────────────────────
+function computeDayRate(date){
+  const d=getDay(date);
+  let den=0, num=0;
+  d.events.forEach(e=>{ if(e.review){ den++; if(e.review.done) num++; } });
+  d.todos.forEach(t=>{ if(t.time){ den++; if(t.done) num++; } });
+  return { den, num, pct: den? Math.round(num/den*100):0 };
+}
+function renderDayRate(){
+  const r=computeDayRate(dayCursor);
+  const C=2*Math.PI*24, off=C-(r.pct/100)*C;
+  $('day-rate').innerHTML=`
+    <div class="day-rate-ring">
+      <svg width="58" height="58" viewBox="0 0 58 58">
+        <circle cx="29" cy="29" r="24" fill="none" stroke="#1f1f1f" stroke-width="6"/>
+        <circle cx="29" cy="29" r="24" fill="none" stroke="var(--primary)" stroke-width="6" stroke-linecap="round"
+          stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 29 29)"/>
+      </svg>
+      <div class="day-rate-num">${r.pct}%</div>
+    </div>
+    <div class="day-rate-txt">
+      <h3>오늘 실행률 ${r.pct}%</h3>
+      <p>${r.den? `평가된 ${r.den}개 중 ${r.num}개 완료`:'일정을 평가하면 실행률이 계산돼요'}</p>
+    </div>`;
+}
+
+// ── ③ 할 일 ───────────────────────────────────────────────
+function addDayTodo(){
+  const inp=$('day-todo-input'), text=inp.value.trim();
+  if(!text) return;
+  const time=$('day-todo-time').value || null;
+  const d=getDay(dayCursor);
+  d.todos.push({ id:uid(), text, done:false, time });
+  setDay(dayCursor,d);
+  inp.value=''; $('day-todo-time').value='';
+  renderDayTodos(); renderTimeline(); renderDayRate();
+}
+function renderDayTodos(){
+  const d=getDay(dayCursor);
+  const el=$('day-todo-list');
+  if(!d.todos.length){ el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:8px;">할 일이 없어요</div>`; return; }
+  el.innerHTML=d.todos.map(t=>`
+    <div class="day-todo${t.done?' done-t':''}">
+      <button class="day-todo-chk${t.done?' done':''}" onclick="toggleDayTodo('${t.id}')">${t.done?'✓':''}</button>
+      <div class="day-todo-txt">${esc(t.text)}</div>
+      ${t.time?`<span class="day-todo-time">${esc(t.time)}</span>`:''}
+      <button class="day-todo-del" onclick="delDayTodo('${t.id}')">✕</button>
+    </div>`).join('');
+}
+function toggleDayTodo(id){
+  const d=getDay(dayCursor), t=d.todos.find(x=>x.id===id);
+  if(!t) return; t.done=!t.done; setDay(dayCursor,d);
+  renderDayTodos(); renderTimeline(); renderDayRate();
+}
+function delDayTodo(id){
+  const d=getDay(dayCursor); d.todos=d.todos.filter(x=>x.id!==id); setDay(dayCursor,d);
+  renderDayTodos(); renderTimeline(); renderDayRate();
+}
+
+// ── ④ 타임라인 ────────────────────────────────────────────
+function renderTimeline(){
+  const body=$('tl-body');
+  const d=getDay(dayCursor);
+  const habits=loadHabits();
+  let html='';
+  // 시간 격자 + 라벨
+  for(let h=0; h<24; h++){
+    html+=`<div class="tl-hour" style="top:${h*HOUR_PX}px;"><span class="tl-hour-lbl">${String(h).padStart(2,'0')}:00</span></div>`;
+  }
+  // 습관 레인 (자유 제외, timeSlot 대역에 반투명 블록)
+  html+='<div class="tl-hablane">';
+  const bySlot={};
+  habits.forEach(hb=>{ const s=hb.timeSlot||'자유'; if(SLOT_RANGE[s]){ (bySlot[s]=bySlot[s]||[]).push(hb); } });
+  Object.keys(bySlot).forEach(slot=>{
+    const [sH,eH]=SLOT_RANGE[slot]; const top=sH*HOUR_PX, totalH=(eH-sH)*HOUR_PX;
+    const list=bySlot[slot]; const each=totalH/list.length;
+    list.forEach((hb,i)=>{
+      const on=!!hb.checked[dayCursor];
+      html+=`<div class="tl-hab" style="top:${top+i*each}px;height:${each-2}px;background:${on?'rgba(179,240,0,0.22)':'rgba(179,240,0,0.06)'};border-color:${on?'var(--primary)':'rgba(179,240,0,0.2)'};color:${on?'var(--primary)':'#7c8a4a'};" onclick="toggleHabitDate('${hb.id}','${dayCursor}')">
+        <span class="tl-hab-chk">${on?'✓':'○'}</span>${esc(hb.name)}</div>`;
+    });
+  });
+  html+='</div>';
+  // 이벤트 (겹침 칼럼 분할)
+  html+='<div class="tl-events" id="tl-events">';
+  const evs=d.events.slice().sort((a,b)=>hmToMin(a.start)-hmToMin(b.start));
+  const layout=layoutEvents(evs);
+  const nowMin=nowMinForCursor();
+  evs.forEach(e=>{
+    const s=hmToMin(e.start), en=Math.max(s+SNAP,hmToMin(e.end));
+    const col=layout[e.id];
+    const wPct=100/col.cols, leftPct=col.col*wPct;
+    const ended = nowMin!==null ? en<=nowMin : (dayCursor<todayStr());
+    const needReview = ended && !e.review;
+    html+=`<div class="tl-ev" data-id="${e.id}" style="top:${s}px;height:${en-s}px;left:calc(${leftPct}% + 1px);width:calc(${wPct}% - 3px);background:${e.color||EV_COLORS[0]};">
+      ${needReview?`<span class="tl-ev-badge" onclick="event.stopPropagation();openReview('${e.id}')">어땠어요?</span>`:''}
+      ${e.review?`<span class="tl-ev-badge" style="background:${e.review.done?'#10b981':'#666'};color:#fff;">${e.review.done?'완료':'미완'}</span>`:''}
+      <div>${esc(e.title)}</div>
+      <div class="tl-ev-time">${e.start}~${e.end}</div>
+      <div class="tl-ev-handle" data-handle="1"></div>
+    </div>`;
+  });
+  html+='</div>';
+  // 현재 시각 선
+  if(dayCursor===todayStr()){
+    html+=`<div class="tl-now" id="tl-now" style="top:${nowMin}px;"></div>`;
+  }
+  body.innerHTML=html;
+
+  // 빈 곳 탭 → 일정 추가
+  $('tl-events').onclick=(e)=>{
+    if(e.target.closest('.tl-ev')) return;
+    const rect=$('tl-events').getBoundingClientRect();
+    const y=e.clientY-rect.top+$('tl-scroll').scrollTop;
+    openEventModal(null, snapMin(y));
+  };
+  // 이벤트 블록 드래그/탭 바인딩
+  body.querySelectorAll('.tl-ev').forEach(bindEventDrag);
+
+  // 자유 습관 → 종일 레인
+  const allday=$('tl-allday'); const free=habits.filter(h=>(h.timeSlot||'자유')==='자유');
+  allday.innerHTML = free.length? `<span class="tl-allday-lbl">종일</span>`+free.map(hb=>{
+    const on=!!hb.checked[dayCursor];
+    return `<button class="tl-hab" style="position:static;border-radius:8px;padding:4px 9px;background:${on?'rgba(179,240,0,0.2)':'rgba(179,240,0,0.06)'};border:1px solid ${on?'var(--primary)':'rgba(179,240,0,0.2)'};color:${on?'var(--primary)':'#7c8a4a'};" onclick="toggleHabitDate('${hb.id}','${dayCursor}')">${on?'✓ ':'○ '}${esc(hb.name)}</button>`;
+  }).join('') : '';
+
+  // 최초 진입 시 06:00(또는 현재 시각) 근처로 스크롤
+  const scroll=$('tl-scroll');
+  const target = dayCursor===todayStr() && nowMin!==null ? Math.max(0,nowMin-120) : 6*HOUR_PX;
+  scroll.scrollTop=target;
+
+  // 현재 시각 선 1분마다 갱신
+  if(_nowTimer) clearInterval(_nowTimer);
+  if(dayCursor===todayStr()){
+    _nowTimer=setInterval(()=>{ const n=$('tl-now'); if(n) n.style.top=nowMinForCursor()+'px'; else clearInterval(_nowTimer); },60000);
+  }
+}
+function nowMinForCursor(){
+  if(dayCursor!==todayStr()) return null;
+  const n=new Date(); return n.getHours()*60+n.getMinutes();
+}
+// 겹치는 이벤트를 칼럼으로 분할
+function layoutEvents(evs){
+  const res={}; let i=0;
+  while(i<evs.length){
+    // 겹치는 묶음(cluster) 찾기
+    let cluster=[evs[i]], maxEnd=hmToMin(evs[i].end), j=i+1;
+    while(j<evs.length && hmToMin(evs[j].start)<maxEnd){ cluster.push(evs[j]); maxEnd=Math.max(maxEnd,hmToMin(evs[j].end)); j++; }
+    // 묶음 안에서 칼럼 배정
+    const cols=[];
+    cluster.forEach(e=>{
+      const s=hmToMin(e.start);
+      let placed=false;
+      for(let c=0;c<cols.length;c++){ if(cols[c]<=s){ res[e.id]={col:c}; cols[c]=hmToMin(e.end); placed=true; break; } }
+      if(!placed){ res[e.id]={col:cols.length}; cols.push(hmToMin(e.end)); }
+    });
+    cluster.forEach(e=>{ res[e.id].cols=cols.length; });
+    i=j;
+  }
+  return res;
+}
+
+// 드래그(길게 눌러 이동) + 하단 핸들(길이 조절), 30분 스냅
+function bindEventDrag(el){
+  let mode=null, startY=0, origTop=0, origH=0, lpTimer=null, moved=false;
+  const id=el.dataset.id;
+  el.addEventListener('pointerdown',(e)=>{
+    e.preventDefault();
+    startY=e.clientY; origTop=parseFloat(el.style.top); origH=parseFloat(el.style.height); moved=false;
+    el.setPointerCapture(e.pointerId);
+    if(e.target.dataset.handle){ mode='resize'; el.classList.add('dragging'); }
+    else { mode=null; lpTimer=setTimeout(()=>{ mode='move'; el.classList.add('dragging'); if(navigator.vibrate)navigator.vibrate(15); },300); }
+  });
+  el.addEventListener('pointermove',(e)=>{
+    const dy=e.clientY-startY;
+    if(Math.abs(dy)>4) moved=true;
+    if(mode==='move'){ el.style.top=Math.max(0,Math.min(1440-origH,origTop+dy))+'px'; }
+    else if(mode==='resize'){ el.style.height=Math.max(SNAP,origH+dy)+'px'; }
+    else if(moved && lpTimer){ clearTimeout(lpTimer); lpTimer=null; } // 길게 누르기 전에 움직이면 취소(스크롤로 간주)
+  });
+  el.addEventListener('pointerup',(e)=>{
+    if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; }
+    el.classList.remove('dragging');
+    if(mode==='move' || mode==='resize'){
+      const d=getDay(dayCursor), ev=d.events.find(x=>x.id===id);
+      if(ev){
+        if(mode==='move'){ const newTop=snapMin(parseFloat(el.style.top)); const dur=hmToMin(ev.end)-hmToMin(ev.start); ev.start=minToHm(newTop); ev.end=minToHm(newTop+dur); }
+        else { const newH=snapMin(parseFloat(el.style.height)); ev.end=minToHm(hmToMin(ev.start)+Math.max(SNAP,newH)); }
+        setDay(dayCursor,d);
+      }
+      mode=null; renderTimeline(); renderDayRate(); return;
+    }
+    mode=null;
+    if(!moved) openEventModal(id);       // 그냥 탭 → 편집
+  });
+  el.addEventListener('pointercancel',()=>{ if(lpTimer)clearTimeout(lpTimer); mode=null; el.classList.remove('dragging'); });
+}
+
+// 일정 추가/편집 모달
+let _editingEventId=null, _evColorSel=EV_COLORS[0];
+function openEventModal(id, prefillStart){
+  _editingEventId=id;
+  $('ev-color-row').innerHTML=EV_COLORS.map(c=>`<div class="ev-color" style="background:${c};" data-c="${c}" onclick="pickEvColor('${c}')"></div>`).join('');
+  if(id){
+    const ev=getDay(dayCursor).events.find(x=>x.id===id);
+    $('event-modal-title').textContent='일정 편집';
+    $('ev-title').value=ev.title; $('ev-start').value=ev.start; $('ev-end').value=ev.end;
+    _evColorSel=ev.color||EV_COLORS[0];
+    $('event-del-btn').style.display='';
+  } else {
+    const s=prefillStart||9*60;
+    $('event-modal-title').textContent='일정 추가';
+    $('ev-title').value=''; $('ev-start').value=minToHm(s); $('ev-end').value=minToHm(s+60);
+    _evColorSel=EV_COLORS[0];
+    $('event-del-btn').style.display='none';
+  }
+  pickEvColor(_evColorSel);
+  openModal('event-modal');
+  setTimeout(()=>$('ev-title').focus(),80);
+}
+function pickEvColor(c){ _evColorSel=c; document.querySelectorAll('#ev-color-row .ev-color').forEach(el=>el.classList.toggle('sel',el.dataset.c===c)); }
+function saveEvent(){
+  const title=$('ev-title').value.trim();
+  if(!title){ showToast('제목을 입력해주세요'); return; }
+  let start=minToHm(snapMin(hmToMin($('ev-start').value))), end=minToHm(snapMin(hmToMin($('ev-end').value)));
+  if(hmToMin(end)<=hmToMin(start)) end=minToHm(hmToMin(start)+SNAP);
+  const d=getDay(dayCursor);
+  if(_editingEventId){
+    const ev=d.events.find(x=>x.id===_editingEventId);
+    ev.title=title; ev.start=start; ev.end=end; ev.color=_evColorSel;
+  } else {
+    d.events.push({ id:uid(), title, start, end, color:_evColorSel, review:null });
+  }
+  setDay(dayCursor,d);
+  closeModal('event-modal'); _editingEventId=null;
+  renderTimeline();
+}
+function deleteEvent(){
+  if(!_editingEventId) return;
+  const d=getDay(dayCursor); d.events=d.events.filter(x=>x.id!==_editingEventId); setDay(dayCursor,d);
+  closeModal('event-modal'); _editingEventId=null;
+  renderTimeline(); renderDayRate();
+}
+
+// 일정 마감 피드백(리뷰) 모달
+let _reviewEventId=null, _reviewDraft={done:null,rating:null};
+function openReview(id){
+  _reviewEventId=id;
+  const ev=getDay(dayCursor).events.find(x=>x.id===id);
+  $('review-title').textContent=`"${ev.title}" 어땠어요?`;
+  _reviewDraft = ev.review ? { done:ev.review.done, rating:ev.review.rating } : { done:null, rating:null };
+  $('rv-note').value = ev.review?ev.review.note||'':'';
+  updateReviewUI();
+  openModal('review-modal');
+}
+function setReviewDone(v){ _reviewDraft.done=v; updateReviewUI(); }
+function setReviewRating(r){ _reviewDraft.rating=r; updateReviewUI(); }
+function updateReviewUI(){
+  $('rv-done-yes').classList.toggle('sel',_reviewDraft.done===true);
+  $('rv-done-no').classList.toggle('sel',_reviewDraft.done===false);
+  document.querySelectorAll('.rv-rate-btn').forEach(b=>b.classList.toggle('sel',b.dataset.r===_reviewDraft.rating));
+}
+function saveReview(){
+  if(_reviewDraft.done===null){ showToast('완료 여부를 골라주세요'); return; }
+  const d=getDay(dayCursor), ev=d.events.find(x=>x.id===_reviewEventId);
+  const wasAwarded = ev.review && ev.review.awarded;
+  ev.review={ done:_reviewDraft.done, rating:_reviewDraft.rating, note:$('rv-note').value.trim(), awarded:wasAwarded||_reviewDraft.done };
+  if(_reviewDraft.done && !wasAwarded){ addXP(5); showToast('일정 평가 완료 +5 XP'); }
+  setDay(dayCursor,d);
+  closeModal('review-modal'); _reviewEventId=null;
+  renderTimeline(); renderDayRate();
+}
+
+// 습관을 특정 날짜에 체크/해제 (타임라인에서 바로)
+function toggleHabitDate(habitId, date){
+  const habits=loadHabits(), h=habits.find(x=>x.id===habitId);
+  if(!h) return;
+  if(h.checked[date]){ delete h.checked[date]; saveHabits(habits); }
+  else {
+    h.checked[date]=true;
+    const s=streakCount(h); addXP(10+(s>=7?10:s>=3?5:0));
+    const u=loadUser(); u.totalChecks=(u.totalChecks||0)+1; saveUser(u);
+    saveHabits(habits);
+    if(habits.every(x=>!!x.checked[date])){ addXP(20); showToast('모든 습관 완료 +20 XP'); }
+    checkAchs();
+  }
+  render();          // 오늘 탭도 동기화
+  renderTimeline();
+}
+
+// ── ⑤ 하루 마무리(기분/메모) ──────────────────────────────
+let _dayMemoTimer=null;
+function renderDayMoodMemo(){
+  const d=getDay(dayCursor);
+  document.querySelectorAll('#day-mood-row .day-mood-btn').forEach(b=>b.classList.toggle('sel',Number(b.dataset.m)===d.mood));
+  $('day-memo').value=d.memo||'';
+  $('day-summary-box').innerHTML='';
+}
+function setDayMood(m){
+  const d=getDay(dayCursor); d.mood = d.mood===m?null:m; setDay(dayCursor,d);
+  renderDayMoodMemo();
+}
+function onDayMemoInput(){
+  clearTimeout(_dayMemoTimer);
+  _dayMemoTimer=setTimeout(()=>{ const d=getDay(dayCursor); d.memo=$('day-memo').value; setDay(dayCursor,d); },600);
+}
+
+// ════════════════════════════════════════════════════════════
+//  AI 연동 (Gemini 중계 서버 호출) — Part 3
+// ════════════════════════════════════════════════════════════
+// 배포 시 이 주소를 실제 서버 주소로 바꿔주세요 (예: https://내서버.onrender.com)
+const AI_SERVER = 'http://localhost:3000';
+async function aiCall(path, body){
+  let res;
+  try {
+    res = await fetch(AI_SERVER+path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  } catch(e){ throw { message:'AI 서버가 꺼져 있어요. 서버를 켠 뒤 다시 시도해주세요.' }; }
+  let data={}; try { data=await res.json(); } catch(e){}
+  if(!res.ok || data.error) throw { message: data.message || 'AI 요청에 실패했어요. 잠시 후 다시 시도해주세요.' };
+  return data;
+}
+
+// 하루 총평
+async function requestDaySummary(){
+  const box=$('day-summary-box');
+  box.innerHTML=`<div class="day-summary-ai"><span class="ai-spin"></span> AI가 하루를 돌아보는 중...</div>`;
+  const d=getDay(dayCursor), habits=loadHabits();
+  const r=computeDayRate(dayCursor);
+  try {
+    const out=await aiCall('/api/day-summary',{
+      date:dayCursor, mood:d.mood, memo:d.memo, doneRate:r.pct,
+      habits:habits.map(h=>({ name:h.name, done:!!h.checked[dayCursor] }))
+    });
+    box.innerHTML=`<div class="day-summary-ai">${esc(out.summary||'')}</div>`;
+  } catch(err){ box.innerHTML=''; showToast(err.message); }
+}
+
+// 자동 일정 짜기
+function openAutoScheduleModal(){ $('as-input').value=''; $('as-result').innerHTML=''; openModal('autosched-modal'); }
+let _autoSchedDraft=[];
+async function runAutoSchedule(){
+  const text=$('as-input').value.trim();
+  if(!text){ showToast('무엇을 할지 적어주세요'); return; }
+  const btn=$('as-run-btn'); btn.disabled=true; btn.innerHTML=`<span class="ai-spin"></span> 만드는 중...`;
+  const d=getDay(dayCursor);
+  try {
+    const out=await aiCall('/api/auto-schedule',{ text, date:dayCursor, existingEvents:d.events.map(e=>({title:e.title,start:e.start,end:e.end})) });
+    _autoSchedDraft = Array.isArray(out)?out:(out.events||[]);
+    if(!_autoSchedDraft.length){ $('as-result').innerHTML=`<div style="font-size:.82rem;color:var(--muted);">만들어진 일정이 없어요. 다르게 적어보세요.</div>`; }
+    else $('as-result').innerHTML=
+      _autoSchedDraft.map(e=>`<div class="as-item"><span class="as-item-time">${esc(e.start)}~${esc(e.end)}</span><span class="as-item-title">${esc(e.title)}</span></div>`).join('')
+      +`<button class="btn" style="width:100%;margin-top:8px;" onclick="applyAutoSchedule()">이대로 일정에 추가</button>`;
+  } catch(err){ showToast(err.message); }
+  btn.disabled=false; btn.textContent='일정 만들기';
+}
+function applyAutoSchedule(){
+  const d=getDay(dayCursor);
+  _autoSchedDraft.forEach((e,i)=>{
+    let start=minToHm(snapMin(hmToMin(e.start))), end=minToHm(snapMin(hmToMin(e.end)));
+    if(hmToMin(end)<=hmToMin(start)) end=minToHm(hmToMin(start)+60);
+    d.events.push({ id:uid(), title:e.title||'일정', start, end, color:EV_COLORS[i%EV_COLORS.length], review:null });
+  });
+  setDay(dayCursor,d);
+  closeModal('autosched-modal');
+  showToast(`${_autoSchedDraft.length}개 일정을 추가했어요`);
+  _autoSchedDraft=[]; renderTimeline();
+}
+
 (function init() {
   const d=new Date(), days=['일','월','화','수','목','금','토'];
   $('hdr-date').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
