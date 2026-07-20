@@ -29,5 +29,5 @@ if (!process.env.GEMINI_API_KEY) {
 
 app.listen(PORT, () => {
   console.log(`✅ AI 서버 실행 중 → http://localhost:${PORT}`);
-  console.log(`   모델: ${process.env.GEMINI_MODEL || 'gemini-2.5-flash'}`);
+  console.log(`   모델: ${process.env.GEMINI_MODEL || 'gemini-flash-latest'}`);
 });
