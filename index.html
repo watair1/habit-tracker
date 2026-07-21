@@ -335,6 +335,18 @@
     .day-todo-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; }
     /* 타임라인 */
     .tl-hint { font-size: .66rem; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .freegap-panel { margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+    .freegap-row { display: flex; align-items: center; gap: 8px; padding: 8px 11px; background: var(--card2); border: 1px solid var(--border); border-radius: 9px; cursor: pointer; font-size: .8rem; }
+    .freegap-row:hover { border-color: var(--primary); }
+    .freegap-time { font-weight: 800; color: var(--primary); }
+    .freegap-dur { color: var(--muted); font-size: .72rem; }
+    .freegap-add { margin-left: auto; color: var(--primary); font-size: .72rem; font-weight: 700; }
+    .freegap-empty { font-size: .78rem; color: var(--muted); text-align: center; padding: 8px; }
+    .tpl-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+    .tpl-row:last-child { border-bottom: none; }
+    .tpl-apply { flex: 1; display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; font-weight: 600; color: var(--text); cursor: pointer; padding: 7px 4px; }
+    .tpl-apply svg { color: var(--primary); }
+    .tpl-cnt { font-size: .68rem; color: var(--muted); }
     .tl-allday { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 0; }
     .tl-allday:empty { display: none; }
     .tl-allday-lbl { font-size: .64rem; color: var(--muted); align-self: center; margin-right: 2px; font-weight: 700; }
@@ -545,10 +557,15 @@
 
   <!-- ④ 타임라인 -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:6px;">
       <div class="card-title" style="margin-bottom:0;">타임라인</div>
-      <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:5px;">✨ 자동 짜기</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn btn-sm btn-outline" onclick="openDayTools()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="copy" style="width:13px;height:13px;"></i>복사·템플릿</button>
+        <button class="btn btn-sm btn-outline" onclick="toggleFreeGaps()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="search" style="width:13px;height:13px;"></i>빈 시간</button>
+        <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:4px;">✨ 자동</button>
+      </div>
     </div>
+    <div id="freegap-panel" class="freegap-panel" style="display:none;"></div>
     <div class="tl-hint"><i data-lucide="hand" style="width:12px;height:12px;"></i>빈 곳을 탭해 일정 추가 · 일정을 끌어 이동 · 아래 손잡이로 길이 조절</div>
     <div class="tl-allday" id="tl-allday"></div>
     <div class="tl-scroll" id="tl-scroll">
@@ -798,6 +815,11 @@
       <label>색상</label>
       <div class="ev-color-row" id="ev-color-row"></div>
     </div>
+    <div class="fg">
+      <label>연결할 습관 (선택)</label>
+      <select id="ev-habit"><option value="">연결 안 함</option></select>
+      <div style="font-size:.66rem;color:var(--muted);margin-top:5px;">연결하면 이 일정을 "완료"로 평가할 때 습관도 자동 체크돼요</div>
+    </div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('event-modal')">취소</button>
       <button class="btn-confirm" onclick="saveEvent()">저장</button>
@@ -828,6 +850,26 @@
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('review-modal')">취소</button>
       <button class="btn-confirm" onclick="saveReview()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 복사 · 템플릿 모달 -->
+<div class="overlay" id="daytools-modal">
+  <div class="sheet" style="max-height:88vh;display:flex;flex-direction:column;">
+    <div class="sheet-title">복사 · 루틴 템플릿</div>
+    <button class="btn btn-outline" style="width:100%;margin-bottom:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="copyYesterday()"><i data-lucide="copy" style="width:15px;height:15px;"></i>어제 일정 오늘로 복사</button>
+    <div class="fg">
+      <label>지금 일정을 템플릿으로 저장</label>
+      <div style="display:flex;gap:6px;">
+        <input id="tpl-name" placeholder="예: 평일 루틴" maxlength="20" style="flex:1;" onkeydown="if(event.key==='Enter')saveTemplate()"/>
+        <button class="btn btn-sm" onclick="saveTemplate()">저장</button>
+      </div>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);font-weight:700;margin:6px 0 8px;text-transform:uppercase;letter-spacing:.5px;">저장된 템플릿</div>
+    <div id="tpl-list" style="overflow-y:auto;flex:1;"></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn-cancel" onclick="closeModal('daytools-modal')">닫기</button>
     </div>
   </div>
 </div>
@@ -1120,6 +1162,7 @@ async function doSync() {
       base.doc('memos').set({ d: loadMemos() }),
       base.doc('mood').set({ d: loadMoods() }),
       base.doc('day').set({ d: loadDayData() }),
+      base.doc('templates').set({ d: loadTemplates() }),
     ]);
   } catch(e) { console.warn('동기화 실패:', e); }
 }
@@ -1128,7 +1171,7 @@ async function loadFromCloud() {
   if (!fbUser || !fbDb) return;
   const base = fbDb.collection('users').doc(fbUser.uid).collection('data');
   try {
-    const [h, u, g, n, f, t, m, md, day] = await Promise.all([
+    const [h, u, g, n, f, t, m, md, day, tpl] = await Promise.all([
       base.doc('habits').get(),
       base.doc('user').get(),
       base.doc('goals').get(),
@@ -1138,6 +1181,7 @@ async function loadFromCloud() {
       base.doc('memos').get(),
       base.doc('mood').get(),
       base.doc('day').get(),
+      base.doc('templates').get(),
     ]);
     if (h.exists) lsSet(K.h, h.data().d);
     if (u.exists) lsSet(K.u, u.data().d);
@@ -1148,13 +1192,14 @@ async function loadFromCloud() {
     if (m.exists) lsSet(K.m, m.data().d);
     if (md.exists) lsSet(K.md, md.data().d);
     if (day.exists) lsSet(K.d, day.data().d);
+    if (tpl.exists) lsSet(K.tpl, tpl.data().d);
     if (!h.exists) await doSync();
     showToast('클라우드에서 데이터를 불러왔어요.');
   } catch(e) { console.warn('클라우드 로드 실패:', e); }
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -1198,6 +1243,9 @@ function setDay(date, obj) {
   all[date] = obj;
   saveDayData(all);
 }
+// 루틴 템플릿
+const loadTemplates = () => lsGet(K.tpl, []);
+function saveTemplates(d) { lsSet(K.tpl, d); scheduleSync(); }
 const loadNotif = () => lsGet(K.n, { morning: false, evening: false, streak: true });
 
 function saveNotif() {
@@ -1359,6 +1407,7 @@ async function doReset() {
     saveUser({ xp: 0, achievements: [], totalChecks: 0 });
     saveGoals([]);
     saveDayData({});
+    saveTemplates([]);
     showToast('전체 데이터가 초기화됐어요');
   }
   if (fbUser && fbDb) await doSync();
@@ -3019,7 +3068,7 @@ function renderTimeline(){
       ${needReview?`<span class="tl-ev-badge" onclick="event.stopPropagation();openReview('${e.id}')">어땠어요?</span>`:''}
       ${e.review?`<span class="tl-ev-badge" style="background:${e.review.done?'#10b981':'#666'};color:#fff;">${e.review.done?'완료':'미완'}</span>`:''}
       ${!hasBadge?`<span class="tl-ev-grip">⠿</span>`:''}
-      <div>${esc(e.title)}</div>
+      <div>${e.habitId?'<span style="opacity:.85;">🔗 </span>':''}${esc(e.title)}</div>
       <div class="tl-ev-time">${e.start}~${e.end}</div>
       <div class="tl-ev-handle" data-handle="1"></div>
     </div>`;
@@ -3066,6 +3115,74 @@ function nowMinForCursor(){
   if(dayCursor!==todayStr()) return null;
   const n=new Date(); return n.getHours()*60+n.getMinutes();
 }
+
+// ── ④ 빈 시간 찾기 ─────────────────────────────────────────
+const WAKE_START=420, WAKE_END=1440;   // 07:00 ~ 24:00 을 하루 활동 시간으로
+function findFreeGaps(date){
+  const d=getDay(date);
+  const busy=d.events.map(e=>[hmToMin(e.start), Math.max(hmToMin(e.start)+SNAP, hmToMin(e.end))]).sort((a,b)=>a[0]-b[0]);
+  const gaps=[]; let cursor=WAKE_START;
+  busy.forEach(([s,e])=>{ if(s>cursor) gaps.push([cursor, Math.min(s,WAKE_END)]); cursor=Math.max(cursor,e); });
+  if(cursor<WAKE_END) gaps.push([cursor,WAKE_END]);
+  return gaps.filter(([s,e])=>e-s>=30);
+}
+function toggleFreeGaps(){
+  const panel=$('freegap-panel');
+  if(panel.style.display!=='none'){ panel.style.display='none'; return; }
+  const gaps=findFreeGaps(dayCursor);
+  if(!gaps.length){ panel.innerHTML=`<div class="freegap-empty">빈 시간이 없어요 (07~24시 기준)</div>`; }
+  else panel.innerHTML=gaps.map(([s,e])=>{
+    const mins=e-s, h=Math.floor(mins/60), m=mins%60;
+    const dur=(h?h+'시간':'')+(m?' '+m+'분':'');
+    return `<div class="freegap-row" onclick="openEventModal(null, ${s})">
+      <span class="freegap-time">${minToHm(s)} ~ ${minToHm(e)}</span>
+      <span class="freegap-dur">· ${dur.trim()} 비어요</span>
+      <span class="freegap-add">+ 채우기</span></div>`;
+  }).join('');
+  panel.style.display='flex';
+}
+
+// ── ② 어제 복사 / 루틴 템플릿 ─────────────────────────────
+function openDayTools(){ $('tpl-name').value=''; renderTplList(); openModal('daytools-modal'); if(typeof lucide!=='undefined')lucide.createIcons(); }
+function copyYesterday(){
+  const y=new Date(dayCursor); y.setDate(y.getDate()-1);
+  const yStr=y.toISOString().slice(0,10);
+  const yd=getDay(yStr);
+  if(!yd.events.length){ showToast('어제 일정이 없어요'); return; }
+  const d=getDay(dayCursor);
+  yd.events.forEach(e=>d.events.push({ id:uid(), title:e.title, start:e.start, end:e.end, color:e.color, review:null, habitId:e.habitId||null }));
+  setDay(dayCursor,d); closeModal('daytools-modal');
+  showToast(`어제 일정 ${yd.events.length}개를 복사했어요`);
+  renderTimeline(); renderDayRate();
+}
+function saveTemplate(){
+  const name=$('tpl-name').value.trim();
+  if(!name){ showToast('템플릿 이름을 입력해주세요'); return; }
+  const d=getDay(dayCursor);
+  if(!d.events.length){ showToast('저장할 일정이 없어요'); return; }
+  const tpls=loadTemplates();
+  tpls.push({ id:uid(), name, events:d.events.map(e=>({ title:e.title, start:e.start, end:e.end, color:e.color, habitId:e.habitId||null })) });
+  saveTemplates(tpls); $('tpl-name').value='';
+  renderTplList(); showToast(`'${name}' 템플릿을 저장했어요`);
+}
+function renderTplList(){
+  const tpls=loadTemplates(), el=$('tpl-list');
+  el.innerHTML = tpls.length
+    ? tpls.map(t=>`<div class="tpl-row">
+        <span class="tpl-apply" onclick="applyTemplate('${t.id}')"><i data-lucide="calendar-plus" style="width:14px;height:14px;"></i>${esc(t.name)} <span class="tpl-cnt">${t.events.length}개</span></span>
+        <button class="icon-btn del" onclick="deleteTemplate('${t.id}')"><i data-lucide="x"></i></button></div>`).join('')
+    : `<div class="freegap-empty">저장된 템플릿이 없어요</div>`;
+  if(typeof lucide!=='undefined')lucide.createIcons();
+}
+function applyTemplate(id){
+  const t=loadTemplates().find(x=>x.id===id); if(!t) return;
+  const d=getDay(dayCursor);
+  t.events.forEach(e=>d.events.push({ id:uid(), title:e.title, start:e.start, end:e.end, color:e.color, review:null, habitId:e.habitId||null }));
+  setDay(dayCursor,d); closeModal('daytools-modal');
+  showToast(`'${t.name}'을(를) 적용했어요`);
+  renderTimeline(); renderDayRate();
+}
+function deleteTemplate(id){ saveTemplates(loadTemplates().filter(x=>x.id!==id)); renderTplList(); }
 // 겹치는 이벤트를 칼럼으로 분할
 function layoutEvents(evs){
   const res={}; let i=0;
@@ -3134,17 +3251,22 @@ let _editingEventId=null, _evColorSel=EV_COLORS[0];
 function openEventModal(id, prefillStart){
   _editingEventId=id;
   $('ev-color-row').innerHTML=EV_COLORS.map(c=>`<div class="ev-color" style="background:${c};" data-c="${c}" onclick="pickEvColor('${c}')"></div>`).join('');
+  // 연결 습관 드롭다운 채우기
+  const habits=loadHabits();
+  $('ev-habit').innerHTML=`<option value="">연결 안 함</option>`+habits.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join('');
   if(id){
     const ev=getDay(dayCursor).events.find(x=>x.id===id);
     $('event-modal-title').textContent='일정 편집';
     $('ev-title').value=ev.title; $('ev-start').value=ev.start; $('ev-end').value=ev.end;
     _evColorSel=ev.color||EV_COLORS[0];
+    $('ev-habit').value=ev.habitId||'';
     $('event-del-btn').style.display='';
   } else {
     const s=prefillStart||9*60;
     $('event-modal-title').textContent='일정 추가';
     $('ev-title').value=''; $('ev-start').value=minToHm(s); $('ev-end').value=minToHm(s+60);
     _evColorSel=EV_COLORS[0];
+    $('ev-habit').value='';
     $('event-del-btn').style.display='none';
   }
   pickEvColor(_evColorSel);
@@ -3157,16 +3279,28 @@ function saveEvent(){
   if(!title){ showToast('제목을 입력해주세요'); return; }
   let start=minToHm(snapMin(hmToMin($('ev-start').value))), end=minToHm(snapMin(hmToMin($('ev-end').value)));
   if(hmToMin(end)<=hmToMin(start)) end=minToHm(hmToMin(start)+SNAP);
+  const habitId=$('ev-habit').value||null;
   const d=getDay(dayCursor);
   if(_editingEventId){
     const ev=d.events.find(x=>x.id===_editingEventId);
-    ev.title=title; ev.start=start; ev.end=end; ev.color=_evColorSel;
+    ev.title=title; ev.start=start; ev.end=end; ev.color=_evColorSel; ev.habitId=habitId;
   } else {
-    d.events.push({ id:uid(), title, start, end, color:_evColorSel, review:null });
+    d.events.push({ id:uid(), title, start, end, color:_evColorSel, review:null, habitId });
   }
   setDay(dayCursor,d);
   closeModal('event-modal'); _editingEventId=null;
   renderTimeline();
+}
+// 연결된 습관을 해당 날짜에 체크 (중복 XP 없이, 멱등)
+function ensureHabitChecked(habitId, date){
+  if(!habitId) return;
+  const habits=loadHabits(), h=habits.find(x=>x.id===habitId);
+  if(h && !h.checked[date]){
+    h.checked[date]=true; saveHabits(habits);
+    const u=loadUser(); u.totalChecks=(u.totalChecks||0)+1; saveUser(u);
+    checkAchs(); render();
+    showToast(`연결된 습관 '${h.name}' 자동 체크`);
+  }
 }
 function deleteEvent(){
   if(!_editingEventId) return;
@@ -3200,6 +3334,7 @@ function saveReview(){
   ev.review={ done:_reviewDraft.done, rating:_reviewDraft.rating, note:$('rv-note').value.trim(), awarded:wasAwarded||_reviewDraft.done };
   if(_reviewDraft.done && !wasAwarded){ addXP(5); showToast('일정 평가 완료 +5 XP'); }
   setDay(dayCursor,d);
+  if(_reviewDraft.done && ev.habitId) ensureHabitChecked(ev.habitId, dayCursor);   // 연결 습관 자동 체크
   closeModal('review-modal'); _reviewEventId=null;
   renderTimeline(); renderDayRate();
 }
