@@ -286,6 +286,23 @@
     .corr-empty { flex: 1; font-size: .68rem; color: #3a3a3a; }
     .corr-insight { margin-top: 11px; font-size: .78rem; line-height: 1.55; color: var(--text); background: var(--primary-light); border-radius: 9px; padding: 10px 12px; }
     .corr-insight b { color: var(--primary); }
+    /* 주간 대시보드 */
+    .wk-avgs { display: flex; gap: 10px; margin-bottom: 12px; }
+    .wk-avg { flex: 1; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 11px; text-align: center; }
+    .wk-avg-v { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+    .wk-avg-l { font-size: .66rem; color: var(--muted); margin-top: 2px; }
+    .wk-head { display: grid; grid-template-columns: 24px 1fr 38px 30px 40px; gap: 8px; font-size: .6rem; color: #3a3a3a; margin-bottom: 4px; }
+    .wk-head span { text-align: center; }
+    .wk-row { display: grid; grid-template-columns: 24px 1fr 38px 30px 40px; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid #141414; }
+    .wk-row:last-child { border-bottom: none; }
+    .wk-row.today { background: var(--primary-light); border-radius: 8px; margin: 0 -6px; padding: 6px; grid-template-columns: 24px 1fr 38px 30px 40px; }
+    .wk-day { font-size: .72rem; color: var(--muted); text-align: center; font-weight: 700; }
+    .wk-row.today .wk-day { color: var(--primary); }
+    .wk-bar-wrap { height: 8px; background: var(--card2); border-radius: 8px; overflow: hidden; }
+    .wk-bar { height: 100%; background: var(--primary); border-radius: 8px; }
+    .wk-rate { font-size: .72rem; font-weight: 700; color: var(--text); text-align: right; }
+    .wk-mood { font-size: .95rem; text-align: center; }
+    .wk-sleep { font-size: .68rem; color: var(--muted); text-align: right; }
 
     /* ── 하루 관리 탭 ── */
     .nav-btn { font-size: .68rem; }            /* 탭 6개라 살짝 축소 */
@@ -636,6 +653,10 @@
     <p id="mood-chart-empty" style="display:none;font-size:.8rem;color:var(--muted);text-align:center;margin-top:12px;">기분을 기록하면 여기에 그래프가 표시돼요</p>
   </div>
   <div class="card">
+    <div class="card-title">주간 요약 (최근 7일)</div>
+    <div id="weekly-dash"></div>
+  </div>
+  <div class="card">
     <div class="card-title">기분 · 수면과 습관 성공률</div>
     <div class="section-sub" style="margin-bottom:10px;">최근 30일 · 기분/수면 상태별 평균 습관 실천율</div>
     <div id="corr-analysis"></div>
@@ -772,6 +793,10 @@
     <label class="notif-row">
       <input type="checkbox" id="n-streak" onchange="saveNotif()">
       <div><div class="notif-row-title">스트릭 위기 알림</div><div class="notif-row-desc">연속 기록이 끊길 것 같을 때</div></div>
+    </label>
+    <label class="notif-row">
+      <input type="checkbox" id="n-event" onchange="saveNotif()">
+      <div><div class="notif-row-title">일정 시작 알림 (5분 전)</div><div class="notif-row-desc">하루 탭 일정 시작 5분 전에 알려줘요 · 앱이 열려 있을 때만</div></div>
     </label>
     <button class="btn" style="width:100%;margin-top:12px;" onclick="requestNotif()">알림 권한 허용</button>
   </div>
@@ -1246,10 +1271,11 @@ function setDay(date, obj) {
 // 루틴 템플릿
 const loadTemplates = () => lsGet(K.tpl, []);
 function saveTemplates(d) { lsSet(K.tpl, d); scheduleSync(); }
-const loadNotif = () => lsGet(K.n, { morning: false, evening: false, streak: true });
+const loadNotif = () => lsGet(K.n, { morning: false, evening: false, streak: true, event: false });
 
 function saveNotif() {
-  lsSet(K.n, { morning: $('#n-morning').checked, evening: $('#n-evening').checked, streak: $('#n-streak').checked });
+  lsSet(K.n, { morning: $('n-morning').checked, evening: $('n-evening').checked, streak: $('n-streak').checked, event: $('n-event').checked });
+  scheduleEventNotifs();
   scheduleSync();
 }
 
@@ -1654,6 +1680,39 @@ function renderStats() {
 
   renderMoodChart();
   renderCorrelation();
+  renderWeekly();
+}
+
+// ── ⑤ 주간 대시보드 ───────────────────────────────────────
+function renderWeekly(){
+  const el=$('weekly-dash'); if(!el) return;
+  const moods=loadMoods(), days=loadDayData();
+  const WD=['일','월','화','수','목','금','토'];
+  const EMO={worst:'😭',bad:'😟',neutral:'😐',good:'😊',best:'😄'};
+  const rows=[]; let rateSum=0,rateN=0,sleepSum=0,sleepN=0;
+  for(let i=6;i>=0;i--){
+    const dt=new Date(todayStr()); dt.setDate(dt.getDate()-i);
+    const ds=dt.toISOString().slice(0,10);
+    const rate=dayCompletionRate(ds), mood=moods[ds], smin=sleepMinutes((days[ds]||{}).sleep);
+    if(rate!==null){ rateSum+=rate; rateN++; }
+    if(smin!==null){ sleepSum+=smin; sleepN++; }
+    rows.push({ ds, wd:WD[dt.getDay()], isToday:ds===todayStr(), rate, mood, smin });
+  }
+  const avgRate=rateN?Math.round(rateSum/rateN):null;
+  const avgSleep=sleepN?(sleepSum/sleepN/60):null;
+  el.innerHTML=`
+    <div class="wk-avgs">
+      <div class="wk-avg"><div class="wk-avg-v">${avgRate!==null?avgRate+'%':'-'}</div><div class="wk-avg-l">평균 실행률</div></div>
+      <div class="wk-avg"><div class="wk-avg-v">${avgSleep!==null?avgSleep.toFixed(1)+'h':'-'}</div><div class="wk-avg-l">평균 수면</div></div>
+    </div>
+    <div class="wk-head"><span></span><span></span><span>실행</span><span>기분</span><span>수면</span></div>`+
+    rows.map(r=>`<div class="wk-row${r.isToday?' today':''}">
+      <span class="wk-day">${r.wd}</span>
+      <div class="wk-bar-wrap"><div class="wk-bar" style="width:${r.rate||0}%;"></div></div>
+      <span class="wk-rate">${r.rate!==null?r.rate+'%':'·'}</span>
+      <span class="wk-mood">${r.mood?EMO[r.mood]:'·'}</span>
+      <span class="wk-sleep">${r.smin!==null?(r.smin/60).toFixed(1)+'h':'·'}</span>
+    </div>`).join('');
 }
 
 // ── 기분·수면 × 성공률 상관 ───────────────────────────────
@@ -2545,9 +2604,10 @@ let chartTime;
 
 function renderAnalysis() {
   const notif=loadNotif();
-  $('n-morning').checked=$('n-morning').checked || notif.morning;
-  $('n-evening').checked=$('n-evening').checked || notif.evening;
-  $('n-streak').checked =$('n-streak').checked  || notif.streak;
+  $('n-morning').checked = notif.morning;
+  $('n-evening').checked = notif.evening;
+  $('n-streak').checked  = notif.streak;
+  $('n-event').checked   = notif.event;
 
   renderAISection();
   const habits=loadHabits();
@@ -2819,6 +2879,25 @@ function scheduleNotifs() {
     const t=new Date(); t.setHours(21,0,0,0);
     if (t>now) setTimeout(()=>sendNotif('🌙 저녁 습관 점검','오늘 습관을 마무리해요!'), t-now);
   }
+  scheduleEventNotifs();
+}
+
+// ① 일정 시작 5분 전 알림 (앱이 열려 있을 때만 — setTimeout 기반)
+let _eventNotifTimers=[];
+function scheduleEventNotifs(){
+  _eventNotifTimers.forEach(clearTimeout); _eventNotifTimers=[];
+  const notif=loadNotif();
+  if(!notif.event || (('Notification' in window) && Notification.permission!=='granted')) return;
+  const now=new Date(), today=todayStr();
+  const d=getDay(today);
+  d.events.forEach(e=>{
+    const [h,m]=e.start.split(':').map(Number);
+    const fire=new Date(); fire.setHours(h, m, 0, 0); fire.setMinutes(fire.getMinutes()-5);
+    const delay=fire-now;
+    if(delay>0 && delay<24*3600*1000){
+      _eventNotifTimers.push(setTimeout(()=>sendNotif('⏰ 곧 시작: '+e.title, `${e.start}에 시작해요`), delay));
+    }
+  });
 }
 
 function checkStreakRisk() {
@@ -3109,6 +3188,7 @@ function renderTimeline(){
   if(_nowTimer) clearInterval(_nowTimer);
   if(dayCursor===todayStr()){
     _nowTimer=setInterval(()=>{ const m=nowMinForCursor(); const n=$('tl-now'), b=$('tl-now-bubble'); if(n){ n.style.top=m+'px'; if(b){ b.style.top=m+'px'; b.textContent=minToHm(m); } } else clearInterval(_nowTimer); },60000);
+    scheduleEventNotifs();   // 오늘 일정 바뀌면 알림 재예약
   }
 }
 function nowMinForCursor(){
