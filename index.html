@@ -334,24 +334,32 @@
     .day-todo-time { font-size: .68rem; color: var(--primary); background: var(--primary-light); padding: 2px 7px; border-radius: 6px; }
     .day-todo-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; }
     /* 타임라인 */
-    .tl-allday { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 0; }
+    .tl-hint { font-size: .66rem; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .tl-allday { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 0; }
     .tl-allday:empty { display: none; }
-    .tl-allday-lbl { font-size: .62rem; color: var(--muted); align-self: center; margin-right: 2px; }
-    .tl-scroll { position: relative; height: 440px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: #0a0a0a; }
+    .tl-allday-lbl { font-size: .64rem; color: var(--muted); align-self: center; margin-right: 2px; font-weight: 700; }
+    .tl-scroll { position: relative; height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 14px; background: #080808; }
     .tl-body { position: relative; height: 1440px; touch-action: pan-y; }
-    .tl-hour { position: absolute; left: 0; right: 0; height: 60px; border-top: 1px solid #141414; }
-    .tl-hour-lbl { position: absolute; left: 4px; top: -1px; font-size: .58rem; color: #3a3a3a; width: 40px; }
-    .tl-hablane { position: absolute; top: 0; left: 46px; width: 96px; bottom: 0; }
-    .tl-hab { position: absolute; left: 2px; right: 2px; border-radius: 6px; padding: 3px 5px; font-size: .6rem; font-weight: 700; overflow: hidden; cursor: pointer; border: 1px solid; display: flex; flex-direction: column; justify-content: center; line-height: 1.15; }
-    .tl-hab .tl-hab-chk { font-size: .7rem; }
-    .tl-events { position: absolute; top: 0; left: 146px; right: 5px; bottom: 0; }
-    .tl-ev { position: absolute; border-radius: 7px; padding: 4px 7px; font-size: .68rem; font-weight: 700; color: #fff; overflow: hidden; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.4); user-select: none; touch-action: none; }
-    .tl-ev.dragging { opacity: .85; z-index: 50; box-shadow: 0 4px 14px rgba(0,0,0,.6); }
-    .tl-ev-time { font-size: .58rem; font-weight: 600; opacity: .85; }
-    .tl-ev-handle { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; cursor: ns-resize; }
-    .tl-ev-badge { position: absolute; top: 3px; right: 4px; background: #fff; color: #000; font-size: .55rem; padding: 1px 5px; border-radius: 8px; font-weight: 800; }
-    .tl-now { position: absolute; left: 46px; right: 0; height: 2px; background: #ff4444; z-index: 40; pointer-events: none; }
-    .tl-now::before { content: ''; position: absolute; left: -1px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #ff4444; }
+    .tl-hour { position: absolute; left: 0; right: 0; height: 60px; border-top: 1px solid #181818; }
+    .tl-hour-half { position: absolute; left: 44px; right: 0; height: 0; border-top: 1px dashed #121212; }
+    .tl-hour-lbl { position: absolute; left: 6px; top: -7px; font-size: .62rem; color: #5a5a5a; width: 36px; background: #080808; font-weight: 600; }
+    /* 습관 레인 */
+    .tl-hablane { position: absolute; top: 0; left: 44px; width: 84px; bottom: 0; }
+    .tl-hab { position: absolute; left: 3px; right: 3px; border-radius: 7px; padding: 4px 6px; font-size: .62rem; font-weight: 700; overflow: hidden; cursor: pointer; border: 1px solid; display: flex; align-items: center; gap: 3px; line-height: 1.12; }
+    .tl-hab .tl-hab-chk { font-size: .72rem; flex-shrink: 0; }
+    .tl-events { position: absolute; top: 0; left: 132px; right: 6px; bottom: 0; }
+    /* 일정 카드 (구글 캘린더식) */
+    .tl-ev { position: absolute; border-radius: 9px; padding: 5px 9px 6px; font-size: .74rem; font-weight: 700; color: #fff; overflow: hidden; cursor: grab; box-shadow: 0 2px 6px rgba(0,0,0,.45); user-select: none; touch-action: none; border-left: 3px solid rgba(255,255,255,.55); }
+    .tl-ev:active { cursor: grabbing; }
+    .tl-ev.dragging { opacity: .92; z-index: 50; box-shadow: 0 8px 20px rgba(0,0,0,.65); transform: scale(1.015); }
+    .tl-ev-time { font-size: .62rem; font-weight: 600; opacity: .9; margin-top: 1px; }
+    .tl-ev-grip { position: absolute; top: 5px; right: 6px; opacity: .5; font-size: .62rem; letter-spacing: 1px; }
+    .tl-ev-handle { position: absolute; left: 0; right: 0; bottom: 0; height: 15px; cursor: ns-resize; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; }
+    .tl-ev-handle::before { content: ''; width: 26px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.65); }
+    .tl-ev-badge { position: absolute; top: 4px; right: 5px; background: #fff; color: #000; font-size: .58rem; padding: 1px 6px; border-radius: 8px; font-weight: 800; z-index: 2; }
+    .tl-now { position: absolute; left: 44px; right: 0; height: 2px; background: #ff4444; z-index: 40; pointer-events: none; }
+    .tl-now::before { content: ''; position: absolute; left: -2px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #ff4444; }
+    .tl-now-bubble { position: absolute; left: 4px; transform: translateY(-50%); background: #ff4444; color: #fff; font-size: .56rem; font-weight: 800; padding: 1px 4px; border-radius: 6px; z-index: 41; pointer-events: none; }
     /* 이벤트 색상 선택 */
     .ev-color-row { display: flex; gap: 9px; flex-wrap: wrap; }
     .ev-color { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
@@ -516,6 +524,7 @@
       <div class="card-title" style="margin-bottom:0;">타임라인</div>
       <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:5px;">✨ 자동 짜기</button>
     </div>
+    <div class="tl-hint"><i data-lucide="hand" style="width:12px;height:12px;"></i>빈 곳을 탭해 일정 추가 · 일정을 끌어 이동 · 아래 손잡이로 길이 조절</div>
     <div class="tl-allday" id="tl-allday"></div>
     <div class="tl-scroll" id="tl-scroll">
       <div class="tl-body" id="tl-body"></div>
@@ -2950,9 +2959,10 @@ function renderTimeline(){
   const d=getDay(dayCursor);
   const habits=loadHabits();
   let html='';
-  // 시간 격자 + 라벨
+  // 시간 격자 + 라벨 (30분 점선 포함)
   for(let h=0; h<24; h++){
     html+=`<div class="tl-hour" style="top:${h*HOUR_PX}px;"><span class="tl-hour-lbl">${String(h).padStart(2,'0')}:00</span></div>`;
+    html+=`<div class="tl-hour-half" style="top:${h*HOUR_PX+HOUR_PX/2}px;"></div>`;
   }
   // 습관 레인 (자유 제외, timeSlot 대역에 반투명 블록)
   html+='<div class="tl-hablane">';
@@ -2979,18 +2989,21 @@ function renderTimeline(){
     const wPct=100/col.cols, leftPct=col.col*wPct;
     const ended = nowMin!==null ? en<=nowMin : (dayCursor<todayStr());
     const needReview = ended && !e.review;
+    const hasBadge = needReview || e.review;
     html+=`<div class="tl-ev" data-id="${e.id}" style="top:${s}px;height:${en-s}px;left:calc(${leftPct}% + 1px);width:calc(${wPct}% - 3px);background:${e.color||EV_COLORS[0]};">
       ${needReview?`<span class="tl-ev-badge" onclick="event.stopPropagation();openReview('${e.id}')">어땠어요?</span>`:''}
       ${e.review?`<span class="tl-ev-badge" style="background:${e.review.done?'#10b981':'#666'};color:#fff;">${e.review.done?'완료':'미완'}</span>`:''}
+      ${!hasBadge?`<span class="tl-ev-grip">⠿</span>`:''}
       <div>${esc(e.title)}</div>
       <div class="tl-ev-time">${e.start}~${e.end}</div>
       <div class="tl-ev-handle" data-handle="1"></div>
     </div>`;
   });
   html+='</div>';
-  // 현재 시각 선
+  // 현재 시각 선 + 시각 말풍선
   if(dayCursor===todayStr()){
     html+=`<div class="tl-now" id="tl-now" style="top:${nowMin}px;"></div>`;
+    html+=`<div class="tl-now-bubble" id="tl-now-bubble" style="top:${nowMin}px;">${minToHm(nowMin)}</div>`;
   }
   body.innerHTML=html;
 
@@ -2998,7 +3011,7 @@ function renderTimeline(){
   $('tl-events').onclick=(e)=>{
     if(e.target.closest('.tl-ev')) return;
     const rect=$('tl-events').getBoundingClientRect();
-    const y=e.clientY-rect.top+$('tl-scroll').scrollTop;
+    const y=e.clientY-rect.top;   // rect.top은 이미 스크롤 반영됨 (scrollTop 더하면 중복)
     openEventModal(null, snapMin(y));
   };
   // 이벤트 블록 드래그/탭 바인딩
@@ -3021,7 +3034,7 @@ function renderTimeline(){
   // 현재 시각 선 1분마다 갱신
   if(_nowTimer) clearInterval(_nowTimer);
   if(dayCursor===todayStr()){
-    _nowTimer=setInterval(()=>{ const n=$('tl-now'); if(n) n.style.top=nowMinForCursor()+'px'; else clearInterval(_nowTimer); },60000);
+    _nowTimer=setInterval(()=>{ const m=nowMinForCursor(); const n=$('tl-now'), b=$('tl-now-bubble'); if(n){ n.style.top=m+'px'; if(b){ b.style.top=m+'px'; b.textContent=minToHm(m); } } else clearInterval(_nowTimer); },60000);
   }
 }
 function nowMinForCursor(){
@@ -3061,7 +3074,8 @@ function bindEventDrag(el){
     startY=e.clientY; origTop=parseFloat(el.style.top); origH=parseFloat(el.style.height); moved=false;
     el.setPointerCapture(e.pointerId);
     if(e.target.dataset.handle){ mode='resize'; el.classList.add('dragging'); }
-    else { mode=null; lpTimer=setTimeout(()=>{ mode='move'; el.classList.add('dragging'); if(navigator.vibrate)navigator.vibrate(15); },300); }
+    else if(e.pointerType==='mouse'){ mode='move'; el.classList.add('dragging'); }   // 마우스는 바로 드래그
+    else { mode=null; lpTimer=setTimeout(()=>{ mode='move'; el.classList.add('dragging'); if(navigator.vibrate)navigator.vibrate(15); },300); }   // 터치는 길게 눌러야 이동(스크롤과 구분)
   });
   el.addEventListener('pointermove',(e)=>{
     if(ignore) return;
