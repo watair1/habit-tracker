@@ -381,6 +381,21 @@
     .day-mood-btn { flex: 1; padding: 9px 0; font-size: 1.5rem; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; filter: grayscale(0.6); opacity: .6; transition: all .15s; }
     .day-mood-btn.sel { filter: none; opacity: 1; border-color: var(--primary); transform: scale(1.08); background: var(--primary-light); }
     .day-summary-ai { background: var(--primary-light); border: 1px solid rgba(179,240,0,0.25); border-radius: 10px; padding: 12px; margin-top: 12px; font-size: .85rem; line-height: 1.6; color: var(--text); }
+    /* AI 비서 대화 */
+    .ai-agent-card { background: linear-gradient(135deg, rgba(179,240,0,0.05), rgba(179,240,0,0.01)); border-color: rgba(179,240,0,0.2); }
+    .agent-log { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .agent-log:empty { display: none; }
+    .agent-msg { font-size: .84rem; line-height: 1.5; padding: 9px 12px; border-radius: 12px; max-width: 88%; }
+    .agent-msg.user { align-self: flex-end; background: var(--primary); color: #000; font-weight: 600; border-bottom-right-radius: 4px; }
+    .agent-msg.bot { align-self: flex-start; background: var(--card2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+    .agent-msg.bot.err { border-color: rgba(248,113,113,0.4); color: #f87171; }
+    .agent-actions { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+    .agent-act { font-size: .76rem; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; display: flex; align-items: center; gap: 6px; }
+    .agent-act svg { width: 13px; height: 13px; color: var(--primary); flex-shrink: 0; }
+    .agent-input-row { display: flex; gap: 6px; }
+    .agent-input-row input { flex: 1; padding: 10px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: .85rem; outline: none; background: var(--card); color: var(--text); }
+    .agent-input-row input:focus { border-color: var(--primary); }
+    .agent-input-row button { flex: 0 0 auto; display: inline-flex; align-items: center; }
     .as-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 9px; margin-bottom: 6px; }
     .as-item-time { font-size: .68rem; color: var(--primary); font-weight: 700; flex-shrink: 0; }
     .as-item-title { font-size: .85rem; flex: 1; }
@@ -516,6 +531,16 @@
     </div>
     <div style="font-size:.66rem;color:var(--muted);margin:-4px 0 10px;">시간을 지정하면 타임라인과 실행률에 반영돼요</div>
     <div id="day-todo-list"></div>
+  </div>
+
+  <!-- AI 비서 -->
+  <div class="card ai-agent-card">
+    <div class="card-title" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서</div>
+    <div id="agent-log" class="agent-log"></div>
+    <div class="agent-input-row">
+      <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘 / 오늘 뭐부터 할까?" onkeydown="if(event.key==='Enter')sendAgent()"/>
+      <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
+    </div>
   </div>
 
   <!-- ④ 타임라인 -->
@@ -3303,6 +3328,67 @@ function applyAutoSchedule(){
   closeModal('autosched-modal');
   showToast(`${_autoSchedDraft.length}개 일정을 추가했어요`);
   _autoSchedDraft=[]; renderTimeline();
+}
+
+// ── AI 비서 (대화형 에이전트) ─────────────────────────────
+let _pendingAgentActions=[];
+function agentActionLabel(a){
+  if(a.type==='add_event') return `<div class="agent-act"><i data-lucide="calendar-plus"></i>일정: ${esc(a.title)} ${esc(a.start)}~${esc(a.end)}</div>`;
+  if(a.type==='add_todo')  return `<div class="agent-act"><i data-lucide="check-square"></i>할 일: ${esc(a.text)}${a.time?' ('+esc(a.time)+')':''}</div>`;
+  if(a.type==='set_highlight') return `<div class="agent-act"><i data-lucide="star"></i>하이라이트: ${esc(a.text)}</div>`;
+  return '';
+}
+async function sendAgent(){
+  const inp=$('agent-input'), msg=inp.value.trim();
+  if(!msg) return;
+  const log=$('agent-log');
+  log.insertAdjacentHTML('beforeend', `<div class="agent-msg user">${esc(msg)}</div>`);
+  inp.value=''; const btn=$('agent-send'); btn.disabled=true;
+  log.insertAdjacentHTML('beforeend', `<div class="agent-msg bot" id="agent-pending"><span class="ai-spin"></span></div>`);
+  log.scrollTop=log.scrollHeight;
+  const d=getDay(dayCursor), habits=loadHabits();
+  try{
+    const out=await aiCall('/api/day-agent',{
+      message:msg, date:dayCursor,
+      events:d.events.map(e=>({title:e.title,start:e.start,end:e.end})),
+      todos:d.todos.map(t=>({text:t.text})),
+      habits:habits.map(h=>({name:h.name}))
+    });
+    const p=$('agent-pending'); if(p) p.remove();
+    const actions=out.actions||[];
+    _pendingAgentActions=actions;
+    let html=`<div class="agent-msg bot">${esc(out.reply||'')}`;
+    if(actions.length){
+      html+=`<div class="agent-actions">`+actions.map(agentActionLabel).join('')+`</div>`;
+      html+=`<button class="btn btn-sm" style="margin-top:9px;width:100%;" onclick="applyAgentActions(this)">이대로 적용</button>`;
+    }
+    html+=`</div>`;
+    log.insertAdjacentHTML('beforeend', html);
+    log.scrollTop=log.scrollHeight;
+    if(typeof lucide!=='undefined') lucide.createIcons();
+  }catch(err){
+    const p=$('agent-pending'); if(p) p.remove();
+    log.insertAdjacentHTML('beforeend', `<div class="agent-msg bot err">${esc(err.message)}</div>`);
+  }
+  btn.disabled=false;
+}
+function applyAgentActions(btnEl){
+  const actions=_pendingAgentActions||[];
+  if(!actions.length) return;
+  const d=getDay(dayCursor); let n=0;
+  actions.forEach((a,i)=>{
+    if(a.type==='add_event'){
+      let s=minToHm(snapMin(hmToMin(a.start))), e=minToHm(snapMin(hmToMin(a.end)));
+      if(hmToMin(e)<=hmToMin(s)) e=minToHm(hmToMin(s)+60);
+      d.events.push({ id:uid(), title:a.title, start:s, end:e, color:EV_COLORS[(d.events.length+i)%EV_COLORS.length], review:null }); n++;
+    } else if(a.type==='add_todo'){ d.todos.push({ id:uid(), text:a.text, done:false, time:a.time||null }); n++; }
+    else if(a.type==='set_highlight'){ d.highlight={ text:a.text, done:false, awarded:false }; n++; }
+  });
+  setDay(dayCursor,d);
+  _pendingAgentActions=[];
+  if(btnEl){ btnEl.textContent='✓ 적용됨'; btnEl.disabled=true; btnEl.style.opacity='.6'; }
+  showToast(`${n}개 적용했어요`);
+  renderDay();
 }
 
 // HH:MM → 앱의 시간대(timeSlot) enum

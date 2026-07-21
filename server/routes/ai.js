@@ -150,4 +150,42 @@ router.post('/auto-schedule', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ── 8. 하루 비서 (에이전트: 대화 → 답변 + 실행 액션) ──────
+router.post('/day-agent', async (req, res) => {
+  const { message, date, events, todos, habits } = req.body || {};
+  if (!need(res, message && message.trim(), '무엇을 도와드릴까요? 메시지를 입력해주세요.')) return;
+  try {
+    const sys = `너는 하루 일정 비서다. 사용자의 요청을 읽고 (1) 친근한 한국어 한두 문장 답변과 (2) 실행할 액션 목록을 만든다.
+반드시 JSON만 출력: {"reply":"사용자에게 할 말","actions":[ ... ]}
+액션 종류:
+- {"type":"add_event","title":"제목","start":"HH:MM","end":"HH:MM"}  // 24시간제, 30분 단위, 기존 일정과 겹치지 않게
+- {"type":"add_todo","text":"할 일","time":"HH:MM" 또는 null}
+- {"type":"set_highlight","text":"오늘 가장 중요한 일"}
+규칙:
+- 일정/할일 추가·정리 요청이면 해당 액션들을 채워라.
+- 조언·질문("뭐부터 할까?", "우선순위 알려줘")이면 actions는 [] 로 두고 reply로만 답하라.
+- 요청이 모호하면 actions는 [] 로 두고 reply로 짧게 되물어라.
+- reply는 항상 채운다.`;
+    const ctx = `날짜: ${date || ''}
+현재 일정: ${(events || []).map(e => `${e.start}~${e.end} ${e.title}`).join(', ') || '없음'}
+할 일: ${(todos || []).map(t => t.text).join(', ') || '없음'}
+습관: ${(habits || []).map(h => h.name).join(', ') || '없음'}
+
+사용자 메시지: ${message}`;
+    const out = await callGemini(sys, ctx, { json: true });
+    let actions = Array.isArray(out.actions) ? out.actions : [];
+    actions = actions.map(a => {
+      if (a.type === 'add_event') {
+        const start = snapTime(a.start), end = snapTime(a.end);
+        if (!start || !end) return null;
+        return { type: 'add_event', title: String(a.title || '일정').slice(0, 40), start, end };
+      }
+      if (a.type === 'add_todo') return { type: 'add_todo', text: String(a.text || '').slice(0, 60), time: snapTime(a.time) || null };
+      if (a.type === 'set_highlight') return { type: 'set_highlight', text: String(a.text || '').slice(0, 60) };
+      return null;
+    }).filter(Boolean);
+    res.json({ reply: out.reply || '', actions });
+  } catch (e) { fail(res, e); }
+});
+
 export default router;
