@@ -36,7 +36,7 @@
     body { font-family: 'Pretendard', 'Segoe UI', -apple-system, sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); padding-bottom: calc(90px + env(safe-area-inset-bottom)); overflow-x: hidden; }
 
     /* HEADER */
-    .app-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: #fff; padding: 18px 18px 14px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+    .app-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: #fff; padding: 18px 18px 14px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); max-width: 500px; margin: 0 auto; }
     .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .app-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -.3px; color: #fff; }
     .header-right { display: flex; gap: 8px; align-items: center; }
@@ -47,21 +47,22 @@
     .xp-fill { background: var(--primary); height: 100%; border-radius: 10px; transition: width .5s; }
 
     /* BOTTOM NAV */
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 500px; margin: 0 auto; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); border-bottom: none; border-radius: 16px 16px 0 0; display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
     .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; background: none; border: none; cursor: pointer; gap: 4px; color: #444; font-size: 0.72rem; font-weight: 700; transition: color .2s; letter-spacing: .3px; }
     .nav-btn svg { width: 22px; height: 22px; stroke-width: 2px; transition: transform .3s cubic-bezier(0.34,1.56,0.64,1); }
     .nav-btn.active { color: var(--primary); }
     .nav-btn.active svg { transform: scale(1.15); }
 
     /* TABS */
-    .tab { display: none; padding: 16px 16px 10px; }
+    .tab { display: none; padding: 16px 16px 10px; max-width: 500px; margin: 0 auto; }
     .tab.active { display: block; animation: tabIn .3s cubic-bezier(0.32,0.72,0,1); }
     @keyframes tabIn { from { opacity: 0; transform: translateY(14px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
     /* CARDS */
-    .card { background: var(--card); border-radius: var(--r); padding: 15px; border: 1px solid var(--border); margin-bottom: 12px; transition: transform .15s, border-color .2s; }
+    .card { background: #141414; border-radius: var(--r); padding: 16px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 14px; transition: transform .15s, border-color .2s; }
     .card:active { transform: scale(0.99); }
-    .card-title { font-size: 0.7rem; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 12px; }
+    .card-title { font-size: 0.72rem; font-weight: 700; color: #6a6a6a; text-transform: uppercase; letter-spacing: .7px; margin-bottom: 12px; }
+    .agent-head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 
     /* TODAY */
     .motiv { background: var(--primary-light); border-left: 2px solid var(--primary); padding: 9px 13px; border-radius: 8px; font-size: 0.82rem; color: var(--primary); margin-bottom: 13px; font-style: italic; }
@@ -562,13 +563,18 @@
     <div id="day-todo-list"></div>
   </div>
 
-  <!-- AI 비서 -->
+  <!-- AI 비서 (접이식) -->
   <div class="card ai-agent-card">
-    <div class="card-title" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서</div>
-    <div id="agent-log" class="agent-log"></div>
-    <div class="agent-input-row">
-      <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘 / 오늘 뭐부터 할까?" onkeydown="if(event.key==='Enter')sendAgent()"/>
-      <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
+    <div class="agent-head" onclick="toggleAgent()">
+      <div class="card-title" style="margin-bottom:0;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서에게 물어보기</div>
+      <i data-lucide="chevron-down" id="agent-chevron" style="width:18px;height:18px;color:var(--muted);transition:transform .2s;"></i>
+    </div>
+    <div id="agent-body" style="display:none;margin-top:12px;">
+      <div id="agent-log" class="agent-log"></div>
+      <div class="agent-input-row">
+        <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
+        <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
+      </div>
     </div>
   </div>
 
@@ -3547,6 +3553,13 @@ function applyAutoSchedule(){
 
 // ── AI 비서 (대화형 에이전트) ─────────────────────────────
 let _pendingAgentActions=[];
+function toggleAgent(){
+  const body=$('agent-body'), chev=$('agent-chevron');
+  const open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  if(chev) chev.style.transform=open?'rotate(180deg)':'';
+  if(open) setTimeout(()=>$('agent-input').focus(),50);
+}
 function agentActionLabel(a){
   if(a.type==='add_event') return `<div class="agent-act"><i data-lucide="calendar-plus"></i>일정: ${esc(a.title)} ${esc(a.start)}~${esc(a.end)}</div>`;
   if(a.type==='add_todo')  return `<div class="agent-act"><i data-lucide="check-square"></i>할 일: ${esc(a.text)}${a.time?' ('+esc(a.time)+')':''}</div>`;
