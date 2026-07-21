@@ -71,7 +71,7 @@ Copy-Item .env.example .env
 
 ```
 GEMINI_API_KEY=여기에_복사한_키_붙여넣기
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-flash-latest
 PORT=3000
 ```
 
@@ -148,7 +148,8 @@ const AI_SERVER = 'http://localhost:3000';
 | `node: command not found` | 1단계 Node 설치가 안 된 거예요. 다시 설치 후 창을 새로 여세요. |
 | `GEMINI_API_KEY가 비어 있어요` 경고 | `.env` 파일에 키를 안 넣었어요. 4단계 확인. |
 | 앱에서 "AI 서버가 꺼져 있어요" | `npm start` 창이 꺼졌는지 확인하세요. |
-| `요청이 많아요. 1분 후...` | 무료 플랜은 분당 호출 제한이 있어요. 잠깐 기다리면 돼요. |
+| `요청이 많아요. 1분 후...` | 무료 플랜은 분당·하루 호출 제한이 있어요. 잠깐(또는 다음 날) 기다리면 풀려요. 많이 쓰려면 Google Cloud에서 결제를 켜면 한도가 크게 늘어요(flash는 매우 저렴). |
+| `no longer available to new users` | 오래된 모델이에요. `.env`의 `GEMINI_MODEL`을 `gemini-flash-latest`로 두세요(기본값). |
 
 ---
 
