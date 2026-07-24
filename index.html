@@ -347,6 +347,8 @@
     .day-todo:last-child { border-bottom: none; }
     .day-todo-chk { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--border); background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #000; font-size: .8rem; }
     .day-todo-chk.done { background: var(--primary); border-color: var(--primary); }
+    .day-todo-chk.partial { background: var(--warning); border-color: var(--warning); }
+    .day-todo-chk.fail { background: var(--danger); border-color: var(--danger); }
     .day-todo-txt { flex: 1; font-size: .88rem; color: var(--text); }
     .day-todo.done-t .day-todo-txt { text-decoration: line-through; color: var(--muted); }
     .day-todo-time { font-size: .68rem; color: var(--primary); background: var(--primary-light); padding: 2px 7px; border-radius: 6px; }
@@ -3057,7 +3059,7 @@ function computeDayRate(date){
   const d=getDay(date);
   let den=0, num=0;
   d.events.forEach(e=>{ if(e.review){ den++; if(e.review.done) num++; } });
-  d.todos.forEach(t=>{ if(t.time){ den++; if(t.done) num++; } });
+  d.todos.forEach(t=>{ if(t.time){ den++; const st=todoStatus(t); num += st==='o'?1:st==='partial'?0.5:0; } });
   return { den, num, pct: den? Math.round(num/den*100):0 };
 }
 function renderDayRate(){
@@ -3074,7 +3076,7 @@ function renderDayRate(){
     </div>
     <div class="day-rate-txt">
       <h3>오늘 실행률 ${r.pct}%</h3>
-      <p>${r.den? `평가된 ${r.den}개 중 ${r.num}개 완료`:'일정을 평가하면 실행률이 계산돼요'}</p>
+      <p>${r.den? `평가된 ${r.den}개 중 ${Math.round(r.num*10)/10}개 완료`:'일정을 평가하면 실행률이 계산돼요'}</p>
     </div>`;
 }
 
@@ -3084,27 +3086,38 @@ function addDayTodo(){
   if(!text) return;
   const time=$('day-todo-time').value || null;
   const d=getDay(dayCursor);
-  d.todos.push({ id:uid(), text, done:false, time });
+  d.todos.push({ id:uid(), text, status:'', time });
   setDay(dayCursor,d);
   inp.value=''; $('day-todo-time').value='';
   renderDayTodos(); renderTimeline(); renderDayRate();
 }
+// 완료(o) · 부분(partial) · 미완료(x) 3단계. 기존 done:true 데이터도 계속 인식.
+const TODO_STATUS_CYCLE=['', 'o', 'partial', 'x'];
+const TODO_STATUS_ICON={ o:'✓', partial:'△', x:'✕' };
+const TODO_STATUS_CLASS={ o:'done', partial:'partial', x:'fail' };
+function todoStatus(t){ return t.status!==undefined ? t.status : (t.done?'o':''); }
 function renderDayTodos(){
   const d=getDay(dayCursor);
   const el=$('day-todo-list');
   if(!d.todos.length){ el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:8px;">할 일이 없어요</div>`; return; }
-  el.innerHTML=d.todos.map(t=>`
-    <div class="day-todo${t.done?' done-t':''}">
-      <button class="day-todo-chk${t.done?' done':''}" onclick="toggleDayTodo('${t.id}')">${t.done?'✓':''}</button>
+  el.innerHTML=d.todos.map(t=>{
+    const st=todoStatus(t);
+    return `
+    <div class="day-todo${st==='o'?' done-t':''}">
+      <button class="day-todo-chk${st?' '+TODO_STATUS_CLASS[st]:''}" onclick="toggleDayTodo('${t.id}')">${TODO_STATUS_ICON[st]||''}</button>
       <div class="day-todo-txt">${esc(t.text)}</div>
       ${t.time?`<span class="day-todo-time">${esc(t.time)}</span>`:''}
       <button class="day-todo-del" onclick="delDayTodo('${t.id}')"><i data-lucide="x"></i></button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 function toggleDayTodo(id){
   const d=getDay(dayCursor), t=d.todos.find(x=>x.id===id);
-  if(!t) return; t.done=!t.done; setDay(dayCursor,d);
+  if(!t) return;
+  const cur=todoStatus(t);
+  t.status=TODO_STATUS_CYCLE[(TODO_STATUS_CYCLE.indexOf(cur)+1)%TODO_STATUS_CYCLE.length];
+  setDay(dayCursor,d);
   renderDayTodos(); renderTimeline(); renderDayRate();
 }
 function delDayTodo(id){
@@ -3609,7 +3622,7 @@ function applyAgentActions(btnEl){
       let s=minToHm(snapMin(hmToMin(a.start))), e=minToHm(snapMin(hmToMin(a.end)));
       if(hmToMin(e)<=hmToMin(s)) e=minToHm(hmToMin(s)+60);
       d.events.push({ id:uid(), title:a.title, start:s, end:e, color:EV_COLORS[(d.events.length+i)%EV_COLORS.length], review:null }); n++;
-    } else if(a.type==='add_todo'){ d.todos.push({ id:uid(), text:a.text, done:false, time:a.time||null }); n++; }
+    } else if(a.type==='add_todo'){ d.todos.push({ id:uid(), text:a.text, status:'', time:a.time||null }); n++; }
     else if(a.type==='set_highlight'){ d.highlight={ text:a.text, done:false, awarded:false }; n++; }
   });
   setDay(dayCursor,d);
