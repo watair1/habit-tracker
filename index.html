@@ -342,6 +342,29 @@
     .day-cal-strip-cell.today { box-shadow: 0 0 0 1.5px var(--danger) inset; }
     .day-today-btn { margin-top: 3px; background: transparent; border: none; color: var(--primary); font-size: .72rem; font-weight: 700; cursor: pointer; }
     .day-today-btn.hidden { display: none; }
+    .wk-plan-entry { display: flex; align-items: center; gap: 9px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 13px 15px; margin-bottom: 13px; cursor: pointer; color: var(--text); font-size: .86rem; font-weight: 700; }
+    .wk-plan-entry span { flex: 1; }
+    .wk-plan-entry i { width: 17px; height: 17px; color: var(--primary); }
+    .wk-plan-entry i:last-child { color: var(--muted); width: 15px; height: 15px; }
+    .wk-plan-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .wk-plan-range { font-size: .9rem; font-weight: 800; color: var(--text); }
+    .wk-plan-steps { display: flex; gap: 6px; margin-bottom: 14px; flex-shrink: 0; }
+    .wk-step-btn { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2); color: var(--muted); font-size: .78rem; font-weight: 700; cursor: pointer; }
+    .wk-step-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
+    .wk-cat-row { display: flex; align-items: center; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--border); }
+    .wk-cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .wk-cat-name { flex: 1; font-size: .85rem; color: var(--text); }
+    .wk-cat-target { font-size: .74rem; color: var(--muted); }
+    .wk-cat-del { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
+    .wk-chip-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; flex-shrink: 0; }
+    .wk-chip { flex: 0 0 auto; padding: 7px 13px; border-radius: 20px; font-size: .76rem; font-weight: 700; border: none; cursor: pointer; color: #fff; opacity: .5; white-space: nowrap; display: flex; align-items: center; }
+    .wk-chip.active { opacity: 1; box-shadow: 0 0 0 2px rgba(255,255,255,.55) inset; }
+    .wk-grid-scroll { overflow: auto; flex: 1; min-height: 0; }
+    .wk-grid { display: grid; grid-template-columns: 38px repeat(7, 1fr); min-width: 480px; user-select: none; touch-action: none; }
+    .wk-grid-hd { font-size: .62rem; text-align: center; color: var(--muted); font-weight: 700; padding: 4px 0 6px; position: sticky; top: 0; background: #0c0c0c; z-index: 1; }
+    .wk-grid-hour { font-size: .58rem; color: #5a5a5a; text-align: right; padding-right: 5px; height: 20px; line-height: 20px; }
+    .wk-cell { height: 20px; border: 1px solid #151515; cursor: pointer; }
+    .wk-cell.hour-start { border-top: 1px solid #262626; }
     .hl-card { background: linear-gradient(135deg, rgba(179,240,0,0.10), rgba(179,240,0,0.02)); border-color: rgba(179,240,0,0.25); cursor: pointer; }
     .hl-label { font-size: .68rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
     .hl-text { font-size: 1.15rem; font-weight: 800; line-height: 1.4; color: var(--text); }
@@ -564,6 +587,13 @@
       </div>
       <div class="day-cal-strip-grid" id="day-cal-habit-strip"></div>
     </div>
+  </div>
+
+  <!-- 주간 계획 진입 -->
+  <div class="wk-plan-entry" onclick="openWeekPlan()">
+    <i data-lucide="calendar"></i>
+    <span>이번 주 시간 배분</span>
+    <i data-lucide="chevron-right"></i>
   </div>
 
   <!-- ① 하이라이트 -->
@@ -945,6 +975,42 @@
   </div>
 </div>
 
+<!-- WEEK PLAN MODAL (STEP1 분량확인 · STEP2 시간배분) -->
+<div class="overlay" id="weekplan-modal">
+  <div class="sheet" style="max-height:92vh;display:flex;flex-direction:column;">
+    <div class="sheet-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>주간 계획</span>
+      <button class="icon-btn" onclick="closeModal('weekplan-modal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="wk-plan-nav">
+      <button class="day-cal-nav" onclick="shiftWeekPlan(-1)"><i data-lucide="chevron-left"></i></button>
+      <div class="wk-plan-range" id="wk-plan-range"></div>
+      <button class="day-cal-nav" onclick="shiftWeekPlan(1)"><i data-lucide="chevron-right"></i></button>
+    </div>
+    <div class="wk-plan-steps">
+      <button class="wk-step-btn" id="wk-step1-btn" onclick="setWeekPlanStep(1)">STEP1 · 분량 확인</button>
+      <button class="wk-step-btn" id="wk-step2-btn" onclick="setWeekPlanStep(2)">STEP2 · 시간 배분</button>
+    </div>
+
+    <div id="wk-step1-body" style="overflow-y:auto;">
+      <div class="add-bar" style="margin-bottom:10px;">
+        <input id="wk-cat-name" placeholder="카테고리 이름 (예: 생리학)" maxlength="16"/>
+        <input id="wk-cat-target" placeholder="목표량 (예: 100페이지)" maxlength="20" style="flex:0 0 120px;" onkeydown="if(event.key==='Enter')addWeekCat()"/>
+        <button class="btn btn-sm" onclick="addWeekCat()">추가</button>
+      </div>
+      <div id="wk-cat-list"></div>
+    </div>
+
+    <div id="wk-step2-body" style="display:none;flex-direction:column;flex:1;min-height:0;">
+      <div class="wk-chip-bar" id="wk-chip-bar"></div>
+      <div class="wk-grid-scroll">
+        <div class="wk-grid" id="wk-grid"></div>
+      </div>
+      <div style="font-size:.66rem;color:var(--muted);margin-top:8px;flex-shrink:0;">칸을 누른 채 위·아래로 드래그하면 30분 단위로 칠해져요</div>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-btn active" onclick="switchTab('today',this)"><i data-lucide="check-circle"></i>오늘</button>
@@ -1221,6 +1287,7 @@ async function doSync() {
       base.doc('mood').set({ d: loadMoods() }),
       base.doc('day').set({ d: loadDayData() }),
       base.doc('templates').set({ d: loadTemplates() }),
+      base.doc('weekplan').set({ d: loadWeekPlan() }),
     ]);
   } catch(e) { console.warn('동기화 실패:', e); }
 }
@@ -1229,7 +1296,7 @@ async function loadFromCloud() {
   if (!fbUser || !fbDb) return;
   const base = fbDb.collection('users').doc(fbUser.uid).collection('data');
   try {
-    const [h, u, g, n, f, t, m, md, day, tpl] = await Promise.all([
+    const [h, u, g, n, f, t, m, md, day, tpl, wk] = await Promise.all([
       base.doc('habits').get(),
       base.doc('user').get(),
       base.doc('goals').get(),
@@ -1240,6 +1307,7 @@ async function loadFromCloud() {
       base.doc('mood').get(),
       base.doc('day').get(),
       base.doc('templates').get(),
+      base.doc('weekplan').get(),
     ]);
     if (h.exists) lsSet(K.h, h.data().d);
     if (u.exists) lsSet(K.u, u.data().d);
@@ -1251,13 +1319,14 @@ async function loadFromCloud() {
     if (md.exists) lsSet(K.md, md.data().d);
     if (day.exists) lsSet(K.d, day.data().d);
     if (tpl.exists) lsSet(K.tpl, tpl.data().d);
+    if (wk.exists) lsSet(K.wk, wk.data().d);
     if (!h.exists) await doSync();
     showToast('클라우드에서 데이터를 불러왔어요.');
   } catch(e) { console.warn('클라우드 로드 실패:', e); }
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1', wk: 'ht_weekplan_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
@@ -1301,6 +1370,9 @@ function setDay(date, obj) {
   all[date] = obj;
   saveDayData(all);
 }
+// ── 주간 계획 (STEP1 분량확인 · STEP2 시간배분) ────────────
+const loadWeekPlan = () => lsGet(K.wk, {});
+function saveWeekPlan(d) { lsSet(K.wk, d); scheduleSync(); }
 // 루틴 템플릿
 const loadTemplates = () => lsGet(K.tpl, []);
 function saveTemplates(d) { lsSet(K.tpl, d); scheduleSync(); }
@@ -2996,6 +3068,187 @@ const SLOT_RANGE = { '아침':[6,10], '오전':[10,12], '점심':[12,14], '오�
 function hmToMin(s){ if(!s) return 0; const [h,m]=s.split(':').map(Number); return h*60+(m||0); }
 function minToHm(min){ min=Math.max(0,Math.min(1440,Math.round(min))); const h=Math.floor(min/60), m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
 function snapMin(min){ return Math.round(min/SNAP)*SNAP; }
+
+// ════════════════════════════════════════════════════════════
+//  주간 계획 (STEP1 분량확인 · STEP2 시간배분)
+// ════════════════════════════════════════════════════════════
+const WK_CAT_COLORS = ['#3b82f6','#ef4444','#f59e0b','#10b981','#8b5cf6','#ec4899','#14b8a6','#f472b6','#a3e635','#38bdf8'];
+const WK_GRID_START = 6, WK_GRID_END = 24;   // 06:00 ~ 24:00 만 표시
+
+function weekStartOf(dateStr){
+  const d=new Date(dateStr); d.setDate(d.getDate()-d.getDay());
+  return d.toISOString().slice(0,10);
+}
+function addDaysStr(dateStr, n){
+  const d=new Date(dateStr); d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+
+let wkPlanCursor=null, wkPlanStep=1, wkActiveCat=null, wkPainting=false, wkGridState=null;
+
+function openWeekPlan(){
+  wkPlanCursor = weekStartOf(dayCursor);
+  wkPlanStep = 1;
+  openModal('weekplan-modal');
+  renderWeekPlan();
+}
+function shiftWeekPlan(delta){
+  wkPlanCursor = addDaysStr(wkPlanCursor, delta*7);
+  renderWeekPlan();
+}
+function renderWeekPlan(){
+  const start=wkPlanCursor, end=addDaysStr(start,6);
+  const fmt=ds=>{ const d=new Date(ds); return `${d.getMonth()+1}/${d.getDate()}`; };
+  $('wk-plan-range').textContent = `${fmt(start)} ~ ${fmt(end)}`;
+  setWeekPlanStep(wkPlanStep);
+}
+function setWeekPlanStep(n){
+  wkPlanStep = n;
+  $('wk-step1-btn').classList.toggle('active', n===1);
+  $('wk-step2-btn').classList.toggle('active', n===2);
+  $('wk-step1-body').style.display = n===1 ? 'block' : 'none';
+  $('wk-step2-body').style.display = n===2 ? 'flex' : 'none';
+  if(n===1) renderWeekCats(); else renderWeekGrid();
+}
+function weekCats(){
+  const plan=loadWeekPlan();
+  return (plan[wkPlanCursor] && plan[wkPlanCursor].cats) || [];
+}
+function saveWeekCats(cats){
+  const plan=loadWeekPlan();
+  plan[wkPlanCursor] = plan[wkPlanCursor] || {};
+  plan[wkPlanCursor].cats = cats;
+  saveWeekPlan(plan);
+}
+function addWeekCat(){
+  const nameInp=$('wk-cat-name'), targetInp=$('wk-cat-target');
+  const name=nameInp.value.trim(), target=targetInp.value.trim();
+  if(!name) return;
+  const cats=weekCats();
+  const color=WK_CAT_COLORS[cats.length % WK_CAT_COLORS.length];
+  cats.push({ id:uid(), name, target, color });
+  saveWeekCats(cats);
+  nameInp.value=''; targetInp.value=''; nameInp.focus();
+  renderWeekCats();
+}
+function delWeekCat(id){
+  saveWeekCats(weekCats().filter(c=>c.id!==id));
+  if(wkActiveCat===id) wkActiveCat=null;
+  renderWeekCats();
+}
+function renderWeekCats(){
+  const cats=weekCats();
+  const el=$('wk-cat-list');
+  if(!cats.length){ el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:16px;">이번 주 카테고리를 추가해보세요</div>`; return; }
+  el.innerHTML=cats.map(c=>`
+    <div class="wk-cat-row">
+      <span class="wk-cat-dot" style="background:${c.color}"></span>
+      <span class="wk-cat-name">${esc(c.name)}</span>
+      <span class="wk-cat-target">${esc(c.target||'')}</span>
+      <button class="wk-cat-del" onclick="delWeekCat('${c.id}')"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+    </div>`).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+// 특정 날짜의 카테고리 연결 이벤트를 30분 슬롯 배열로 변환
+function dayCellsFromEvents(date, cats){
+  const catIds=new Set(cats.map(c=>c.id));
+  const day=getDay(date);
+  const totalSlots=(WK_GRID_END-WK_GRID_START)*2;
+  const cells=new Array(totalSlots).fill(null);
+  day.events.forEach(e=>{
+    if(!e.catId || !catIds.has(e.catId)) return;
+    const s=Math.max(WK_GRID_START*60, hmToMin(e.start)), en=Math.min(WK_GRID_END*60, hmToMin(e.end));
+    for(let m=s; m<en; m+=SNAP){
+      const idx=(m-WK_GRID_START*60)/SNAP;
+      if(idx>=0 && idx<totalSlots) cells[idx]=e.catId;
+    }
+  });
+  return cells;
+}
+function renderWeekGrid(){
+  const cats=weekCats();
+  if(!cats.some(c=>c.id===wkActiveCat) && wkActiveCat!=='erase'){
+    wkActiveCat = cats.length ? cats[0].id : null;
+  }
+  const chipBar=$('wk-chip-bar');
+  chipBar.innerHTML = cats.map(c=>`<button class="wk-chip${wkActiveCat===c.id?' active':''}" style="background:${c.color};" onclick="setWkActiveCat('${c.id}')">${esc(c.name)}</button>`).join('')
+    + (cats.length ? `<button class="wk-chip${wkActiveCat==='erase'?' active':''}" style="background:#333;" onclick="setWkActiveCat('erase')"><i data-lucide="eraser" style="width:13px;height:13px;"></i></button>` : '');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  if(!cats.length){
+    $('wk-grid').innerHTML = `<div style="grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center;padding:22px;">STEP1에서 카테고리를 먼저 추가해주세요</div>`;
+    return;
+  }
+  const dates=Array.from({length:7},(_,i)=>addDaysStr(wkPlanCursor,i));
+  wkGridState = {};
+  dates.forEach(ds=>{ wkGridState[ds]=dayCellsFromEvents(ds,cats); });
+  const catById={}; cats.forEach(c=>catById[c.id]=c);
+  const WD=['일','월','화','수','목','금','토'];
+  const totalSlots=(WK_GRID_END-WK_GRID_START)*2;
+  let html = `<div class="wk-grid-hd"></div>` + dates.map((ds,i)=>{
+    const d=new Date(ds);
+    return `<div class="wk-grid-hd">${WD[i]}<br>${d.getMonth()+1}/${d.getDate()}</div>`;
+  }).join('');
+  for(let slot=0; slot<totalSlots; slot++){
+    const isHourStart = slot%2===0;
+    const hour = WK_GRID_START + Math.floor(slot/2);
+    html += `<div class="wk-grid-hour${isHourStart?' hour-start':''}">${isHourStart?hour+'시':''}</div>`;
+    dates.forEach(ds=>{
+      const catId=wkGridState[ds][slot];
+      const bg = catId ? (catById[catId]?catById[catId].color:'#666') : 'transparent';
+      html += `<div class="wk-cell${isHourStart?' hour-start':''}" style="background:${bg};" data-date="${ds}" data-slot="${slot}" onpointerdown="wkCellDown(event)"></div>`;
+    });
+  }
+  $('wk-grid').innerHTML = html;
+}
+function setWkActiveCat(id){ wkActiveCat=id; renderWeekGrid(); }
+function wkCellDown(e){
+  e.preventDefault();
+  wkPainting=true;
+  paintWkCell(e.target);
+  document.addEventListener('pointermove', wkPointerMove);
+  document.addEventListener('pointerup', wkPointerUp, { once:true });
+}
+function wkPointerMove(e){
+  if(!wkPainting) return;
+  const el=document.elementFromPoint(e.clientX, e.clientY);
+  if(el && el.classList.contains('wk-cell')) paintWkCell(el);
+}
+function wkPointerUp(){
+  wkPainting=false;
+  document.removeEventListener('pointermove', wkPointerMove);
+  commitWeekGrid();
+}
+function paintWkCell(el){
+  if(!wkGridState || wkActiveCat===null) return;
+  const ds=el.dataset.date, slot=+el.dataset.slot;
+  const val = wkActiveCat==='erase' ? null : wkActiveCat;
+  wkGridState[ds][slot] = val;
+  const cats=weekCats(); const cat=cats.find(c=>c.id===val);
+  el.style.background = val ? (cat?cat.color:'#666') : 'transparent';
+}
+// 그려진 30분 칸들을 이어붙여 그 날의 일정(events)으로 저장
+function commitWeekGrid(){
+  if(!wkGridState) return;
+  const cats=weekCats(); const catIds=new Set(cats.map(c=>c.id));
+  Object.keys(wkGridState).forEach(ds=>{
+    const d=getDay(ds);
+    d.events = d.events.filter(e=>!(e.catId && catIds.has(e.catId)));
+    const cells=wkGridState[ds];
+    let i=0;
+    while(i<cells.length){
+      const catId=cells[i];
+      if(!catId){ i++; continue; }
+      let j=i;
+      while(j<cells.length && cells[j]===catId) j++;
+      const startMin=WK_GRID_START*60 + i*SNAP, endMin=WK_GRID_START*60 + j*SNAP;
+      const cat=cats.find(c=>c.id===catId);
+      d.events.push({ id:uid(), title:cat?cat.name:'계획', start:minToHm(startMin), end:minToHm(endMin), color:cat?cat.color:'#666', review:null, catId });
+      i=j;
+    }
+    setDay(ds,d);
+  });
+  if(Object.keys(wkGridState).includes(dayCursor)){ renderTimeline(); renderDayRate(); }
+}
 
 function fmtDayHead(date){
   const days=['일','월','화','수','목','금','토'];
