@@ -332,6 +332,14 @@
     .day-cal-cell.sel { background: var(--primary); color: #000; font-weight: 800; }
     .day-cal-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }
     .day-cal-cell.sel .day-cal-dot { background: #000; }
+    .day-cal-habit { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .day-cal-habit-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .day-cal-habit-head select { flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card2); color: var(--text); font-size: .78rem; }
+    .day-cal-habit-badge { font-size: .68rem; color: var(--primary); font-weight: 700; white-space: nowrap; }
+    .day-cal-strip-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .day-cal-strip-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 7px; font-size: .64rem; background: var(--card2); color: var(--muted); }
+    .day-cal-strip-cell.done { background: var(--primary); color: #000; font-weight: 700; }
+    .day-cal-strip-cell.today { box-shadow: 0 0 0 1.5px var(--danger) inset; }
     .day-today-btn { margin-top: 3px; background: transparent; border: none; color: var(--primary); font-size: .72rem; font-weight: 700; cursor: pointer; }
     .day-today-btn.hidden { display: none; }
     .hl-card { background: linear-gradient(135deg, rgba(179,240,0,0.10), rgba(179,240,0,0.02)); border-color: rgba(179,240,0,0.25); cursor: pointer; }
@@ -549,6 +557,13 @@
       <div class="day-cal-wd" style="color:#e06767;">일</div><div class="day-cal-wd">월</div><div class="day-cal-wd">화</div><div class="day-cal-wd">수</div><div class="day-cal-wd">목</div><div class="day-cal-wd">금</div><div class="day-cal-wd" style="color:#5b8def;">토</div>
     </div>
     <div class="day-cal-grid" id="day-cal-grid" style="margin-top:3px;"></div>
+    <div class="day-cal-habit" id="day-cal-habit" style="display:none;">
+      <div class="day-cal-habit-head">
+        <select id="day-cal-habit-sel" onchange="renderCalHabitStrip()"></select>
+        <span class="day-cal-habit-badge" id="day-cal-habit-badge"></span>
+      </div>
+      <div class="day-cal-strip-grid" id="day-cal-habit-strip"></div>
+    </div>
   </div>
 
   <!-- ① 하이라이트 -->
@@ -3034,6 +3049,32 @@ function renderDayCal(){
     html+=`<div class="${cls.join(' ')}" onclick="pickCalDay('${date}')">${d}${hasDayData(date)?'<span class="day-cal-dot"></span>':''}</div>`;
   }
   $('day-cal-grid').innerHTML=html;
+  renderCalHabitStrip();
+}
+// 월 달력 아래 습관 스트릭 스트립 (선택한 습관이 이번 달 며칠 체크됐는지)
+let _calHabitSel=null;
+function renderCalHabitStrip(){
+  const habits=loadHabits();
+  const wrap=$('day-cal-habit'); if(!wrap) return;
+  if(!habits.length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  const sel=$('day-cal-habit-sel');
+  if(sel.value) _calHabitSel=sel.value;
+  if(!_calHabitSel || !habits.some(h=>h.id===_calHabitSel)) _calHabitSel=habits[0].id;
+  sel.innerHTML=habits.map(h=>`<option value="${h.id}"${h.id===_calHabitSel?' selected':''}>${esc(h.name)}</option>`).join('');
+  const h=habits.find(x=>x.id===_calHabitSel);
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  const today=todayStr();
+  let doneCount=0, html='';
+  for(let d=1; d<=dim; d++){
+    const date=`${calYear}-${pad2(calMonth+1)}-${pad2(d)}`;
+    const isDone=!!(h.checked && h.checked[date]);
+    if(isDone) doneCount++;
+    const cls=['day-cal-strip-cell']; if(isDone) cls.push('done'); if(date===today) cls.push('today');
+    html+=`<div class="${cls.join(' ')}">${d}</div>`;
+  }
+  $('day-cal-habit-strip').innerHTML=html;
+  $('day-cal-habit-badge').textContent=`${doneCount}일 달성`;
 }
 function pickCalDay(date){
   dayCursor=date;
