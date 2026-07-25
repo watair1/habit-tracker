@@ -373,6 +373,12 @@
     .hl-check.done { background: var(--primary); color: #000; }
     .hl-row { display: flex; align-items: center; gap: 12px; }
     .hl-done .hl-text { text-decoration: line-through; opacity: .6; }
+    #day-rate { margin-top: 13px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .drs { display: flex; align-items: center; gap: 10px; }
+    .drs-label { font-size: .74rem; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+    .drs-track { flex: 1; height: 7px; background: rgba(255,255,255,0.07); border-radius: 7px; overflow: hidden; }
+    .drs-fill { height: 100%; background: var(--primary); border-radius: 7px; transition: width .4s; }
+    .drs-pct { font-size: .82rem; font-weight: 800; color: var(--primary); flex-shrink: 0; min-width: 34px; text-align: right; }
     .day-rate-card { display: flex; align-items: center; gap: 14px; }
     .day-rate-ring { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
     .day-rate-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 800; color: var(--primary); }
@@ -596,11 +602,11 @@
     <i data-lucide="chevron-right"></i>
   </div>
 
-  <!-- ① 하이라이트 -->
-  <div class="card hl-card" id="day-highlight" onclick="openHighlightModal()"></div>
-
-  <!-- ② 오늘 실행률 요약 -->
-  <div class="card day-rate-card" id="day-rate"></div>
+  <!-- ①+② 하이라이트 + 실행률 (한 카드) -->
+  <div class="card hl-card">
+    <div id="day-highlight" onclick="openHighlightModal()"></div>
+    <div id="day-rate"></div>
+  </div>
 
   <!-- ③ 할 일 -->
   <div class="card">
@@ -3352,12 +3358,12 @@ function renderHighlight(){
   const d=getDay(dayCursor), hl=d.highlight;
   const el=$('day-highlight');
   if(!hl || !hl.text){
-    el.className='card hl-card';
+    el.className='';
     el.innerHTML=`<div class="hl-label"><i data-lucide="star" style="width:12px;height:12px;"></i>오늘의 하이라이트</div>
       <div class="hl-text empty">오늘 가장 중요한 일은?</div>`;
     return;
   }
-  el.className='card hl-card'+(hl.done?' hl-done':'');
+  el.className=(hl.done?'hl-done':'');
   el.innerHTML=`<div class="hl-label"><i data-lucide="star" style="width:12px;height:12px;"></i>오늘의 하이라이트</div>
     <div class="hl-row">
       <button class="hl-check${hl.done?' done':''}" onclick="event.stopPropagation();toggleHighlightDone()">${hl.done?'✓':''}</button>
@@ -3399,19 +3405,11 @@ function computeDayRate(date){
 }
 function renderDayRate(){
   const r=computeDayRate(dayCursor);
-  const C=2*Math.PI*24, off=C-(r.pct/100)*C;
   $('day-rate').innerHTML=`
-    <div class="day-rate-ring">
-      <svg width="58" height="58" viewBox="0 0 58 58">
-        <circle cx="29" cy="29" r="24" fill="none" stroke="#1f1f1f" stroke-width="6"/>
-        <circle cx="29" cy="29" r="24" fill="none" stroke="var(--primary)" stroke-width="6" stroke-linecap="round"
-          stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 29 29)"/>
-      </svg>
-      <div class="day-rate-num">${r.pct}%</div>
-    </div>
-    <div class="day-rate-txt">
-      <h3>오늘 실행률 ${r.pct}%</h3>
-      <p>${r.den? `평가된 ${r.den}개 중 ${Math.round(r.num*10)/10}개 완료`:'일정을 평가하면 실행률이 계산돼요'}</p>
+    <div class="drs">
+      <span class="drs-label">오늘 실행률</span>
+      <div class="drs-track"><div class="drs-fill" style="width:${r.pct}%;"></div></div>
+      <span class="drs-pct">${r.pct}%</span>
     </div>`;
 }
 
