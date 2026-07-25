@@ -123,7 +123,7 @@
     .hm-labels { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-bottom: 4px; }
     .hm-labels span { font-size: .58rem; text-align: center; color: var(--muted); }
     .hm-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
-    .hm-day { aspect-ratio: 1; border-radius: 3px; font-size: .58rem; display: flex; align-items: center; justify-content: center; }
+    .hm-day { height: 34px; border-radius: 4px; font-size: .58rem; display: flex; align-items: center; justify-content: center; }
     .hm-0 { background: #1a1a1a; color: #333; }
     .hm-1 { background: rgba(179,240,0,0.2); }
     .hm-2 { background: rgba(179,240,0,0.5); }
@@ -686,6 +686,10 @@
     <div class="stat-item"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">총 완료 횟수</div></div>
   </div>
   <div class="card">
+    <div class="card-title">주간 요약 (최근 7일)</div>
+    <div id="weekly-dash"></div>
+  </div>
+  <div class="card">
     <div class="card-title">이번 달 히트맵</div>
     <div class="hm-labels"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
     <div class="hm-grid" id="heatmap"></div>
@@ -720,10 +724,6 @@
     <div class="card-title">기분 & 성공률 주간 추이</div>
     <div class="chart-box" style="height:200px;"><canvas id="mood-chart"></canvas></div>
     <p id="mood-chart-empty" style="display:none;font-size:.8rem;color:var(--muted);text-align:center;margin-top:12px;">기분을 기록하면 여기에 그래프가 표시돼요</p>
-  </div>
-  <div class="card">
-    <div class="card-title">주간 요약 (최근 7일)</div>
-    <div id="weekly-dash"></div>
   </div>
   <div class="card">
     <div class="card-title">기분 · 수면과 습관 성공률</div>
