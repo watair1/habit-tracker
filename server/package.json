@@ -4,6 +4,9 @@
   "description": "해빗 트래커용 Gemini AI 중계 서버 (API 키를 앱에 노출하지 않기 위한 프록시)",
   "type": "module",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node index.js"
   },
