@@ -3837,8 +3837,10 @@ function renderSleep(){
 // ════════════════════════════════════════════════════════════
 //  AI 연동 (Gemini 중계 서버 호출) — Part 3
 // ════════════════════════════════════════════════════════════
-// 배포 시 이 주소를 실제 서버 주소로 바꿔주세요 (예: https://내서버.onrender.com)
-const AI_SERVER = 'http://localhost:3000';
+// 로컬(PC 개발)에선 로컬 서버, 배포(폰 등)에선 Render 서버 자동 선택
+const AI_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:3000'
+  : 'https://habit-ai-4vcz.onrender.com';
 async function aiCall(path, body){
   let res;
   try {
