@@ -155,19 +155,24 @@ router.post('/day-agent', async (req, res) => {
   const { message, date, events, todos, habits } = req.body || {};
   if (!need(res, message && message.trim(), '무엇을 도와드릴까요? 메시지를 입력해주세요.')) return;
   try {
+    const validIds = new Set((events || []).map(e => e.id).filter(Boolean));
     const sys = `너는 하루 일정 비서다. 사용자의 요청을 읽고 (1) 친근한 한국어 한두 문장 답변과 (2) 실행할 액션 목록을 만든다.
 반드시 JSON만 출력: {"reply":"사용자에게 할 말","actions":[ ... ]}
 액션 종류:
 - {"type":"add_event","title":"제목","start":"HH:MM","end":"HH:MM"}  // 24시간제, 30분 단위, 기존 일정과 겹치지 않게
+- {"type":"edit_event","id":"수정할 기존 일정의 id","title":"새 제목"(선택),"start":"HH:MM"(선택),"end":"HH:MM"(선택)}  // 일정 옮기기/시간 늘리기/이름 바꾸기. id는 아래 "현재 일정" 목록에 있는 것만 사용
+- {"type":"delete_event","id":"삭제할 기존 일정의 id"}  // id는 아래 "현재 일정" 목록에 있는 것만 사용
 - {"type":"add_todo","text":"할 일","time":"HH:MM" 또는 null}
 - {"type":"set_highlight","text":"오늘 가장 중요한 일"}
 규칙:
-- 일정/할일 추가·정리 요청이면 해당 액션들을 채워라.
+- 일정/할일 추가·수정·삭제·정리 요청이면 해당 액션들을 채워라.
+- "9시 회의 10시로 옮겨줘", "운동 일정 지워줘" 처럼 기존 일정을 가리키면 아래 목록에서 id를 찾아 edit_event/delete_event를 써라.
+- 가리키는 일정을 목록에서 찾을 수 없으면 actions는 [] 로 두고 reply로 어떤 일정인지 되물어라.
 - 조언·질문("뭐부터 할까?", "우선순위 알려줘")이면 actions는 [] 로 두고 reply로만 답하라.
 - 요청이 모호하면 actions는 [] 로 두고 reply로 짧게 되물어라.
 - reply는 항상 채운다.`;
     const ctx = `날짜: ${date || ''}
-현재 일정: ${(events || []).map(e => `${e.start}~${e.end} ${e.title}`).join(', ') || '없음'}
+현재 일정 (id: 시간 제목): ${(events || []).map(e => `${e.id}: ${e.start}~${e.end} ${e.title}`).join(', ') || '없음'}
 할 일: ${(todos || []).map(t => t.text).join(', ') || '없음'}
 습관: ${(habits || []).map(h => h.name).join(', ') || '없음'}
 
@@ -179,6 +184,19 @@ router.post('/day-agent', async (req, res) => {
         const start = snapTime(a.start), end = snapTime(a.end);
         if (!start || !end) return null;
         return { type: 'add_event', title: String(a.title || '일정').slice(0, 40), start, end };
+      }
+      if (a.type === 'edit_event') {
+        if (typeof a.id !== 'string' || !validIds.has(a.id)) return null;
+        const patch = { type: 'edit_event', id: a.id };
+        if (a.title != null) patch.title = String(a.title).slice(0, 40);
+        if (a.start != null) { const s = snapTime(a.start); if (s) patch.start = s; }
+        if (a.end != null) { const e = snapTime(a.end); if (e) patch.end = e; }
+        if (patch.title === undefined && patch.start === undefined && patch.end === undefined) return null;
+        return patch;
+      }
+      if (a.type === 'delete_event') {
+        if (typeof a.id !== 'string' || !validIds.has(a.id)) return null;
+        return { type: 'delete_event', id: a.id };
       }
       if (a.type === 'add_todo') return { type: 'add_todo', text: String(a.text || '').slice(0, 60), time: snapTime(a.time) || null };
       if (a.type === 'set_highlight') return { type: 'set_highlight', text: String(a.text || '').slice(0, 60) };
