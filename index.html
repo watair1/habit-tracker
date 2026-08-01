@@ -624,7 +624,10 @@
   <div class="card ai-agent-card">
     <div class="agent-head" onclick="toggleAgent()">
       <div class="card-title" style="margin-bottom:0;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서에게 물어보기</div>
-      <i data-lucide="chevron-down" id="agent-chevron" style="width:18px;height:18px;color:var(--muted);transition:transform .2s;"></i>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="icon-btn" onclick="event.stopPropagation();clearAgentChat()" title="대화 지우기"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+        <i data-lucide="chevron-down" id="agent-chevron" style="width:18px;height:18px;color:var(--muted);transition:transform .2s;"></i>
+      </div>
     </div>
     <div id="agent-body" style="display:none;margin-top:12px;">
       <div id="agent-log" class="agent-log"></div>
@@ -1367,7 +1370,7 @@ function saveDayData(d) { lsSet(K.d, d); scheduleSync(); }
 // 특정 날짜의 하루 데이터를 꺼냄 (없으면 기본 껍데기 반환)
 function getDay(date) {
   const all = loadDayData();
-  const base = { highlight: null, todos: [], events: [], memo: '', sleep: null };
+  const base = { highlight: null, todos: [], events: [], memo: '', sleep: null, chat: [] };
   return Object.assign(base, all[date] || {});
 }
 // 특정 날짜의 하루 데이터를 통째로 저장
@@ -3350,6 +3353,7 @@ function renderDay(){
   renderDayTodos();
   renderTimeline();
   renderDayMoodMemo();
+  renderAgentLog();
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -3900,13 +3904,22 @@ function applyAutoSchedule(){
 }
 
 // ── AI 비서 (대화형 에이전트) ─────────────────────────────
-let _pendingAgentActions=[];
+// 대화 기록은 그날의 하루 데이터(d.chat)에 저장돼서, 탭을 나갔다 오거나
+// 새로고침해도 그날 나눈 대화가 그대로 남아있어요 (ChatGPT/Gemini처럼).
 function toggleAgent(){
   const body=$('agent-body'), chev=$('agent-chevron');
   const open=body.style.display==='none';
   body.style.display=open?'block':'none';
   if(chev) chev.style.transform=open?'rotate(180deg)':'';
   if(open) setTimeout(()=>$('agent-input').focus(),50);
+}
+function clearAgentChat(){
+  const d=getDay(dayCursor);
+  if(!d.chat || !d.chat.length) return;
+  d.chat=[];
+  setDay(dayCursor,d);
+  renderAgentLog();
+  showToast('대화를 지웠어요');
 }
 function agentActionLabel(a){
   if(a.type==='add_event') return `<div class="agent-act"><i data-lucide="calendar-plus"></i>일정: ${esc(a.title)} ${esc(a.start)}~${esc(a.end)}</div>`;
@@ -3925,15 +3938,38 @@ function agentActionLabel(a){
   if(a.type==='set_highlight') return `<div class="agent-act"><i data-lucide="star"></i>하이라이트: ${esc(a.text)}</div>`;
   return '';
 }
+// 저장된 대화 기록(d.chat)을 화면에 그대로 다시 그림
+function renderAgentLog(){
+  const log=$('agent-log'); if(!log) return;
+  const chat=getDay(dayCursor).chat||[];
+  log.innerHTML = chat.map((m,i)=>{
+    if(m.role==='user') return `<div class="agent-msg user">${esc(m.text)}</div>`;
+    let html=`<div class="agent-msg bot${m.err?' err':''}">${esc(m.text)}`;
+    if(m.actions && m.actions.length){
+      html+=`<div class="agent-actions">`+m.actions.map(agentActionLabel).join('')+`</div>`;
+      html+= m.applied
+        ? `<button class="btn btn-sm" style="margin-top:9px;width:100%;opacity:.6;" disabled>✓ 적용됨</button>`
+        : `<button class="btn btn-sm" style="margin-top:9px;width:100%;" onclick="applyAgentActions(${i},this)">이대로 적용</button>`;
+    }
+    html+=`</div>`;
+    return html;
+  }).join('');
+  log.scrollTop=log.scrollHeight;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
 async function sendAgent(){
   const inp=$('agent-input'), msg=inp.value.trim();
   if(!msg) return;
-  const log=$('agent-log');
-  log.insertAdjacentHTML('beforeend', `<div class="agent-msg user">${esc(msg)}</div>`);
+  let d=getDay(dayCursor);
+  d.chat=d.chat||[];
+  d.chat.push({ role:'user', text:msg });
+  setDay(dayCursor,d);
   inp.value=''; const btn=$('agent-send'); btn.disabled=true;
+  renderAgentLog();
+  const log=$('agent-log');
   log.insertAdjacentHTML('beforeend', `<div class="agent-msg bot" id="agent-pending"><span class="ai-spin"></span></div>`);
   log.scrollTop=log.scrollHeight;
-  const d=getDay(dayCursor), habits=loadHabits();
+  const habits=loadHabits();
   try{
     const out=await aiCall('/api/day-agent',{
       message:msg, date:dayCursor,
@@ -3941,28 +3977,25 @@ async function sendAgent(){
       todos:d.todos.map(t=>({text:t.text})),
       habits:habits.map(h=>({name:h.name}))
     });
-    const p=$('agent-pending'); if(p) p.remove();
-    const actions=out.actions||[];
-    _pendingAgentActions=actions;
-    let html=`<div class="agent-msg bot">${esc(out.reply||'')}`;
-    if(actions.length){
-      html+=`<div class="agent-actions">`+actions.map(agentActionLabel).join('')+`</div>`;
-      html+=`<button class="btn btn-sm" style="margin-top:9px;width:100%;" onclick="applyAgentActions(this)">이대로 적용</button>`;
-    }
-    html+=`</div>`;
-    log.insertAdjacentHTML('beforeend', html);
-    log.scrollTop=log.scrollHeight;
-    if(typeof lucide!=='undefined') lucide.createIcons();
+    d=getDay(dayCursor);
+    d.chat=d.chat||[];
+    d.chat.push({ role:'bot', text:out.reply||'', actions:out.actions||[], applied:false });
+    setDay(dayCursor,d);
   }catch(err){
-    const p=$('agent-pending'); if(p) p.remove();
-    log.insertAdjacentHTML('beforeend', `<div class="agent-msg bot err">${esc(err.message)}</div>`);
+    d=getDay(dayCursor);
+    d.chat=d.chat||[];
+    d.chat.push({ role:'bot', text:err.message, err:true });
+    setDay(dayCursor,d);
   }
+  renderAgentLog();
   btn.disabled=false;
 }
-function applyAgentActions(btnEl){
-  const actions=_pendingAgentActions||[];
+function applyAgentActions(idx,btnEl){
+  const d=getDay(dayCursor);
+  const msg=(d.chat||[])[idx];
+  const actions=(msg && msg.actions) || [];
   if(!actions.length) return;
-  const d=getDay(dayCursor); let n=0;
+  let n=0;
   actions.forEach((a,i)=>{
     if(a.type==='add_event'){
       let s=minToHm(snapMin(hmToMin(a.start))), e=minToHm(snapMin(hmToMin(a.end)));
@@ -3984,8 +4017,8 @@ function applyAgentActions(btnEl){
     } else if(a.type==='add_todo'){ d.todos.push({ id:uid(), text:a.text, status:'', time:a.time||null }); n++; }
     else if(a.type==='set_highlight'){ d.highlight={ text:a.text, done:false, awarded:false }; n++; }
   });
+  msg.applied=true;
   setDay(dayCursor,d);
-  _pendingAgentActions=[];
   if(btnEl){ btnEl.textContent='✓ 적용됨'; btnEl.disabled=true; btnEl.style.opacity='.6'; }
   showToast(`${n}개 적용했어요`);
   renderDay();
