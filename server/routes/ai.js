@@ -10,6 +10,9 @@ const router = express.Router();
 // 앱과 맞춰야 하는 enum
 const CATEGORIES = ['건강', '학습', '마음', '생활', '관계', '재정'];
 const TIMESLOTS = ['아침', '오전', '점심', '오후', '저녁', '자유'];
+const MOODS = ['worst', 'bad', 'neutral', 'good', 'best'];
+const GOAL_TYPES = ['long', 'mid', 'short'];
+const TODO_STATUS = ['o', 'partial', 'x', 'none'];
 
 // 필수 필드 검사 헬퍼
 function need(res, cond, msg) {
@@ -150,60 +153,172 @@ router.post('/auto-schedule', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-// ── 8. 하루 비서 (에이전트: 대화 → 답변 + 실행 액션) ──────
+// ── 8. 앱 비서 (에이전트: 대화 → 답변 + 실행 액션) ────────
+//  하루(일정/할일/하이라이트/기분/수면/메모)뿐 아니라
+//  습관·목표·아이디어 메모까지 앱 전체를 다룰 수 있음.
 router.post('/day-agent', async (req, res) => {
-  const { message, date, events, todos, habits } = req.body || {};
+  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo } = req.body || {};
   if (!need(res, message && message.trim(), '무엇을 도와드릴까요? 메시지를 입력해주세요.')) return;
   try {
-    const validIds = new Set((events || []).map(e => e.id).filter(Boolean));
-    const sys = `너는 하루 일정 비서다. 사용자의 요청을 읽고 (1) 친근한 한국어 한두 문장 답변과 (2) 실행할 액션 목록을 만든다.
+    // AI가 없는 항목을 지어내지 못하게, 실제로 보낸 id만 허용
+    const evIds = new Set((events || []).map(e => e.id).filter(Boolean));
+    const todoIds = new Set((todos || []).map(t => t.id).filter(Boolean));
+    const habitIds = new Set((habits || []).map(h => h.id).filter(Boolean));
+    const goalIds = new Set((goals || []).map(g => g.id).filter(Boolean));
+
+    const sys = `너는 습관 트래커 앱의 비서다. 사용자의 요청을 읽고 (1) 친근한 한국어 한두 문장 답변과 (2) 실행할 액션 목록을 만든다.
 반드시 JSON만 출력: {"reply":"사용자에게 할 말","actions":[ ... ]}
-액션 종류:
+
+[일정] (하루 타임라인)
 - {"type":"add_event","title":"제목","start":"HH:MM","end":"HH:MM"}  // 24시간제, 30분 단위, 기존 일정과 겹치지 않게
-- {"type":"edit_event","id":"수정할 기존 일정의 id","title":"새 제목"(선택),"start":"HH:MM"(선택),"end":"HH:MM"(선택)}  // 일정 옮기기/시간 늘리기/이름 바꾸기. id는 아래 "현재 일정" 목록에 있는 것만 사용
-- {"type":"delete_event","id":"삭제할 기존 일정의 id"}  // id는 아래 "현재 일정" 목록에 있는 것만 사용
+- {"type":"edit_event","id":"기존 일정 id","title":"새 제목"(선택),"start":"HH:MM"(선택),"end":"HH:MM"(선택)}
+- {"type":"delete_event","id":"기존 일정 id"}
+
+[할 일]
 - {"type":"add_todo","text":"할 일","time":"HH:MM" 또는 null}
+- {"type":"set_todo_status","id":"기존 할일 id","status":"o|partial|x|none"}  // o=완료, partial=부분완료, x=미완료, none=표시 지움
+- {"type":"delete_todo","id":"기존 할일 id"}
+
+[습관]
+- {"type":"add_habit","name":"습관 이름","category":"${CATEGORIES.join('|')}","timeSlot":"${TIMESLOTS.join('|')}"}
+- {"type":"check_habit","id":"기존 습관 id"}    // 오늘 완료로 체크 (XP 획득)
+- {"type":"uncheck_habit","id":"기존 습관 id"}  // 체크 해제
+- {"type":"delete_habit","id":"기존 습관 id"}   // 습관 자체를 삭제 (기록도 사라짐)
+
+[하루 기록]
 - {"type":"set_highlight","text":"오늘 가장 중요한 일"}
+- {"type":"set_mood","mood":"${MOODS.join('|')}"}   // worst=최악 … best=최고
+- {"type":"set_sleep","bed":"HH:MM","wake":"HH:MM"}
+- {"type":"set_day_memo","text":"그날 회고 메모"}
+
+[목표 · 아이디어]
+- {"type":"add_goal","title":"목표","goalType":"${GOAL_TYPES.join('|')}","targetDate":"YYYY-MM-DD" 또는 null}  // long=6개월+, mid=1~3개월, short=1~4주
+- {"type":"delete_goal","id":"기존 목표 id"}
+- {"type":"set_final_goal","title":"인생 최종 목표","desc":"설명" 또는 null}
+- {"type":"add_memo","text":"아이디어 메모 내용"}
+
 규칙:
-- 일정/할일 추가·수정·삭제·정리 요청이면 해당 액션들을 채워라.
-- "9시 회의 10시로 옮겨줘", "운동 일정 지워줘" 처럼 기존 일정을 가리키면 아래 목록에서 id를 찾아 edit_event/delete_event를 써라.
-- 가리키는 일정을 목록에서 찾을 수 없으면 actions는 [] 로 두고 reply로 어떤 일정인지 되물어라.
-- 조언·질문("뭐부터 할까?", "우선순위 알려줘")이면 actions는 [] 로 두고 reply로만 답하라.
+- 기존 항목(일정/할일/습관/목표)을 가리키면 아래 목록에서 id를 찾아 써라. 목록에 없는 id는 절대 만들어내지 마라.
+- 가리키는 항목을 목록에서 찾을 수 없으면 actions는 [] 로 두고 reply로 어떤 것인지 되물어라.
+- delete_habit / delete_goal 은 기록이 사라지는 위험한 동작이다. 사용자가 "삭제"를 분명히 말했을 때만 써라.
+- 조언·질문("뭐부터 할까?", "이번 주 어땠어?")이면 actions는 [] 로 두고 reply로만 답하라.
 - 요청이 모호하면 actions는 [] 로 두고 reply로 짧게 되물어라.
 - reply는 항상 채운다.`;
-    const ctx = `날짜: ${date || ''}
+
+    const ctx = `오늘 날짜: ${date || ''}
 현재 일정 (id: 시간 제목): ${(events || []).map(e => `${e.id}: ${e.start}~${e.end} ${e.title}`).join(', ') || '없음'}
-할 일: ${(todos || []).map(t => t.text).join(', ') || '없음'}
-습관: ${(habits || []).map(h => h.name).join(', ') || '없음'}
+할 일 (id: 내용 [상태]): ${(todos || []).map(t => `${t.id}: ${t.text} [${t.status || '미표시'}]`).join(', ') || '없음'}
+습관 (id: 이름 (분류/시간대) [오늘]): ${(habits || []).map(h => `${h.id}: ${h.name} (${h.category || '기타'}/${h.timeSlot || '자유'}) [${h.doneToday ? '완료' : '미완'}]`).join(', ') || '없음'}
+목표 (id: 제목 (기간)): ${(goals || []).map(g => `${g.id}: ${g.title} (${g.type || ''})`).join(', ') || '없음'}
+최종 목표: ${finalGoal ? finalGoal.title : '미설정'}
+오늘 기분: ${mood || '기록 없음'}
+오늘 수면: ${sleep && sleep.bed ? `${sleep.bed}~${sleep.wake || '?'}` : '기록 없음'}
+오늘 회고 메모: ${dayMemo || '없음'}
 
 사용자 메시지: ${message}`;
+
     const out = await callGemini(sys, ctx, { json: true });
-    let actions = Array.isArray(out.actions) ? out.actions : [];
-    actions = actions.map(a => {
-      if (a.type === 'add_event') {
-        const start = snapTime(a.start), end = snapTime(a.end);
-        if (!start || !end) return null;
-        return { type: 'add_event', title: String(a.title || '일정').slice(0, 40), start, end };
-      }
-      if (a.type === 'edit_event') {
-        if (typeof a.id !== 'string' || !validIds.has(a.id)) return null;
-        const patch = { type: 'edit_event', id: a.id };
-        if (a.title != null) patch.title = String(a.title).slice(0, 40);
-        if (a.start != null) { const s = snapTime(a.start); if (s) patch.start = s; }
-        if (a.end != null) { const e = snapTime(a.end); if (e) patch.end = e; }
-        if (patch.title === undefined && patch.start === undefined && patch.end === undefined) return null;
-        return patch;
-      }
-      if (a.type === 'delete_event') {
-        if (typeof a.id !== 'string' || !validIds.has(a.id)) return null;
-        return { type: 'delete_event', id: a.id };
-      }
-      if (a.type === 'add_todo') return { type: 'add_todo', text: String(a.text || '').slice(0, 60), time: snapTime(a.time) || null };
-      if (a.type === 'set_highlight') return { type: 'set_highlight', text: String(a.text || '').slice(0, 60) };
-      return null;
-    }).filter(Boolean);
+    const actions = sanitizeAgentActions(out.actions, { evIds, todoIds, habitIds, goalIds });
     res.json({ reply: out.reply || '', actions });
   } catch (e) { fail(res, e); }
 });
+
+/**
+ * AI가 돌려준 액션 목록을 앱에 넣어도 안전한 형태로만 걸러낸다.
+ * - 모르는 액션 종류, 잘못된 enum, 시간 형식이 아닌 값은 버림
+ * - 기존 항목을 가리키는 id는 실제로 요청에 담겨 온 것만 허용 (AI가 지어낸 id 차단)
+ * @param {any} rawActions - 모델이 만든 actions 배열
+ * @param {{evIds:Set,todoIds:Set,habitIds:Set,goalIds:Set}} ids - 허용된 id 집합
+ * @returns {object[]} 안전하게 정제된 액션 배열
+ */
+export function sanitizeAgentActions(rawActions, ids) {
+  const { evIds, todoIds, habitIds, goalIds } = ids;
+  return (Array.isArray(rawActions) ? rawActions : []).map(a => {
+      if (!a || typeof a !== 'object') return null;
+      const idOk = (set) => typeof a.id === 'string' && set.has(a.id);
+      switch (a.type) {
+        case 'add_event': {
+          const start = snapTime(a.start), end = snapTime(a.end);
+          if (!start || !end) return null;
+          return { type: 'add_event', title: String(a.title || '일정').slice(0, 40), start, end };
+        }
+        case 'edit_event': {
+          if (!idOk(evIds)) return null;
+          const patch = { type: 'edit_event', id: a.id };
+          if (a.title != null) patch.title = String(a.title).slice(0, 40);
+          if (a.start != null) { const s = snapTime(a.start); if (s) patch.start = s; }
+          if (a.end != null) { const e = snapTime(a.end); if (e) patch.end = e; }
+          if (patch.title === undefined && patch.start === undefined && patch.end === undefined) return null;
+          return patch;
+        }
+        case 'delete_event':
+          return idOk(evIds) ? { type: 'delete_event', id: a.id } : null;
+
+        case 'add_todo': {
+          const text = String(a.text || '').slice(0, 60);
+          return text ? { type: 'add_todo', text, time: snapTime(a.time) || null } : null;
+        }
+        case 'set_todo_status':
+          if (!idOk(todoIds) || !TODO_STATUS.includes(a.status)) return null;
+          return { type: 'set_todo_status', id: a.id, status: a.status };
+        case 'delete_todo':
+          return idOk(todoIds) ? { type: 'delete_todo', id: a.id } : null;
+
+        case 'add_habit': {
+          const name = String(a.name || '').slice(0, 30);
+          if (!name) return null;
+          return {
+            type: 'add_habit', name,
+            category: CATEGORIES.includes(a.category) ? a.category : '생활',
+            timeSlot: TIMESLOTS.includes(a.timeSlot) ? a.timeSlot : '자유',
+          };
+        }
+        case 'check_habit':
+          return idOk(habitIds) ? { type: 'check_habit', id: a.id } : null;
+        case 'uncheck_habit':
+          return idOk(habitIds) ? { type: 'uncheck_habit', id: a.id } : null;
+        case 'delete_habit':
+          return idOk(habitIds) ? { type: 'delete_habit', id: a.id } : null;
+
+        case 'set_highlight': {
+          const text = String(a.text || '').slice(0, 60);
+          return text ? { type: 'set_highlight', text } : null;
+        }
+        case 'set_mood':
+          return MOODS.includes(a.mood) ? { type: 'set_mood', mood: a.mood } : null;
+        case 'set_sleep': {
+          const bed = snapTime(a.bed), wake = snapTime(a.wake);
+          if (!bed && !wake) return null;
+          return { type: 'set_sleep', bed, wake };
+        }
+        case 'set_day_memo':
+          return { type: 'set_day_memo', text: String(a.text || '').slice(0, 500) };
+
+        case 'add_goal': {
+          const title = String(a.title || '').slice(0, 60);
+          if (!title) return null;
+          const date = typeof a.targetDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.targetDate) ? a.targetDate : null;
+          return {
+            type: 'add_goal', title,
+            goalType: GOAL_TYPES.includes(a.goalType) ? a.goalType : 'short',
+            targetDate: date,
+          };
+        }
+        case 'delete_goal':
+          return idOk(goalIds) ? { type: 'delete_goal', id: a.id } : null;
+        case 'set_final_goal': {
+          const title = String(a.title || '').slice(0, 60);
+          if (!title) return null;
+          return { type: 'set_final_goal', title, desc: a.desc ? String(a.desc).slice(0, 200) : '' };
+        }
+        case 'add_memo': {
+          const text = String(a.text || '').slice(0, 500);
+          return text ? { type: 'add_memo', text } : null;
+        }
+        default:
+          return null;
+      }
+    }).filter(Boolean);
+}
 
 export default router;

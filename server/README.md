@@ -166,3 +166,8 @@ const AI_SERVER = 'http://localhost:3000';
 | `/api/failure-analysis` | 실패 패턴 분석 + 조언 |
 | `/api/day-summary` | 하루 한 줄 총평 |
 | `/api/auto-schedule` | 자연어 → 하루 일정표 |
+| `/api/day-agent` | 대화형 비서 — 앱 전체(일정·할일·습관·기분·수면·메모·목표)를 다룸 |
+
+> `day-agent`는 AI가 만든 액션을 그대로 믿지 않아요. 기존 항목을 가리키는 id는
+> **요청에 실제로 담겨 온 것만** 통과시키고(`sanitizeAgentActions`), 모르는 액션
+> 종류나 잘못된 값은 버려요. 그래서 AI가 없는 일정·습관을 지어내서 지우는 일은 생기지 않아요.

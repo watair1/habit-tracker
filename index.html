@@ -3921,22 +3921,43 @@ function clearAgentChat(){
   renderAgentLog();
   showToast('대화를 지웠어요');
 }
+const TODO_STATUS_LABEL={ o:'완료', partial:'부분완료', x:'미완료', none:'표시 지움' };
+const GOAL_TYPE_LABEL={ long:'장기', mid:'중기', short:'단기' };   // 기분 라벨은 위의 MOOD_LABEL 재사용
 function agentActionLabel(a){
-  if(a.type==='add_event') return `<div class="agent-act"><i data-lucide="calendar-plus"></i>일정: ${esc(a.title)} ${esc(a.start)}~${esc(a.end)}</div>`;
-  if(a.type==='edit_event'){
-    const cur=getDay(dayCursor).events.find(e=>e.id===a.id);
-    const title=a.title!==undefined?a.title:(cur?cur.title:'일정');
-    const start=a.start!==undefined?a.start:(cur?cur.start:'');
-    const end=a.end!==undefined?a.end:(cur?cur.end:'');
-    return `<div class="agent-act"><i data-lucide="calendar-clock"></i>일정 수정: ${esc(title)} ${esc(start)}~${esc(end)}</div>`;
+  const row=(icon,text)=>`<div class="agent-act"><i data-lucide="${icon}"></i>${text}</div>`;
+  const cut=(s,n)=>esc(String(s).slice(0,n))+(String(s).length>n?'…':'');
+  const d=getDay(dayCursor);
+  const evName=id=>{ const c=d.events.find(x=>x.id===id); return esc(c?c.title:'일정'); };
+  const tdName=id=>{ const c=d.todos.find(x=>x.id===id); return esc(c?c.text:'할 일'); };
+  const hbName=id=>{ const c=loadHabits().find(x=>x.id===id); return esc(c?c.name:'습관'); };
+  const glName=id=>{ const c=loadGoals().find(x=>x.id===id); return esc(c?c.title:'목표'); };
+  switch(a.type){
+    case 'add_event': return row('calendar-plus',`일정: ${esc(a.title)} ${esc(a.start)}~${esc(a.end)}`);
+    case 'edit_event': {
+      const cur=d.events.find(e=>e.id===a.id);
+      const title=a.title!==undefined?a.title:(cur?cur.title:'일정');
+      const start=a.start!==undefined?a.start:(cur?cur.start:'');
+      const end=a.end!==undefined?a.end:(cur?cur.end:'');
+      return row('calendar-clock',`일정 수정: ${esc(title)} ${esc(start)}~${esc(end)}`);
+    }
+    case 'delete_event': return row('calendar-x',`일정 삭제: ${evName(a.id)}`);
+    case 'add_todo': return row('check-square',`할 일: ${esc(a.text)}${a.time?' ('+esc(a.time)+')':''}`);
+    case 'set_todo_status': return row('check-square',`할 일 ${esc(TODO_STATUS_LABEL[a.status]||a.status)}: ${tdName(a.id)}`);
+    case 'delete_todo': return row('trash-2',`할 일 삭제: ${tdName(a.id)}`);
+    case 'add_habit': return row('plus-circle',`습관 추가: ${esc(a.name)} (${esc(a.category)}/${esc(a.timeSlot)})`);
+    case 'check_habit': return row('check-circle',`습관 체크: ${hbName(a.id)}`);
+    case 'uncheck_habit': return row('circle',`습관 체크 해제: ${hbName(a.id)}`);
+    case 'delete_habit': return row('trash-2',`습관 삭제: ${hbName(a.id)}`);
+    case 'set_highlight': return row('star',`하이라이트: ${esc(a.text)}`);
+    case 'set_mood': return row('smile',`기분: ${esc(MOOD_LABEL[a.mood]||a.mood)}`);
+    case 'set_sleep': return row('moon',`수면: ${esc(a.bed||'?')}~${esc(a.wake||'?')}`);
+    case 'set_day_memo': return row('pencil',`회고 메모: ${cut(a.text,40)}`);
+    case 'add_goal': return row('target',`목표 추가: ${esc(a.title)} (${esc(GOAL_TYPE_LABEL[a.goalType]||'')}${a.targetDate?' ~'+esc(a.targetDate):''})`);
+    case 'delete_goal': return row('trash-2',`목표 삭제: ${glName(a.id)}`);
+    case 'set_final_goal': return row('flag',`최종 목표: ${esc(a.title)}`);
+    case 'add_memo': return row('lightbulb',`아이디어: ${cut(a.text,40)}`);
+    default: return '';
   }
-  if(a.type==='delete_event'){
-    const cur=getDay(dayCursor).events.find(e=>e.id===a.id);
-    return `<div class="agent-act"><i data-lucide="calendar-x"></i>일정 삭제: ${esc(cur?cur.title:'일정')}</div>`;
-  }
-  if(a.type==='add_todo')  return `<div class="agent-act"><i data-lucide="check-square"></i>할 일: ${esc(a.text)}${a.time?' ('+esc(a.time)+')':''}</div>`;
-  if(a.type==='set_highlight') return `<div class="agent-act"><i data-lucide="star"></i>하이라이트: ${esc(a.text)}</div>`;
-  return '';
 }
 // 저장된 대화 기록(d.chat)을 화면에 그대로 다시 그림
 function renderAgentLog(){
@@ -3974,8 +3995,13 @@ async function sendAgent(){
     const out=await aiCall('/api/day-agent',{
       message:msg, date:dayCursor,
       events:d.events.map(e=>({id:e.id,title:e.title,start:e.start,end:e.end})),
-      todos:d.todos.map(t=>({text:t.text})),
-      habits:habits.map(h=>({name:h.name}))
+      todos:d.todos.map(t=>({id:t.id,text:t.text,status:todoStatus(t)})),
+      habits:habits.map(h=>({id:h.id,name:h.name,category:h.category,timeSlot:h.timeSlot,doneToday:!!h.checked[dayCursor]})),
+      goals:loadGoals().map(g=>({id:g.id,title:g.title,type:g.type})),
+      finalGoal:loadFinalGoal(),
+      mood:loadMoods()[dayCursor]||null,
+      sleep:d.sleep||null,
+      dayMemo:d.memo||''
     });
     d=getDay(dayCursor);
     d.chat=d.chat||[];
@@ -3995,32 +4021,111 @@ function applyAgentActions(idx,btnEl){
   const msg=(d.chat||[])[idx];
   const actions=(msg && msg.actions) || [];
   if(!actions.length) return;
-  let n=0;
+  // 하루 데이터(d)는 위에서 이미 불러왔고, 습관/목표 같은 전역 데이터는 필요할 때만 불러옴
+  let habits=null, goals=null;
+  const H=()=>habits||(habits=loadHabits());
+  const G=()=>goals||(goals=loadGoals());
+  let n=0, habitsDirty=false, goalsDirty=false, checkedAny=false;
   actions.forEach((a,i)=>{
-    if(a.type==='add_event'){
-      let s=minToHm(snapMin(hmToMin(a.start))), e=minToHm(snapMin(hmToMin(a.end)));
-      if(hmToMin(e)<=hmToMin(s)) e=minToHm(hmToMin(s)+60);
-      d.events.push({ id:uid(), title:a.title, start:s, end:e, color:EV_COLORS[(d.events.length+i)%EV_COLORS.length], review:null }); n++;
-    } else if(a.type==='edit_event'){
-      const ev=d.events.find(x=>x.id===a.id);
-      if(ev){
-        if(a.title!==undefined) ev.title=a.title;
-        if(a.start!==undefined) ev.start=minToHm(snapMin(hmToMin(a.start)));
-        if(a.end!==undefined) ev.end=minToHm(snapMin(hmToMin(a.end)));
-        if(hmToMin(ev.end)<=hmToMin(ev.start)) ev.end=minToHm(hmToMin(ev.start)+30);
-        n++;
+    switch(a.type){
+      case 'add_event': {
+        let s=minToHm(snapMin(hmToMin(a.start))), e=minToHm(snapMin(hmToMin(a.end)));
+        if(hmToMin(e)<=hmToMin(s)) e=minToHm(hmToMin(s)+60);
+        d.events.push({ id:uid(), title:a.title, start:s, end:e, color:EV_COLORS[(d.events.length+i)%EV_COLORS.length], review:null }); n++;
+        break;
       }
-    } else if(a.type==='delete_event'){
-      const before=d.events.length;
-      d.events=d.events.filter(x=>x.id!==a.id);
-      if(d.events.length<before) n++;
-    } else if(a.type==='add_todo'){ d.todos.push({ id:uid(), text:a.text, status:'', time:a.time||null }); n++; }
-    else if(a.type==='set_highlight'){ d.highlight={ text:a.text, done:false, awarded:false }; n++; }
+      case 'edit_event': {
+        const ev=d.events.find(x=>x.id===a.id);
+        if(ev){
+          if(a.title!==undefined) ev.title=a.title;
+          if(a.start!==undefined) ev.start=minToHm(snapMin(hmToMin(a.start)));
+          if(a.end!==undefined) ev.end=minToHm(snapMin(hmToMin(a.end)));
+          if(hmToMin(ev.end)<=hmToMin(ev.start)) ev.end=minToHm(hmToMin(ev.start)+30);
+          n++;
+        }
+        break;
+      }
+      case 'delete_event': {
+        const before=d.events.length;
+        d.events=d.events.filter(x=>x.id!==a.id);
+        if(d.events.length<before) n++;
+        break;
+      }
+      case 'add_todo': d.todos.push({ id:uid(), text:a.text, status:'', time:a.time||null }); n++; break;
+      case 'set_todo_status': {
+        const t=d.todos.find(x=>x.id===a.id);
+        if(t){ t.status = a.status==='none' ? '' : a.status; n++; }
+        break;
+      }
+      case 'delete_todo': {
+        const before=d.todos.length;
+        d.todos=d.todos.filter(x=>x.id!==a.id);
+        if(d.todos.length<before) n++;
+        break;
+      }
+      case 'add_habit':
+        H().push({ id:uid(), name:a.name, createdAt:todayStr(), checked:{}, category:a.category, timeSlot:a.timeSlot });
+        habitsDirty=true; checkedAny=true; n++;
+        break;
+      case 'check_habit': {
+        const h=H().find(x=>x.id===a.id);
+        if(h && !h.checked[dayCursor]){
+          h.checked[dayCursor]=true;
+          const s=streakCount(h); addXP(10+(s>=7?10:s>=3?5:0));
+          const u=loadUser(); u.totalChecks=(u.totalChecks||0)+1; saveUser(u);
+          habitsDirty=true; checkedAny=true; n++;
+        }
+        break;
+      }
+      case 'uncheck_habit': {
+        const h=H().find(x=>x.id===a.id);
+        if(h && h.checked[dayCursor]){ delete h.checked[dayCursor]; habitsDirty=true; n++; }
+        break;
+      }
+      case 'delete_habit': {
+        const before=H().length;
+        habits=habits.filter(x=>x.id!==a.id);
+        if(habits.length<before){ habitsDirty=true; n++; }
+        break;
+      }
+      case 'set_highlight': d.highlight={ text:a.text, done:false, awarded:false }; n++; break;
+      case 'set_mood': { const m=loadMoods(); m[dayCursor]=a.mood; saveMoods(m); n++; break; }
+      case 'set_sleep': {
+        const cur=d.sleep||{};
+        d.sleep={ bed:a.bed||cur.bed||null, wake:a.wake||cur.wake||null };
+        n++;
+        break;
+      }
+      case 'set_day_memo': d.memo=a.text; n++; break;
+      case 'add_goal':
+        G().push({ id:uid(), title:a.title, type:a.goalType, targetDate:a.targetDate||'', habitIds:[], createdAt:todayStr() });
+        goalsDirty=true; n++;
+        break;
+      case 'delete_goal': {
+        const before=G().length;
+        goals=goals.filter(x=>x.id!==a.id);
+        if(goals.length<before){ goalsDirty=true; n++; }
+        break;
+      }
+      case 'set_final_goal': saveFinalGoal({ title:a.title, desc:a.desc||'', date:'' }); n++; break;
+      case 'add_memo': {
+        const memos=loadMemos();
+        memos.unshift({ id:uid(), title:a.text.slice(0,50), content:a.text, tags:extractTags(a.text),
+          createdAt:todayStr(), updatedAt:todayStr(), importance:1, recallCount:0, lastSeenAt:null,
+          rating:null, starred:false, graduated:false, appendix:[] });
+        saveMemos(memos); n++;
+        break;
+      }
+    }
   });
   msg.applied=true;
   setDay(dayCursor,d);
+  if(habitsDirty) saveHabits(habits);
+  if(goalsDirty) saveGoals(goals);
+  if(checkedAny) checkAchs();
   if(btnEl){ btnEl.textContent='✓ 적용됨'; btnEl.disabled=true; btnEl.style.opacity='.6'; }
   showToast(`${n}개 적용했어요`);
+  render();        // '오늘' 탭(습관/메모) 동기화. 목표 탭은 탭 이동할 때 알아서 다시 그려짐
   renderDay();
 }
 
