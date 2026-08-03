@@ -1320,9 +1320,22 @@ function scheduleSync() {
   syncTimer = setTimeout(doSync, 1500);
 }
 
+// Firestore는 문서 하나가 1MiB를 넘으면 저장 자체가 실패해요. 하루 기록(day)은
+// 모든 날짜를 문서 하나에 몰아넣어서 가장 먼저 한계에 닿습니다.
+const FS_DOC_LIMIT = 1048576;
+let _syncFailed = false, _sizeWarned = false;
+function byteSize(obj) {
+  try { return new TextEncoder().encode(JSON.stringify(obj)).length; }
+  catch { return 0; }
+}
+
 async function doSync() {
   if (!fbUser || !fbDb) return;
   const base = fbDb.collection('users').doc(fbUser.uid).collection('data');
+  if (!_sizeWarned && byteSize(loadDayData()) > FS_DOC_LIMIT * 0.8) {
+    _sizeWarned = true;
+    showToast('하루 기록이 많이 쌓였어요. 백업해두는 걸 권해요');
+  }
   try {
     await Promise.all([
       base.doc('habits').set({ d: loadHabits() }),
@@ -1337,7 +1350,15 @@ async function doSync() {
       base.doc('templates').set({ d: loadTemplates() }),
       base.doc('weekplan').set({ d: loadWeekPlan() }),
     ]);
-  } catch(e) { console.warn('동기화 실패:', e); }
+    if (_syncFailed) { _syncFailed = false; showToast('클라우드 저장이 다시 됐어요'); }
+  } catch(e) {
+    console.warn('동기화 실패:', e);
+    // 실패가 이어질 때 토스트가 도배되지 않게, 상태가 바뀔 때만 알려줍니다.
+    if (!_syncFailed) {
+      _syncFailed = true;
+      showToast('클라우드 저장에 실패했어요. 기기에는 저장돼 있어요');
+    }
+  }
 }
 
 async function loadFromCloud() {
@@ -1377,7 +1398,22 @@ async function loadFromCloud() {
 const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1', wk: 'ht_weekplan_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
-function lsSet(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+let _storageWarned = false;
+// 저장 공간이 꽉 차면 setItem이 에러를 던져요. 그냥 두면 저장이 조용히 실패해서
+// 사용자는 기록이 날아간 줄도 모르게 되니, 반드시 눈에 보이게 알려줍니다.
+function lsSet(k, v) {
+  try {
+    localStorage.setItem(k, JSON.stringify(v));
+    return true;
+  } catch (e) {
+    console.error('저장 실패:', k, e);
+    if (!_storageWarned) {
+      _storageWarned = true;
+      showToast('저장 공간이 가득 찼어요. 분석 탭에서 백업 후 정리해주세요');
+    }
+    return false;
+  }
+}
 
 function loadHabits() {
   // Migrate old format
@@ -1559,6 +1595,19 @@ function showToast(msg) {
   clearTimeout(toastTmr);
   toastTmr = setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+// 예상 못 한 에러가 나면 화면이 반쯤 그려진 채 멈춰서 왜 그런지 알 수가 없어요.
+// 최소한 "문제가 생겼다"는 건 알려줍니다. 원인은 콘솔에 그대로 남아요.
+let _errorNotified = false;
+function notifyUnexpectedError(what, err) {
+  console.error(what, err);
+  if (_errorNotified) return;          // 연쇄 에러로 토스트가 도배되지 않게
+  _errorNotified = true;
+  setTimeout(() => { _errorNotified = false; }, 5000);
+  try { showToast('문제가 생겼어요. 계속되면 분석 탭에서 백업해두세요'); } catch {}
+}
+window.addEventListener('error', e => notifyUnexpectedError('실행 중 에러:', e.error || e.message));
+window.addEventListener('unhandledrejection', e => notifyUnexpectedError('처리되지 않은 오류:', e.reason));
 
 function showAchPopup(a) {
   $('ap-icon').textContent = a.icon;
@@ -4182,6 +4231,12 @@ function toggleAgent(){
   if(chev) chev.style.transform=open?'rotate(180deg)':'';
   if(open) setTimeout(()=>$('agent-input').focus(),50);
 }
+// 대화는 하루 데이터에 같이 저장돼서 클라우드 문서 용량을 잡아먹어요.
+// 최근 것만 남겨 무한정 늘어나지 않게 합니다.
+const CHAT_KEEP = 40;
+function trimChat(chat){
+  return chat.length > CHAT_KEEP ? chat.slice(-CHAT_KEEP) : chat;
+}
 function clearAgentChat(){
   const d=getDay(dayCursor);
   if(!d.chat || !d.chat.length) return;
@@ -4251,8 +4306,7 @@ async function sendAgent(){
   const inp=$('agent-input'), msg=inp.value.trim();
   if(!msg) return;
   let d=getDay(dayCursor);
-  d.chat=d.chat||[];
-  d.chat.push({ role:'user', text:msg });
+  d.chat=trimChat([...(d.chat||[]), { role:'user', text:msg }]);
   setDay(dayCursor,d);
   inp.value=''; const btn=$('agent-send'); btn.disabled=true;
   renderAgentLog();
@@ -4273,13 +4327,11 @@ async function sendAgent(){
       dayMemo:d.memo||''
     });
     d=getDay(dayCursor);
-    d.chat=d.chat||[];
-    d.chat.push({ role:'bot', text:out.reply||'', actions:out.actions||[], applied:false });
+    d.chat=trimChat([...(d.chat||[]), { role:'bot', text:out.reply||'', actions:out.actions||[], applied:false }]);
     setDay(dayCursor,d);
   }catch(err){
     d=getDay(dayCursor);
-    d.chat=d.chat||[];
-    d.chat.push({ role:'bot', text:err.message, err:true });
+    d.chat=trimChat([...(d.chat||[]), { role:'bot', text:err.message, err:true }]);
     setDay(dayCursor,d);
   }
   renderAgentLog();
