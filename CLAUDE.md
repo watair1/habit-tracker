@@ -21,18 +21,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 No build system or package manager. Open `index.html` directly in a browser. All code lives in a single file.
 
+## Checking before you push
+
+```powershell
+node check.mjs
+```
+
+Catches the mistakes that break the whole app but only show up in a browser:
+duplicate top-level names, `onclick="foo()"` with no `foo` defined,
+`toISOString().slice(0,10)` (UTC — shifts the date by a day in KST), and
+API keys hardcoded into the file. Run it after editing `index.html`.
+
 ## Deployment
 
 Single-file web app (`index.html`). Push to GitHub → GitHub Pages auto-deploy.
 
 ```powershell
+node check.mjs
 git add index.html
 git commit -m "message"
 git push origin main
 ```
 
-Live URL: `https://watair1.github.io/imaginative-semifreddo-90969d/`  
-GitHub remote: `https://github.com/watair1/imaginative-semifreddo-90969d.git`
+Live URL: `https://watair1.github.io/habit-tracker/`  
+GitHub remote: `https://github.com/watair1/habit-tracker.git`
 
 No build step, no package.json, no bundler.
 
