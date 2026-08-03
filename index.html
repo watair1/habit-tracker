@@ -351,11 +351,17 @@
     .wk-plan-steps { display: flex; gap: 6px; margin-bottom: 14px; flex-shrink: 0; }
     .wk-step-btn { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2); color: var(--muted); font-size: .78rem; font-weight: 700; cursor: pointer; }
     .wk-step-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
-    .wk-cat-row { display: flex; align-items: center; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--border); }
+    .wk-cat-item { padding: 9px 2px; border-bottom: 1px solid var(--border); }
+    .wk-cat-item:last-child { border-bottom: none; }
+    .wk-cat-row { display: flex; align-items: center; gap: 8px; }
     .wk-cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .wk-cat-name { flex: 1; font-size: .85rem; color: var(--text); }
-    .wk-cat-target { font-size: .74rem; color: var(--muted); }
+    .wk-cat-target { font-size: .74rem; color: var(--muted); white-space: nowrap; }
+    .wk-cat-done { width: 52px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 7px; background: var(--card2); color: var(--text); font-size: .76rem; text-align: right; }
     .wk-cat-del { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
+    .wk-prog-bg { height: 5px; border-radius: 3px; background: var(--card2); margin-top: 7px; overflow: hidden; }
+    .wk-prog-fill { height: 100%; border-radius: 3px; transition: width .25s; }
+    .wk-prog-done { font-size: .68rem; color: var(--primary); font-weight: 700; }
     .wk-chip-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; flex-shrink: 0; }
     .wk-chip { flex: 0 0 auto; padding: 7px 13px; border-radius: 20px; font-size: .76rem; font-weight: 700; border: none; cursor: pointer; color: #fff; opacity: .5; white-space: nowrap; display: flex; align-items: center; }
     .wk-chip.active { opacity: 1; box-shadow: 0 0 0 2px rgba(255,255,255,.55) inset; }
@@ -1002,11 +1008,13 @@
     </div>
 
     <div id="wk-step1-body" style="overflow-y:auto;">
-      <div class="add-bar" style="margin-bottom:10px;">
-        <input id="wk-cat-name" placeholder="카테고리 이름 (예: 생리학)" maxlength="16"/>
-        <input id="wk-cat-target" placeholder="목표량 (예: 100페이지)" maxlength="20" style="flex:0 0 120px;" onkeydown="if(event.key==='Enter')addWeekCat()"/>
+      <div class="add-bar" style="margin-bottom:6px;">
+        <input id="wk-cat-name" placeholder="카테고리 (예: 생리학)" maxlength="16"/>
+        <input id="wk-cat-target" type="number" min="0" step="any" placeholder="목표" style="flex:0 0 68px;"/>
+        <input id="wk-cat-unit" placeholder="단위" maxlength="8" style="flex:0 0 64px;" onkeydown="if(event.key==='Enter')addWeekCat()"/>
         <button class="btn btn-sm" onclick="addWeekCat()">추가</button>
       </div>
+      <div style="font-size:.66rem;color:var(--muted);margin-bottom:10px;">목표량은 비워도 돼요 (예: 100 / 페이지)</div>
       <div id="wk-cat-list"></div>
     </div>
 
@@ -3119,9 +3127,19 @@ function setWeekPlanStep(n){
   $('wk-step2-body').style.display = n===2 ? 'flex' : 'none';
   if(n===1) renderWeekCats(); else renderWeekGrid();
 }
+// 예전 형식({target:'100페이지'})을 숫자(targetNum)+단위(unit)+진행량(doneNum)으로 맞춰줌
+function normWeekCat(c){
+  if(c.targetNum===undefined){
+    const m=String(c.target||'').match(/^\s*(\d+(?:\.\d+)?)\s*(.*)$/);
+    c.targetNum = m ? parseFloat(m[1]) : 0;
+    c.unit      = m ? m[2].trim() : String(c.target||'').trim();
+  }
+  if(c.doneNum===undefined) c.doneNum=0;
+  return c;
+}
 function weekCats(){
   const plan=loadWeekPlan();
-  return (plan[wkPlanCursor] && plan[wkPlanCursor].cats) || [];
+  return ((plan[wkPlanCursor] && plan[wkPlanCursor].cats) || []).map(normWeekCat);
 }
 function saveWeekCats(cats){
   const plan=loadWeekPlan();
@@ -3130,14 +3148,25 @@ function saveWeekCats(cats){
   saveWeekPlan(plan);
 }
 function addWeekCat(){
-  const nameInp=$('wk-cat-name'), targetInp=$('wk-cat-target');
-  const name=nameInp.value.trim(), target=targetInp.value.trim();
+  const nameInp=$('wk-cat-name'), targetInp=$('wk-cat-target'), unitInp=$('wk-cat-unit');
+  const name=nameInp.value.trim();
   if(!name) return;
+  const targetNum=parseFloat(targetInp.value)||0;
   const cats=weekCats();
   const color=WK_CAT_COLORS[cats.length % WK_CAT_COLORS.length];
-  cats.push({ id:uid(), name, target, color });
+  cats.push({ id:uid(), name, color, targetNum, unit:unitInp.value.trim(), doneNum:0 });
   saveWeekCats(cats);
-  nameInp.value=''; targetInp.value=''; nameInp.focus();
+  nameInp.value=''; targetInp.value=''; unitInp.value=''; nameInp.focus();
+  renderWeekCats();
+}
+// 진행량 입력 (0 ~ 목표량 범위로 정리)
+function setWeekCatDone(id, val){
+  const cats=weekCats(), c=cats.find(x=>x.id===id);
+  if(!c) return;
+  let v=parseFloat(val); if(!isFinite(v)||v<0) v=0;
+  if(c.targetNum>0 && v>c.targetNum) v=c.targetNum;
+  c.doneNum=v;
+  saveWeekCats(cats);
   renderWeekCats();
 }
 function delWeekCat(id){
@@ -3149,13 +3178,25 @@ function renderWeekCats(){
   const cats=weekCats();
   const el=$('wk-cat-list');
   if(!cats.length){ el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:16px;">이번 주 카테고리를 추가해보세요</div>`; return; }
-  el.innerHTML=cats.map(c=>`
-    <div class="wk-cat-row">
-      <span class="wk-cat-dot" style="background:${c.color}"></span>
-      <span class="wk-cat-name">${esc(c.name)}</span>
-      <span class="wk-cat-target">${esc(c.target||'')}</span>
-      <button class="wk-cat-del" onclick="delWeekCat('${c.id}')"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
-    </div>`).join('');
+  el.innerHTML=cats.map(c=>{
+    const has=c.targetNum>0;
+    const pct=has ? Math.min(100, Math.round(c.doneNum/c.targetNum*100)) : 0;
+    return `
+    <div class="wk-cat-item">
+      <div class="wk-cat-row">
+        <span class="wk-cat-dot" style="background:${c.color}"></span>
+        <span class="wk-cat-name">${esc(c.name)}</span>
+        ${has?`
+          <input class="wk-cat-done" type="number" min="0" step="any" value="${c.doneNum}"
+                 onchange="setWeekCatDone('${c.id}', this.value)"/>
+          <span class="wk-cat-target">/ ${esc(String(c.targetNum))} ${esc(c.unit||'')}</span>
+          <span class="wk-prog-done">${pct}%</span>`
+        :`<span class="wk-cat-target">${esc(c.unit||'목표 없음')}</span>`}
+        <button class="wk-cat-del" onclick="delWeekCat('${c.id}')"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+      </div>
+      ${has?`<div class="wk-prog-bg"><div class="wk-prog-fill" style="width:${pct}%;background:${c.color};"></div></div>`:''}
+    </div>`;
+  }).join('');
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 // 특정 날짜의 카테고리 연결 이벤트를 30분 슬롯 배열로 변환
