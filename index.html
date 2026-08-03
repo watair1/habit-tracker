@@ -1434,16 +1434,31 @@ function saveNotif() {
 
 // ── UTILS ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// ── 날짜 헬퍼 (반드시 로컬 시간 기준) ─────────────────────
+// toISOString()은 UTC라, 한국(UTC+9)에선 자정~오전 9시 사이에 날짜가 하루 밀려요.
+// 아침에 체크한 습관이 어제로 기록되는 버그가 나서, 날짜 문자열을 만들거나
+// 읽을 땐 항상 아래 두 함수만 씁니다. (toISOString().slice(0,10) 쓰지 마세요)
+function ymd(d) {
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+// 'YYYY-MM-DD' → 그날 로컬 자정. 이미 Date면 복사본을 돌려줘요.
+function parseYmd(v) {
+  if (v instanceof Date) return new Date(v.getTime());
+  const [y, m, d] = String(v).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+const todayStr = () => ymd(new Date());
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const CAT = { '건강':'건강', '학습':'학습', '마음':'마음', '생활':'생활', '관계':'관계', '재정':'재정' };
 
 function streakCount(h) {
   let c = 0;
-  const d = new Date(todayStr());
+  const d = parseYmd(todayStr());
   while (true) {
-    if (!h.checked[d.toISOString().slice(0,10)]) break;
+    if (!h.checked[ymd(d)]) break;
     c++;
     d.setDate(d.getDate() - 1);
   }
@@ -1455,7 +1470,7 @@ function maxStreak(h) {
   if (!dates.length) return 0;
   let max = 1, cur = 1;
   for (let i = 1; i < dates.length; i++) {
-    const diff = (new Date(dates[i]) - new Date(dates[i-1])) / 86400000;
+    const diff = (parseYmd(dates[i]) - parseYmd(dates[i-1])) / 86400000;
     cur = diff === 1 ? cur + 1 : 1;
     if (cur > max) max = cur;
   }
@@ -1465,7 +1480,7 @@ function maxStreak(h) {
 function successRate(h) {
   const n = Object.keys(h.checked).length;
   if (!n) return 0;
-  const days = Math.max(1, Math.round((new Date(todayStr()) - new Date(h.createdAt)) / 86400000) + 1);
+  const days = Math.max(1, Math.round((parseYmd(todayStr()) - parseYmd(h.createdAt)) / 86400000) + 1);
   return Math.round((n / days) * 100);
 }
 
@@ -1719,7 +1734,7 @@ function openGoalModal() {
     ? h.map(x => `<label class="hb-chk"><input type="checkbox" value="${x.id}"> ${esc(x.name)}</label>`).join('')
     : '<span style="font-size:.82rem;color:var(--muted)">등록된 습관 없음</span>';
   const d = new Date(); d.setMonth(d.getMonth() + 3);
-  $('gm-date').value = d.toISOString().slice(0, 10);
+  $('gm-date').value = ymd(d);
   openModal('goal-modal');
 }
 
@@ -1751,7 +1766,7 @@ function motivMsg(habits) {
   const t = todayStr(), done = habits.filter(h => h.checked[t]).length, tot = habits.length;
   if (!tot) return '첫 습관을 추가해보세요.';
   if (done === tot) return `오늘 모든 습관 완료 — 완벽한 하루.`;
-  const dayNum = Math.floor(new Date(t) / 86400000);
+  const dayNum = Math.floor(parseYmd(t) / 86400000);
   return `${done} / ${tot} 완료. ${MSGS[dayNum % MSGS.length]}`;
 }
 
@@ -1878,8 +1893,8 @@ function weekCatLookup(){
 // 최근 30일 일정에서 카테고리별 배정 시간(분)을 모음. 이름이 같으면 합산.
 function categoryMinutes(){
   const byId=weekCatLookup(), days=loadDayData(), sums={}, colors={};
-  const from=new Date(todayStr()); from.setDate(from.getDate()-29);
-  const fromStr=from.toISOString().slice(0,10);
+  const from=parseYmd(todayStr()); from.setDate(from.getDate()-29);
+  const fromStr=ymd(from);
   Object.entries(days).forEach(([ds,rec])=>{
     if(ds<fromStr || ds>todayStr()) return;
     (rec.events||[]).forEach(e=>{
@@ -1961,7 +1976,7 @@ function renderStats() {
 
   // Pie
   const totalPossible = habits.reduce((s,h) => {
-    const days = Math.max(1, Math.round((new Date(todayStr())-new Date(h.createdAt))/86400000)+1);
+    const days = Math.max(1, Math.round((parseYmd(todayStr())-parseYmd(h.createdAt))/86400000)+1);
     return s + days;
   }, 0);
   const fail = Math.max(0, totalPossible - totalChecks);
@@ -1977,7 +1992,7 @@ function renderStats() {
   const labels=[], data=[];
   for (let i=13;i>=0;i--) {
     const d=new Date(); d.setDate(d.getDate()-i);
-    const ds=d.toISOString().slice(0,10);
+    const ds=ymd(d);
     labels.push(ds.slice(5));
     data.push(habits.length ? Math.round(habits.filter(h=>!!h.checked[ds]).length/habits.length*100) : 0);
   }
@@ -2014,8 +2029,8 @@ function renderWeekly(){
   const EMO={worst:'😭',bad:'😟',neutral:'😐',good:'😊',best:'😄'};
   const rows=[]; let rateSum=0,rateN=0,sleepSum=0,sleepN=0;
   for(let i=6;i>=0;i--){
-    const dt=new Date(todayStr()); dt.setDate(dt.getDate()-i);
-    const ds=dt.toISOString().slice(0,10);
+    const dt=parseYmd(todayStr()); dt.setDate(dt.getDate()-i);
+    const ds=ymd(dt);
     const rate=dayCompletionRate(ds), mood=moods[ds], smin=sleepMinutes((days[ds]||{}).sleep);
     if(rate!==null){ rateSum+=rate; rateN++; }
     if(smin!==null){ sleepSum+=smin; sleepN++; }
@@ -2052,8 +2067,8 @@ function renderCorrelation(){
   const el=$('corr-analysis');
   const moods=loadMoods(), days=loadDayData();
   // 최근 30일 날짜 목록
-  const dates=[]; const t=new Date(todayStr());
-  for(let i=0;i<30;i++){ const d=new Date(t); d.setDate(d.getDate()-i); dates.push(d.toISOString().slice(0,10)); }
+  const dates=[]; const t=parseYmd(todayStr());
+  for(let i=0;i<30;i++){ const d=parseYmd(t); d.setDate(d.getDate()-i); dates.push(ymd(d)); }
 
   // 기분: 좋음(good,best) vs 나쁨(bad,worst)
   const goodRates=[], badRates=[];
@@ -2185,7 +2200,7 @@ function renderMoodChart() {
   const labels = [], moodData = [], successData = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
-    const ds = d.toISOString().slice(0, 10);
+    const ds = ymd(d);
     labels.push(dayNames[d.getDay()]);
     moodData.push(moods[ds] !== undefined ? MOOD_LEVEL[moods[ds]] : null);
     successData.push(hasHabits ? Math.round(habits.filter(h => !!h.checked[ds]).length / habits.length * 100) : null);
@@ -2373,7 +2388,7 @@ function renderFinalGoal() {
     </div>`;
     return;
   }
-  const dl = fg.date ? Math.ceil((new Date(fg.date) - new Date()) / 86400000) : null;
+  const dl = fg.date ? Math.ceil((parseYmd(fg.date) - new Date()) / 86400000) : null;
   const dlText = dl === null ? '' : dl > 0 ? `D-${dl}` : dl === 0 ? '오늘!' : '기한 초과';
   el.innerHTML = `<div style="background:#141414;border:1px solid rgba(179,240,0,0.2);border-radius:var(--r);padding:18px 16px;margin-bottom:14px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -2859,7 +2874,7 @@ function renderGoals() {
     $('goals-list').innerHTML=[...goals].sort((a,b)=>TO[a.type]-TO[b.type]).map(g=>{
       const lh=habits.filter(h=>g.habitIds.includes(h.id));
       const prog=lh.length?Math.round(lh.reduce((s,h)=>s+successRate(h),0)/lh.length):0;
-      const dl=Math.ceil((new Date(g.targetDate)-new Date())/86400000);
+      const dl=Math.ceil((parseYmd(g.targetDate)-new Date())/86400000);
       const barColor=g.type==='long'?'var(--primary)':g.type==='mid'?'#f59e0b':'#22c55e';
       return `<div class="goal-item ${g.type}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -2945,9 +2960,9 @@ function renderAnalysis() {
 function getDayRates(habits) {
   const dd=Array.from({length:7},()=>({s:0,t:0}));
   habits.forEach(h=>{
-    Object.keys(h.checked).forEach(ds=>dd[new Date(ds).getDay()].s++);
-    const start=new Date(h.createdAt), today=new Date(todayStr());
-    for (let d=new Date(start);d<=today;d.setDate(d.getDate()+1)) dd[d.getDay()].t++;
+    Object.keys(h.checked).forEach(ds=>dd[parseYmd(ds).getDay()].s++);
+    const start=parseYmd(h.createdAt), today=parseYmd(todayStr());
+    for (let d=parseYmd(start);d<=today;d.setDate(d.getDate()+1)) dd[d.getDay()].t++;
   });
   return dd.map(d=>d.t?Math.round(d.s/d.t*100):0);
 }
@@ -2992,7 +3007,7 @@ function buildAnalysisData() {
 
   const last7 = Array.from({length:7}, (_,i) => {
     const d = new Date(); d.setDate(d.getDate()-i);
-    return d.toISOString().slice(0,10);
+    return ymd(d);
   }).reverse();
 
   const avgSuccessRate = habits.length
@@ -3263,12 +3278,12 @@ const WK_CAT_COLORS = ['#3b82f6','#ef4444','#f59e0b','#10b981','#8b5cf6','#ec489
 const WK_GRID_START = 6, WK_GRID_END = 24;   // 06:00 ~ 24:00 만 표시
 
 function weekStartOf(dateStr){
-  const d=new Date(dateStr); d.setDate(d.getDate()-d.getDay());
-  return d.toISOString().slice(0,10);
+  const d=parseYmd(dateStr); d.setDate(d.getDate()-d.getDay());
+  return ymd(d);
 }
 function addDaysStr(dateStr, n){
-  const d=new Date(dateStr); d.setDate(d.getDate()+n);
-  return d.toISOString().slice(0,10);
+  const d=parseYmd(dateStr); d.setDate(d.getDate()+n);
+  return ymd(d);
 }
 
 let wkPlanCursor=null, wkPlanStep=1, wkActiveCat=null, wkPainting=false, wkGridState=null;
@@ -3285,7 +3300,7 @@ function shiftWeekPlan(delta){
 }
 function renderWeekPlan(){
   const start=wkPlanCursor, end=addDaysStr(start,6);
-  const fmt=ds=>{ const d=new Date(ds); return `${d.getMonth()+1}/${d.getDate()}`; };
+  const fmt=ds=>{ const d=parseYmd(ds); return `${d.getMonth()+1}/${d.getDate()}`; };
   $('wk-plan-range').textContent = `${fmt(start)} ~ ${fmt(end)}`;
   setWeekPlanStep(wkPlanStep);
 }
@@ -3405,7 +3420,7 @@ function renderWeekGrid(){
   const WD=['일','월','화','수','목','금','토'];
   const totalSlots=(WK_GRID_END-WK_GRID_START)*2;
   let html = `<div class="wk-grid-hd"></div>` + dates.map((ds,i)=>{
-    const d=new Date(ds);
+    const d=parseYmd(ds);
     return `<div class="wk-grid-hd">${WD[i]}<br>${d.getMonth()+1}/${d.getDate()}</div>`;
   }).join('');
   for(let slot=0; slot<totalSlots; slot++){
@@ -3473,13 +3488,13 @@ function commitWeekGrid(){
 function fmtDayHead(date){
   const days=['일','월','화','수','목','금','토'];
   if(date===todayStr()) return '오늘';
-  const d=new Date(date);
+  const d=parseYmd(date);
   return `${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
 }
 
 function shiftDay(delta){
-  const d=new Date(dayCursor); d.setDate(d.getDate()+delta);
-  dayCursor=d.toISOString().slice(0,10);
+  const d=parseYmd(dayCursor); d.setDate(d.getDate()+delta);
+  dayCursor=ymd(d);
   renderDay();
 }
 function goToday(){ dayCursor=todayStr(); renderDay(); }
@@ -3496,7 +3511,7 @@ function hasDayData(date){
 function toggleDayCal(){
   const el=$('day-cal');
   if(el.style.display==='none'){
-    const c=new Date(dayCursor); calYear=c.getFullYear(); calMonth=c.getMonth();
+    const c=parseYmd(dayCursor); calYear=c.getFullYear(); calMonth=c.getMonth();
     el.style.display='block'; renderDayCal();
   } else { el.style.display='none'; }
 }
@@ -3792,8 +3807,8 @@ function toggleFreeGaps(){
 // ── ② 어제 복사 / 루틴 템플릿 ─────────────────────────────
 function openDayTools(){ $('tpl-name').value=''; renderTplList(); openModal('daytools-modal'); if(typeof lucide!=='undefined')lucide.createIcons(); }
 function copyYesterday(){
-  const y=new Date(dayCursor); y.setDate(y.getDate()-1);
-  const yStr=y.toISOString().slice(0,10);
+  const y=parseYmd(dayCursor); y.setDate(y.getDate()-1);
+  const yStr=ymd(y);
   const yd=getDay(yStr);
   if(!yd.events.length){ showToast('어제 일정이 없어요'); return; }
   const d=getDay(dayCursor);
@@ -4427,7 +4442,7 @@ async function requestWeeklyReport(){
   const weekStart=new Date(); weekStart.setDate(weekStart.getDate()-6);
   try {
     const out=await aiCall('/api/weekly-report',{
-      weekStart: weekStart.toISOString().slice(0,10),
+      weekStart: ymd(weekStart),
       habits: habits.map(h=>({ name:h.name, checkedDates:Object.keys(h.checked||{}).slice(-30) }))
     });
     box.innerHTML=`<div class="day-summary-ai">${esc(out.analysis||'')}<br><br>💪 ${esc(out.encouragement||'')}</div>`;
