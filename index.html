@@ -879,6 +879,21 @@
     <button class="btn" style="width:100%;margin-top:12px;" onclick="requestNotif()">알림 권한 허용</button>
   </div>
 
+  <div class="card">
+    <div class="card-title">데이터 백업</div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:13px;line-height:1.55;">
+      데이터는 이 브라우저 안에만 저장돼요. 브라우저 데이터를 지우거나 기기를 바꾸면 사라지니,
+      가끔 파일로 내려받아 두세요. (구글 로그인 중이면 클라우드에도 자동 저장돼요.)
+    </p>
+    <button class="btn" style="width:100%;margin-bottom:8px;" onclick="exportData()">
+      내보내기 (파일로 저장)
+    </button>
+    <button class="btn btn-outline" style="width:100%;" onclick="$('import-file').click()">
+      불러오기 (파일에서 복원)
+    </button>
+    <input type="file" id="import-file" accept="application/json,.json" style="display:none;" onchange="importData(this)"/>
+  </div>
+
   <div class="card" style="border-color:rgba(248,113,113,0.25)">
     <div class="card-title" style="color:#f87171;">데이터 초기화</div>
     <p style="font-size:.8rem;color:var(--muted);margin-bottom:13px;line-height:1.55;">초기화된 데이터는 복구할 수 없습니다. 신중하게 선택하세요.</p>
@@ -1562,6 +1577,55 @@ async function doReset() {
   updateHdrXP();
   render();
   _resetType = null;
+}
+
+// ── 데이터 백업 (내보내기 / 불러오기) ──────────────────────
+// API 키(K.ak)는 클라우드 동기화와 마찬가지로 백업에서 제외해요.
+const BACKUP_KEYS = ['h','u','g','n','f','t','m','md','d','tpl','wk'];
+const BACKUP_TAG = 'habit-tracker-backup';
+
+function exportData() {
+  const data = {};
+  BACKUP_KEYS.forEach(k => {
+    const raw = localStorage.getItem(K[k]);
+    if (raw !== null) data[K[k]] = raw;      // 원본 문자열 그대로 담아 손실 없이 복원
+  });
+  const payload = { app: BACKUP_TAG, version: 1, exportedAt: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `habit-tracker-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('백업 파일을 저장했어요');
+}
+
+function importData(input) {
+  const file = input.files && input.files[0];
+  input.value = '';                          // 같은 파일을 다시 골라도 동작하도록 초기화
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    let payload;
+    try { payload = JSON.parse(reader.result); }
+    catch { showToast('파일을 읽을 수 없어요 (JSON 형식이 아니에요)'); return; }
+    if (!payload || payload.app !== BACKUP_TAG || !payload.data) {
+      showToast('이 앱의 백업 파일이 아니에요'); return;
+    }
+    const when = payload.exportedAt ? payload.exportedAt.slice(0, 10) : '알 수 없음';
+    if (!confirm(`${when}에 만든 백업으로 되돌릴까요?\n지금 이 기기의 데이터는 덮어써집니다.`)) return;
+    Object.entries(payload.data).forEach(([key, raw]) => {
+      if (typeof raw === 'string') localStorage.setItem(key, raw);
+    });
+    if (fbUser && fbDb) await doSync();      // 로그인 중이면 클라우드도 맞춰줌
+    showToast('복원했어요. 새로고침할게요');
+    setTimeout(() => location.reload(), 800);
+  };
+  reader.onerror = () => showToast('파일을 읽지 못했어요');
+  reader.readAsText(file);
 }
 
 function switchTab(name, btn) {
