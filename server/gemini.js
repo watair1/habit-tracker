@@ -23,11 +23,20 @@ function getClient() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// 429(요청 과다) / 503(과부하)일 때 지수 백오프로 재시도하는지 판단
-function isRetryable(err) {
-  const s = err && (err.status || err.code || (err.message || ''));
-  const msg = String(err && err.message || '').toLowerCase();
-  return /429|503|rate|quota|overloaded|unavailable/.test(String(s)) || /429|503|rate|quota|overloaded|unavailable/.test(msg);
+// 에러 메시지/상태코드를 한 덩어리 소문자 문자열로 만들어 검사에 씀
+function errHaystack(err) {
+  if (!err) return '';
+  return `${err.status || ''} ${err.code || ''} ${err.message || ''}`.toLowerCase();
+}
+// 429 = 요청 한도 초과. 분당 한도면 1분, 하루 한도면 내일까지 안 풀려요.
+// 몇 초 뒤 재시도해봐야 실패할 확률이 높고, 그 재시도마저 한도를 더 깎아먹어서
+// 여기서는 재시도하지 않고 바로 사용자에게 알려줍니다.
+export function isRateLimited(err) {
+  return /429|rate limit|ratelimit|quota|resource_exhausted/.test(errHaystack(err));
+}
+// 503 = 서버가 잠깐 붐비는 상태. 이건 조금 기다렸다 다시 하면 대개 성공해서 재시도할 값어치가 있어요.
+export function isOverloaded(err) {
+  return /503|overloaded|unavailable/.test(errHaystack(err));
 }
 
 /**
@@ -72,12 +81,12 @@ export async function callGemini(systemPrompt, userContent, opts = {}) {
       }
     } catch (err) {
       lastErr = err;
-      if (err.noKey) throw err; // 키 없음은 재시도 무의미
-      if (isRetryable(err) && attempt < backoffs.length) {
-        await sleep(backoffs[attempt]);
-        continue;
+      if (err.noKey) throw err;                              // 키 없음은 재시도 무의미
+      if (isRateLimited(err)) { err.rateLimit = true; throw err; }   // 한도 초과는 즉시 포기
+      if (isOverloaded(err)) {
+        if (attempt < backoffs.length) { await sleep(backoffs[attempt]); continue; }
+        err.overloaded = true;                               // 재시도 다 써도 계속 붐빔
       }
-      if (isRetryable(err)) { err.rateLimit = true; }
       throw err;
     }
   }

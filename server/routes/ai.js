@@ -23,7 +23,8 @@ function need(res, cond, msg) {
 // 에러를 한국어 응답으로 변환
 function fail(res, err) {
   if (err && err.noKey) return res.status(500).json({ error: 'NO_KEY', message: '서버에 API 키가 설정되지 않았어요. 관리자에게 문의하세요.' });
-  if (err && err.rateLimit) return res.status(429).json({ error: 'RATE_LIMIT', message: '요청이 많아요. 1분 후 다시 시도해주세요.' });
+  if (err && err.rateLimit) return res.status(429).json({ error: 'RATE_LIMIT', message: 'AI 사용 한도에 걸렸어요. 1분쯤 뒤에 다시 해보고, 계속 그러면 하루 한도일 수 있어요.' });
+  if (err && err.overloaded) return res.status(503).json({ error: 'OVERLOADED', message: 'AI 서버가 잠시 붐벼요. 조금 뒤에 다시 시도해주세요.' });
   console.error('[AI error]', err && err.message);
   return res.status(500).json({ error: 'AI_ERROR', message: 'AI 요청에 실패했어요. 잠시 후 다시 시도해주세요.' });
 }
