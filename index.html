@@ -38,7 +38,11 @@
     /* HEADER */
     .app-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: #fff; padding: 18px 18px 14px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); max-width: 500px; margin: 0 auto; }
     .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .app-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -.3px; color: #fff; }
+    .app-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -.3px; color: #fff; cursor: pointer; user-select: none; -webkit-user-select: none; }
+    .app-title.wiggle { animation: titleWiggle .3s ease; }
+    @keyframes titleWiggle { 0%,100%{transform:rotate(0) scale(1)} 30%{transform:rotate(-6deg) scale(1.08)} 70%{transform:rotate(6deg) scale(1.08)} }
+    .sprout-piece { position: fixed; top: -30px; font-size: 1.1rem; line-height: 1; pointer-events: none; z-index: 997; will-change: transform, opacity; }
+    @keyframes sproutFall { to { transform: translateY(105vh) rotate(var(--spin)); opacity: 0; } }
     .header-right { display: flex; gap: 8px; align-items: center; }
     .level-badge { background: var(--primary-light); border: 1px solid rgba(179,240,0,0.3); border-radius: 20px; padding: 4px 11px; font-size: 0.75rem; font-weight: 700; color: var(--primary); }
     .notif-btn { background: #1c1c1c; border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; color: #888; cursor: pointer; font-size: 1rem; }
@@ -491,7 +495,7 @@
 
 <header class="app-header">
   <div class="header-top">
-    <div class="app-title">HABIT</div>
+    <div class="app-title" id="app-title" onclick="tapTitle()">HABIT</div>
     <div class="header-right">
       <span class="level-badge" id="hdr-level">Lv.1</span>
       <div class="user-info" id="user-info" style="display:none">
@@ -1589,6 +1593,44 @@ async function doReset() {
   updateHdrXP();
   render();
   _resetType = null;
+}
+
+// ── 🌱 이스터에그: 제목 7번 연타 ──────────────────────────
+// 순수 장식이에요. XP·업적·기록 어느 것도 건드리지 않아요.
+let _titleTaps = 0, _titleTapTimer = null;
+function tapTitle(){
+  const el = $('app-title');
+  _titleTaps++;
+  clearTimeout(_titleTapTimer);
+  _titleTapTimer = setTimeout(()=>{ _titleTaps = 0; }, 1200);   // 뜸들이면 처음부터
+  if(_titleTaps >= 4 && _titleTaps < 7 && el){                   // 슬슬 눈치채라는 힌트
+    el.classList.remove('wiggle');
+    void el.offsetWidth;
+    el.classList.add('wiggle');
+  }
+  if(_titleTaps >= 7){
+    _titleTaps = 0;
+    clearTimeout(_titleTapTimer);
+    sproutBurst();
+    showToast('🌱 숨은 새싹을 발견했어요');
+  }
+}
+function sproutBurst(){
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){
+    showToast('🌱'); return;                                     // 움직임 줄이기 설정이면 조용히
+  }
+  const chars = ['🌱','🌿','✨','🍀'];
+  for(let i=0;i<26;i++){
+    const s = document.createElement('span');
+    s.className = 'sprout-piece';
+    s.textContent = chars[Math.floor(Math.random()*chars.length)];
+    s.style.left = Math.random()*100 + 'vw';
+    s.style.setProperty('--spin', (Math.random()*720-360) + 'deg');
+    const dur = 2.2 + Math.random()*1.6;
+    s.style.animation = `sproutFall ${dur}s cubic-bezier(.35,.15,.6,1) ${Math.random()*0.5}s forwards`;
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(), (dur+1)*1000);
+  }
 }
 
 // ── 데이터 백업 (내보내기 / 불러오기) ──────────────────────
