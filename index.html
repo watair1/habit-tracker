@@ -276,6 +276,9 @@
     .hcomp-sub { font-size: .68rem; color: #444; margin-top: 3px; }
     .heatmap-legend { display: flex; gap: 7px; align-items: center; margin-top: 9px; font-size: .65rem; color: #444; }
     .hm-legend-box { width: 11px; height: 11px; border-radius: 2px; }
+    .cat-mode-toggle { display: flex; gap: 3px; background: var(--card2); border-radius: 8px; padding: 2px; flex-shrink: 0; }
+    .cat-mode-btn { border: none; background: transparent; color: var(--muted); font-size: .72rem; font-weight: 700; padding: 4px 11px; border-radius: 6px; cursor: pointer; }
+    .cat-mode-btn.active { background: var(--primary); color: #000; }
     .cat-legend-row { display: flex; align-items: center; gap: 8px; padding: 6px 2px; font-size: .8rem; }
     .cat-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .cat-legend-name { flex: 1; color: var(--text); }
@@ -712,10 +715,17 @@
     </div>
   </div>
   <div class="card">
-    <div class="card-title">카테고리별 비중</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;">
+      <div class="card-title" style="margin-bottom:0;">카테고리별 비중</div>
+      <div class="cat-mode-toggle">
+        <button class="cat-mode-btn active" data-mode="time" onclick="setCatChartMode('time')">시간</button>
+        <button class="cat-mode-btn" data-mode="count" onclick="setCatChartMode('count')">횟수</button>
+      </div>
+    </div>
+    <div class="section-sub" id="cat-pie-sub" style="margin-bottom:10px;"></div>
     <div class="chart-box" style="height:190px;"><canvas id="cat-pie-chart"></canvas></div>
     <div id="cat-pie-legend" style="margin-top:10px;"></div>
-    <p id="cat-pie-empty" style="display:none;font-size:.8rem;color:var(--muted);text-align:center;margin-top:8px;">습관을 체크하면 카테고리 비중이 표시돼요</p>
+    <p id="cat-pie-empty" style="display:none;font-size:.8rem;color:var(--muted);text-align:center;margin-top:8px;"></p>
   </div>
   <div class="card">
     <div class="card-title">성공 / 미완료 비율</div>
@@ -1811,32 +1821,84 @@ function delHabit(i) {
 let chartPie, chartLine, chartMood, chartCat;
 const CAT_COLORS = { 건강:'#22c55e', 학습:'#3b82f6', 마음:'#8b5cf6', 생활:'#f59e0b', 관계:'#ec4899', 재정:'#14b8a6', 기타:'#6b7280' };
 const CAT_NAME   = { 건강:'💪 건강/운동', 학습:'📚 학습/성장', 마음:'🧘 마음/명상', 생활:'🏠 생활/루틴', 관계:'👥 관계/소통', 재정:'💰 재정/절약', 기타:'기타' };
+// 도넛 기준: 'time'=일정에 배정한 시간, 'count'=습관 체크 횟수
+let catChartMode = 'time';
+function setCatChartMode(m){ catChartMode=m; renderCategoryChart(loadHabits()); }
+
+// 주간계획 카테고리 id → {name, color} (여러 주에 걸쳐 같은 이름은 하나로 합침)
+function weekCatLookup(){
+  const byId={}, plan=loadWeekPlan();
+  Object.values(plan).forEach(w=>(w.cats||[]).forEach(c=>{ byId[c.id]={ name:c.name, color:c.color }; }));
+  return byId;
+}
+// 최근 30일 일정에서 카테고리별 배정 시간(분)을 모음. 이름이 같으면 합산.
+function categoryMinutes(){
+  const byId=weekCatLookup(), days=loadDayData(), sums={}, colors={};
+  const from=new Date(todayStr()); from.setDate(from.getDate()-29);
+  const fromStr=from.toISOString().slice(0,10);
+  Object.entries(days).forEach(([ds,rec])=>{
+    if(ds<fromStr || ds>todayStr()) return;
+    (rec.events||[]).forEach(e=>{
+      const cat=e.catId && byId[e.catId];
+      if(!cat) return;                                  // 주간계획으로 칠한 일정만 집계
+      const mins=Math.max(0, hmToMin(e.end)-hmToMin(e.start));
+      if(!mins) return;
+      sums[cat.name]=(sums[cat.name]||0)+mins;
+      colors[cat.name]=cat.color;
+    });
+  });
+  return { sums, colors };
+}
+function fmtMinutes(m){
+  const h=Math.floor(m/60), mm=m%60;
+  return h ? (mm?`${h}시간 ${mm}분`:`${h}시간`) : `${mm}분`;
+}
 function renderCategoryChart(habits){
-  const sums={};
-  habits.forEach(h=>{ const c=h.category||'기타'; sums[c]=(sums[c]||0)+Object.keys(h.checked).length; });
-  const cats=Object.keys(sums).filter(c=>sums[c]>0).sort((a,b)=>sums[b]-sums[a]);
-  const total=cats.reduce((s,c)=>s+sums[c],0);
-  const emptyEl=$('cat-pie-empty'), legendEl=$('cat-pie-legend');
+  const emptyEl=$('cat-pie-empty'), legendEl=$('cat-pie-legend'), titleEl=$('cat-pie-sub');
+  let names, values, colors, fmtVal;
+  if(catChartMode==='time'){
+    const { sums, colors:cmap } = categoryMinutes();
+    names=Object.keys(sums).filter(k=>sums[k]>0).sort((a,b)=>sums[b]-sums[a]);
+    values=names.map(k=>sums[k]);
+    colors=names.map(k=>cmap[k]||'#6b7280');
+    fmtVal=v=>fmtMinutes(v);
+    if(titleEl) titleEl.textContent='최근 30일 · 주간계획으로 배정한 시간';
+  } else {
+    const sums={};
+    habits.forEach(h=>{ const c=h.category||'기타'; sums[c]=(sums[c]||0)+Object.keys(h.checked).length; });
+    names=Object.keys(sums).filter(k=>sums[k]>0).sort((a,b)=>sums[b]-sums[a]);
+    values=names.map(k=>sums[k]);
+    colors=names.map(k=>CAT_COLORS[k]||'#6b7280');
+    fmtVal=v=>`${v}회`;
+    if(titleEl) titleEl.textContent='전체 기간 · 습관 체크 횟수';
+  }
+  document.querySelectorAll('.cat-mode-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===catChartMode));
+  const total=values.reduce((s,v)=>s+v,0);
   if(!total){
-    if(emptyEl) emptyEl.style.display='block';
+    if(emptyEl){
+      emptyEl.style.display='block';
+      emptyEl.textContent = catChartMode==='time'
+        ? '하루 탭 → 이번 주 시간 배분에서 시간을 칠하면 여기에 표시돼요'
+        : '습관을 체크하면 카테고리 비중이 표시돼요';
+    }
     if(legendEl) legendEl.innerHTML='';
     if(chartCat){ chartCat.destroy(); chartCat=null; }
     return;
   }
   if(emptyEl) emptyEl.style.display='none';
-  const labels=cats.map(c=>CAT_NAME[c]||c), data=cats.map(c=>sums[c]), colors=cats.map(c=>CAT_COLORS[c]||'#6b7280');
+  const labels=names.map(k=>catChartMode==='time' ? k : (CAT_NAME[k]||k));
   const ctx=$('cat-pie-chart').getContext('2d');
   if(chartCat) chartCat.destroy();
   chartCat=new Chart(ctx,{
     type:'doughnut',
-    data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:0 }] },
+    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderWidth:0 }] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, cutout:'62%' }
   });
-  if(legendEl) legendEl.innerHTML=cats.map((c,i)=>`
+  if(legendEl) legendEl.innerHTML=names.map((k,i)=>`
     <div class="cat-legend-row">
       <span class="cat-legend-dot" style="background:${colors[i]}"></span>
       <span class="cat-legend-name">${esc(labels[i])}</span>
-      <span class="cat-legend-val">${data[i]}회 · ${Math.round(data[i]/total*100)}%</span>
+      <span class="cat-legend-val">${esc(fmtVal(values[i]))} · ${Math.round(values[i]/total*100)}%</span>
     </div>`).join('');
 }
 
