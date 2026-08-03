@@ -192,6 +192,8 @@
     /* TOAST */
     .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(12px); background: #1c1c1c; color: #fff; border: 1px solid #333; padding: 9px 18px; border-radius: 20px; font-size: .82rem; opacity: 0; transition: all .3s; z-index: 999; white-space: nowrap; pointer-events: none; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .ai-wake-hint { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%) translateY(10px); background: #1c1c1c; color: var(--text); border: 1px solid rgba(179,240,0,0.3); padding: 10px 16px; border-radius: 14px; font-size: .78rem; line-height: 1.4; z-index: 998; opacity: 0; transition: all .3s; pointer-events: none; max-width: min(92vw, 460px); text-align: center; display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .ai-wake-hint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ACHIEVEMENT POPUP */
     .ach-popup { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) scale(.8); background: #141414; border: 1px solid rgba(179,240,0,0.3); border-radius: 16px; padding: 15px 22px; text-align: center; box-shadow: 0 0 40px rgba(179,240,0,0.1); z-index: 999; opacity: 0; transition: all .35s; pointer-events: none; }
@@ -4012,14 +4014,57 @@ function renderSleep(){
 const AI_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://localhost:3000'
   : 'https://habit-ai-4vcz.onrender.com';
+const AI_IS_LOCAL = AI_SERVER.startsWith('http://localhost');
+// 무료 호스팅(Render)은 한동안 안 쓰면 서버가 잠들어서 첫 요청이 오래 걸려요.
+// 응답이 늦어지면 "고장난 게 아니라 깨우는 중"이라고 알려주는 안내 띠.
+const AI_HINT_DELAY = 4000;     // 이 시간을 넘기면 안내를 띄움
+const AI_TIMEOUT   = 90000;     // 이 시간을 넘기면 포기
+let _aiPending = 0, _aiHintTimer = null;
+
+function showAiWakeHint(){
+  let el = $('ai-wake-hint');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'ai-wake-hint';
+    el.className = 'ai-wake-hint';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<span class="ai-spin"></span> ${AI_IS_LOCAL
+    ? 'AI 서버 응답을 기다리는 중이에요…'
+    : '잠자던 AI 서버를 깨우는 중이에요 · 최대 1분 걸릴 수 있어요'}`;
+  el.classList.add('show');
+}
+function hideAiWakeHint(){ const el = $('ai-wake-hint'); if(el) el.classList.remove('show'); }
+
 async function aiCall(path, body){
-  let res;
+  if(_aiPending === 0){
+    clearTimeout(_aiHintTimer);
+    _aiHintTimer = setTimeout(showAiWakeHint, AI_HINT_DELAY);
+  }
+  _aiPending++;
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const killer = ctrl ? setTimeout(()=>ctrl.abort(), AI_TIMEOUT) : null;
   try {
-    res = await fetch(AI_SERVER+path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-  } catch(e){ throw { message:'AI 서버가 꺼져 있어요. 서버를 켠 뒤 다시 시도해주세요.' }; }
-  let data={}; try { data=await res.json(); } catch(e){}
-  if(!res.ok || data.error) throw { message: data.message || 'AI 요청에 실패했어요. 잠시 후 다시 시도해주세요.' };
-  return data;
+    let res;
+    try {
+      res = await fetch(AI_SERVER+path, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+      });
+    } catch(e){
+      if(e && e.name === 'AbortError') throw { message:'AI 서버가 응답하지 않아요. 잠시 후 다시 시도해주세요.' };
+      throw { message: AI_IS_LOCAL
+        ? 'AI 서버가 꺼져 있어요. 서버를 켠 뒤 다시 시도해주세요.'
+        : 'AI 서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.' };
+    }
+    let data={}; try { data=await res.json(); } catch(e){}
+    if(!res.ok || data.error) throw { message: data.message || 'AI 요청에 실패했어요. 잠시 후 다시 시도해주세요.' };
+    return data;
+  } finally {
+    if(killer) clearTimeout(killer);
+    _aiPending--;
+    if(_aiPending === 0){ clearTimeout(_aiHintTimer); hideAiWakeHint(); }
+  }
 }
 
 // 하루 총평
