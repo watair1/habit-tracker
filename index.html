@@ -1336,20 +1336,19 @@ async function doSync() {
     _sizeWarned = true;
     showToast('하루 기록이 많이 쌓였어요. 백업해두는 걸 권해요');
   }
+  // 실제로 바뀐 저장소만 골라서 올려요 (안 바뀐 걸 올리면 남의 최신 기록을 덮어써요)
+  const meta = loadSyncMeta();
+  const pending = SYNC_STORES.filter(([, key]) =>
+    (meta[key]?.local || 0) > (meta[key]?.synced || 0));
+  if (!pending.length) return;
   try {
-    await Promise.all([
-      base.doc('habits').set({ d: loadHabits() }),
-      base.doc('user').set({ d: loadUser() }),
-      base.doc('goals').set({ d: loadGoals() }),
-      base.doc('notif').set({ d: loadNotif() }),
-      base.doc('finalgoal').set({ d: loadFinalGoal() }),
-      base.doc('todos').set({ d: loadTodos() }),
-      base.doc('memos').set({ d: loadMemos() }),
-      base.doc('mood').set({ d: loadMoods() }),
-      base.doc('day').set({ d: loadDayData() }),
-      base.doc('templates').set({ d: loadTemplates() }),
-      base.doc('weekplan').set({ d: loadWeekPlan() }),
-    ]);
+    await Promise.all(pending.map(([docName, key]) =>
+      base.doc(docName).set({ d: lsGet(key, null), updatedAt: meta[key].local })
+    ));
+    // 올린 것만 '올린 시각'을 갱신. 그 사이 또 바뀐 저장소는 다음 차례에 다시 올라가요.
+    const after = loadSyncMeta();
+    pending.forEach(([, key]) => { after[key] = { ...(after[key] || {}), synced: meta[key].local }; });
+    saveSyncMeta(after);
     if (_syncFailed) { _syncFailed = false; showToast('클라우드 저장이 다시 됐어요'); }
   } catch(e) {
     console.warn('동기화 실패:', e);
@@ -1365,45 +1364,70 @@ async function loadFromCloud() {
   if (!fbUser || !fbDb) return;
   const base = fbDb.collection('users').doc(fbUser.uid).collection('data');
   try {
-    const [h, u, g, n, f, t, m, md, day, tpl, wk] = await Promise.all([
-      base.doc('habits').get(),
-      base.doc('user').get(),
-      base.doc('goals').get(),
-      base.doc('notif').get(),
-      base.doc('finalgoal').get(),
-      base.doc('todos').get(),
-      base.doc('memos').get(),
-      base.doc('mood').get(),
-      base.doc('day').get(),
-      base.doc('templates').get(),
-      base.doc('weekplan').get(),
-    ]);
-    if (h.exists) lsSet(K.h, h.data().d);
-    if (u.exists) lsSet(K.u, u.data().d);
-    if (g.exists) lsSet(K.g, g.data().d);
-    if (n.exists) lsSet(K.n, n.data().d);
-    if (f.exists) lsSet(K.f, f.data().d);
-    if (t.exists) lsSet(K.t, t.data().d);
-    if (m.exists) lsSet(K.m, m.data().d);
-    if (md.exists) lsSet(K.md, md.data().d);
-    if (day.exists) lsSet(K.d, day.data().d);
-    if (tpl.exists) lsSet(K.tpl, tpl.data().d);
-    if (wk.exists) lsSet(K.wk, wk.data().d);
-    if (!h.exists) await doSync();
-    showToast('클라우드에서 데이터를 불러왔어요.');
-  } catch(e) { console.warn('클라우드 로드 실패:', e); }
+    const snaps = await Promise.all(SYNC_STORES.map(([docName]) => base.doc(docName).get()));
+    const meta = loadSyncMeta();
+    let pulled = 0, keptLocal = 0;
+    SYNC_STORES.forEach(([, key], i) => {
+      const snap = snaps[i];
+      const hasLocal = localStorage.getItem(key) !== null;
+      if (!snap.exists) {
+        if (hasLocal) meta[key] = { local: Date.now(), synced: 0 };   // 클라우드에 없음 → 올려야 함
+        return;
+      }
+      const cloudTs = snap.data().updatedAt || 0;
+      // 이 기기에 기록이 없으면(새 기기) 무조건 클라우드 것을 받아요.
+      // 둘 다 있으면 더 최근에 고친 쪽을 남깁니다. 시각을 모르면(예전 형식)
+      // 지금 쓰고 있는 기기 쪽을 믿어요.
+      const localTs = meta[key]?.local || (hasLocal ? 1 : 0);
+      if (!hasLocal || cloudTs > localTs) {
+        // lsSet 을 쓰지 않는 이유: 방금 받아온 걸 '내가 고친 것'으로 표시하면 안 되니까
+        localStorage.setItem(key, JSON.stringify(snap.data().d));
+        meta[key] = { local: cloudTs, synced: cloudTs };
+        pulled++;
+      } else {
+        meta[key] = { local: Date.now(), synced: 0 };                 // 이 기기가 더 최신 → 올려보냄
+        keptLocal++;
+      }
+    });
+    saveSyncMeta(meta);
+    if (keptLocal) scheduleSync();
+    showToast(pulled ? `클라우드에서 ${pulled}개 항목을 불러왔어요` : '이미 최신 상태예요');
+  } catch(e) {
+    console.warn('클라우드 로드 실패:', e);
+    showToast('클라우드를 읽지 못했어요. 기기 데이터로 계속해요');
+  }
 }
 
 // ── STORAGE ──────────────────────────────────────────────
 const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1', wk: 'ht_weekplan_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
+// ── 동기화 대상 목록과 변경 추적 ───────────────────────────
+// 예전엔 저장할 때마다 11개 문서를 전부 다시 올렸어요. 그래서 오래된 기기가
+// 한 번 저장하면 다른 기기가 방금 한 기록까지 통째로 덮어써 사라졌습니다.
+// 이제 저장소마다 "마지막으로 고친 시각"을 기록해서, 실제로 바뀐 것만 올리고
+// 불러올 땐 더 최근에 고친 쪽을 남깁니다.
+const SYNC_STORES = [
+  ['habits', K.h], ['user', K.u], ['goals', K.g], ['notif', K.n],
+  ['finalgoal', K.f], ['todos', K.t], ['memos', K.m], ['mood', K.md],
+  ['day', K.d], ['templates', K.tpl], ['weekplan', K.wk],
+];
+const K_SYNCMETA = 'ht_syncmeta_v1';   // { 저장소키: { local: 고친시각, synced: 올린시각 } }
+function loadSyncMeta() { try { return JSON.parse(localStorage.getItem(K_SYNCMETA)) || {}; } catch { return {}; } }
+function saveSyncMeta(m) { try { localStorage.setItem(K_SYNCMETA, JSON.stringify(m)); } catch {} }
+function markDirty(key) {
+  const m = loadSyncMeta();
+  m[key] = { ...(m[key] || {}), local: Date.now() };
+  saveSyncMeta(m);
+}
+
 let _storageWarned = false;
 // 저장 공간이 꽉 차면 setItem이 에러를 던져요. 그냥 두면 저장이 조용히 실패해서
 // 사용자는 기록이 날아간 줄도 모르게 되니, 반드시 눈에 보이게 알려줍니다.
 function lsSet(k, v) {
   try {
     localStorage.setItem(k, JSON.stringify(v));
+    if (k !== K_SYNCMETA) markDirty(k);   // 이 저장소가 바뀌었다고 표시 → 다음 동기화 때 올라감
     return true;
   } catch (e) {
     console.error('저장 실패:', k, e);
