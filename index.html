@@ -4658,29 +4658,11 @@ function initPWA() {
 
   // Service Worker (HTTPS/HTTP 환경에서만 동작)
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    const swCode = `
-const CACHE = 'ht-v1';
-const ASSETS = [location.href];
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
-});
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
-});
-self.addEventListener('fetch', e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-    const clone = res.clone();
-    caches.open(CACHE).then(c => c.put(e.request, clone));
-    return res;
-  })));
-});`;
-    // scope 문제 우회: 현재 페이지 경로 기준으로 등록
-    try {
-      const swBlob = new Blob([swCode], { type: 'text/javascript' });
-      const swUrl  = URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swUrl, { scope: './' })
-        .catch(() => {}); // blob scope 오류 무시 (호스팅 환경에서는 별도 sw.js 필요)
-    } catch(e) {}
+    // 예전엔 서비스워커 코드를 blob: 주소로 등록하려 했는데, 브라우저가 blob: 은
+    // 거부해서 한 번도 등록된 적이 없었어요(에러도 .catch 로 삼켜져 조용했고요).
+    // 이제 같은 폴더의 진짜 sw.js 를 등록합니다.
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch(err => console.warn('서비스워커 등록 실패:', err));
   }
 
   // 설치 배너 (Android Chrome "Add to Home Screen" prompt)
