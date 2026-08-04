@@ -105,6 +105,7 @@
     .bs { background: rgba(250,204,21,0.12); color: #facc15; }
     .br { background: rgba(179,240,0,0.1); color: var(--primary); }
     .bt { background: rgba(255,255,255,0.06); color: #888; }
+    .bf { background: rgba(129,140,248,0.14); color: #a5b4fc; }
     .icon-btn { background: none; border: none; cursor: pointer; color: #444; font-size: .9rem; padding: 4px 6px; border-radius: 6px; transition: color .2s, transform .15s; display: inline-flex; align-items: center; }
     .icon-btn svg { width: 16px; height: 16px; }
     .check-btn svg { width: 18px; height: 18px; }
@@ -289,6 +290,8 @@
     .hcomp-sub { font-size: .68rem; color: #444; margin-top: 3px; }
     .heatmap-legend { display: flex; gap: 7px; align-items: center; margin-top: 9px; font-size: .65rem; color: #444; }
     .hm-legend-box { width: 11px; height: 11px; border-radius: 2px; }
+    .wd-btn { flex: 1; padding: 8px 0; border-radius: 9px; border: 1px solid var(--border); background: var(--card2); color: var(--muted); font-size: .78rem; font-weight: 700; cursor: pointer; }
+    .wd-btn.on { background: var(--primary); border-color: var(--primary); color: #000; }
     .cat-mode-toggle { display: flex; gap: 3px; background: var(--card2); border-radius: 8px; padding: 2px; flex-shrink: 0; }
     .cat-mode-btn { border: none; background: transparent; color: var(--muted); font-size: .72rem; font-weight: 700; padding: 4px 11px; border-radius: 6px; cursor: pointer; }
     .cat-mode-btn.active { background: var(--primary); color: #000; }
@@ -1125,6 +1128,27 @@
         <option value="재정">💰 재정/절약</option>
       </select>
     </div>
+    <div class="fg"><label>얼마나 자주</label>
+      <select id="m-freq" onchange="onFreqChange()">
+        <option value="daily">매일</option>
+        <option value="weekly">주 몇 회</option>
+        <option value="days">특정 요일</option>
+      </select>
+      <div id="m-freq-weekly" style="display:none;align-items:center;gap:8px;margin-top:9px;">
+        <span style="font-size:.8rem;color:var(--muted);">일주일에</span>
+        <input id="m-freq-times" type="number" min="1" max="7" value="3" style="width:66px;"/>
+        <span style="font-size:.8rem;color:var(--muted);">회</span>
+      </div>
+      <div id="m-freq-days" style="display:none;gap:5px;margin-top:9px;">
+        <button type="button" class="wd-btn" data-d="0" onclick="toggleFreqDay(0)">일</button>
+        <button type="button" class="wd-btn" data-d="1" onclick="toggleFreqDay(1)">월</button>
+        <button type="button" class="wd-btn" data-d="2" onclick="toggleFreqDay(2)">화</button>
+        <button type="button" class="wd-btn" data-d="3" onclick="toggleFreqDay(3)">수</button>
+        <button type="button" class="wd-btn" data-d="4" onclick="toggleFreqDay(4)">목</button>
+        <button type="button" class="wd-btn" data-d="5" onclick="toggleFreqDay(5)">금</button>
+        <button type="button" class="wd-btn" data-d="6" onclick="toggleFreqDay(6)">토</button>
+      </div>
+    </div>
     <div class="fg"><label>실행 시간대</label>
       <select id="m-time">
         <option value="아침">🌅 아침 (06-10시)</option>
@@ -1543,34 +1567,79 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const CAT = { '건강':'건강', '학습':'학습', '마음':'마음', '생활':'생활', '관계':'관계', '재정':'재정' };
 
-function streakCount(h) {
-  let c = 0;
-  const d = parseYmd(todayStr());
-  while (true) {
-    if (!h.checked[ymd(d)]) break;
-    c++;
-    d.setDate(d.getDate() - 1);
+// ── 습관 빈도 ─────────────────────────────────────────────
+// 예전엔 빈도 개념이 없어서 모든 습관을 '매일 해야 하는 것'으로 계산했어요.
+// 그래서 "주 3회 운동"을 완벽히 지켜도 성공률이 43% 로 나왔습니다.
+// 이제 습관마다 빈도를 두고, 성공률·스트릭을 그 기준으로 판정해요.
+const WDAY = ['일','월','화','수','목','금','토'];
+function habitFreq(h) {
+  const f = h && h.freq;
+  if (!f || !f.type) return { type: 'daily' };                       // 예전 습관은 '매일'로 봄
+  if (f.type === 'weekly') return { type: 'weekly', times: Math.max(1, Math.min(7, f.times || 3)) };
+  if (f.type === 'days') {
+    const days = Array.isArray(f.days) ? f.days.filter(d => d >= 0 && d <= 6) : [];
+    return days.length ? { type: 'days', days: days.slice().sort() } : { type: 'daily' };
   }
+  return { type: 'daily' };
+}
+function freqLabel(h) {
+  const f = habitFreq(h);
+  if (f.type === 'weekly') return `주 ${f.times}회`;
+  if (f.type === 'days') return f.days.length === 7 ? '매일' : f.days.map(d => WDAY[d]).join('');
+  return '매일';
+}
+// 스트릭의 단위. 주 N회 습관은 '며칠 연속'이 뜻이 없어서 주 단위로 셉니다.
+function streakUnit(h) { return habitFreq(h).type === 'weekly' ? '주' : '일'; }
+
+// 습관을 만든 날부터 오늘까지의 '판정 단위' 목록.
+// 매일·특정요일 → 해야 했던 날짜들, 주 N회 → 각 주.
+// 성공률/현재 스트릭/최고 스트릭을 전부 이 하나에서 뽑아내 서로 어긋나지 않아요.
+function habitPeriods(h) {
+  const f = habitFreq(h);
+  const out = [];
+  if (f.type === 'weekly') {
+    let ws = parseYmd(weekStartOf(h.createdAt));
+    const last = parseYmd(weekStartOf(todayStr()));
+    while (ws <= last) {
+      let n = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(ws); d.setDate(d.getDate() + i);
+        if (h.checked[ymd(d)]) n++;
+      }
+      out.push(n >= f.times);
+      ws = new Date(ws); ws.setDate(ws.getDate() + 7);
+    }
+  } else {
+    const d = parseYmd(h.createdAt), today = parseYmd(todayStr());
+    while (d <= today) {
+      if (f.type === 'daily' || f.days.includes(d.getDay())) out.push(!!h.checked[ymd(d)]);
+      d.setDate(d.getDate() + 1);
+    }
+  }
+  // 마지막 기간(오늘 / 이번 주)은 아직 진행 중이에요. 아직 못 채웠다고 해서
+  // 실패로 세면, 화요일에 주3회 습관의 연속 기록이 0으로 보이는 이상한 일이 생겨요.
+  // 그래서 '진행 중이고 아직 못 채운' 기간은 점수에도 스트릭에도 넣지 않습니다.
+  if (out.length && out[out.length - 1] === false) out.pop();
+  return out;
+}
+
+function streakCount(h) {
+  const ps = habitPeriods(h);
+  let c = 0;
+  for (let i = ps.length - 1; i >= 0; i--) { if (ps[i]) c++; else break; }
   return c;
 }
 
 function maxStreak(h) {
-  const dates = Object.keys(h.checked).sort();
-  if (!dates.length) return 0;
-  let max = 1, cur = 1;
-  for (let i = 1; i < dates.length; i++) {
-    const diff = (parseYmd(dates[i]) - parseYmd(dates[i-1])) / 86400000;
-    cur = diff === 1 ? cur + 1 : 1;
-    if (cur > max) max = cur;
-  }
+  let max = 0, cur = 0;
+  habitPeriods(h).forEach(done => { if (done) { cur++; if (cur > max) max = cur; } else cur = 0; });
   return max;
 }
 
 function successRate(h) {
-  const n = Object.keys(h.checked).length;
-  if (!n) return 0;
-  const days = Math.max(1, Math.round((parseYmd(todayStr()) - parseYmd(h.createdAt)) / 86400000) + 1);
-  return Math.round((n / days) * 100);
+  const ps = habitPeriods(h);
+  if (!ps.length) return 0;
+  return Math.round(ps.filter(Boolean).length / ps.length * 100);
 }
 
 // ── LEVEL SYSTEM ─────────────────────────────────────────
@@ -1616,9 +1685,9 @@ function showXPFloat(amt) {
 // (안드로이드/아이폰/윈도우가 전부 다르게 그려요) 하단 네비와 같은 선 아이콘으로 통일했어요.
 const ACHS = [
   { id:'first',   icon:'footprints',   color:'#b3f000', name:'첫 걸음',     desc:'처음으로 습관 완료',     ok:(h,u) => u.totalChecks >= 1 },
-  { id:'s3',      icon:'flame',        color:'#fb923c', name:'3일 연속',     desc:'3일 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 3) },
-  { id:'s7',      icon:'zap',          color:'#facc15', name:'주간 전사',    desc:'7일 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 7) },
-  { id:'s30',     icon:'trophy',       color:'#fbbf24', name:'한 달 챔피언', desc:'30일 연속 달성',         ok:(h,u) => h.some(x => streakCount(x) >= 30) },
+  { id:'s3',      icon:'flame',        color:'#fb923c', name:'3연속',        desc:'3회 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 3) },
+  { id:'s7',      icon:'zap',          color:'#facc15', name:'주간 전사',    desc:'7회 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 7) },
+  { id:'s30',     icon:'trophy',       color:'#fbbf24', name:'한 달 챔피언', desc:'30회 연속 달성',         ok:(h,u) => h.some(x => streakCount(x) >= 30) },
   { id:'perfect', icon:'check-check',  color:'#34d399', name:'완벽한 하루',  desc:'하루 모든 습관 완료',    ok:(h,u) => { const t=todayStr(); return h.length>0 && h.every(x=>!!x.checked[t]); } },
   { id:'h5',      icon:'sparkles',     color:'#a78bfa', name:'습관 부자',    desc:'습관 5개 이상 등록',     ok:(h,u) => h.length >= 5 },
   { id:'rate80',  icon:'trending-up',  color:'#38bdf8', name:'성공률 80%',   desc:'전체 평균 성공률 80%+',  ok:(h,u) => h.length>0 && h.reduce((s,x)=>s+successRate(x),0)/h.length >= 80 },
@@ -1830,6 +1899,7 @@ function closeModal(id) {
 function openAddModal() {
   const v = $('new-habit').value.trim();
   if (v) $('m-name').value = v;
+  writeFreq(null);                        // 새 습관은 '매일'로 시작
   openModal('add-modal');
   setTimeout(() => $('m-name').focus(), 80);
 }
@@ -1903,8 +1973,9 @@ function render() {
         <div class="habit-info">
           <div class="habit-name">${esc(h.name)}</div>
           <div class="badges">
-            ${s>0?`<span class="badge bs"><span class="fire">🔥</span> ${s}일 연속</span>`:''}
+            ${s>0?`<span class="badge bs"><span class="fire">🔥</span> ${s}${streakUnit(h)} 연속</span>`:''}
             <span class="badge br"><i data-lucide="check-circle-2" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r}%</span>
+            <span class="badge bf">${esc(freqLabel(h))}</span>
             <span class="badge bt">${esc(h.timeSlot||'자유')}</span>
           </div>
         </div>
@@ -1919,13 +1990,45 @@ function render() {
 // ── HABIT ACTIONS ─────────────────────────────────────────
 let editingHabitIdx = -1;
 
+// ── 빈도 선택 UI ──────────────────────────────────────────
+let _freqDays = [];                       // '특정 요일' 로 고른 요일들
+function onFreqChange() {
+  const t = $('m-freq').value;
+  $('m-freq-weekly').style.display = t === 'weekly' ? 'flex' : 'none';
+  $('m-freq-days').style.display   = t === 'days'   ? 'flex' : 'none';
+}
+function toggleFreqDay(d) {
+  _freqDays = _freqDays.includes(d) ? _freqDays.filter(x => x !== d) : [..._freqDays, d];
+  paintFreqDays();
+}
+function paintFreqDays() {
+  document.querySelectorAll('#m-freq-days .wd-btn').forEach(b =>
+    b.classList.toggle('on', _freqDays.includes(+b.dataset.d)));
+}
+// 모달의 빈도 입력을 습관에 저장할 형태로
+function readFreq() {
+  const t = $('m-freq').value;
+  if (t === 'weekly') return { type: 'weekly', times: Math.max(1, Math.min(7, +$('m-freq-times').value || 3)) };
+  if (t === 'days' && _freqDays.length) return { type: 'days', days: _freqDays.slice().sort() };
+  return { type: 'daily' };               // 요일을 하나도 안 고르면 매일로
+}
+// 습관의 빈도를 모달에 채워 넣기
+function writeFreq(h) {
+  const f = habitFreq(h);
+  $('m-freq').value = f.type;
+  $('m-freq-times').value = f.type === 'weekly' ? f.times : 3;
+  _freqDays = f.type === 'days' ? f.days.slice() : [];
+  paintFreqDays();
+  onFreqChange();
+}
+
 function addHabit() {
   const name = $('m-name').value.trim();
   if (!name) { showToast('습관 이름을 입력해주세요'); return; }
   const habits = loadHabits();
   if (editingHabitIdx >= 0) {
     const h = habits[editingHabitIdx];
-    h.name = name; h.category = $('m-cat').value; h.timeSlot = $('m-time').value;
+    h.name = name; h.category = $('m-cat').value; h.timeSlot = $('m-time').value; h.freq = readFreq();
     saveHabits(habits);
     editingHabitIdx = -1;
     $('add-modal-title').textContent = '습관 추가';
@@ -1934,7 +2037,7 @@ function addHabit() {
     showToast('습관이 수정되었어요.');
     return;
   }
-  habits.push({ id: uid(), name, createdAt: todayStr(), checked: {}, category: $('m-cat').value, timeSlot: $('m-time').value });
+  habits.push({ id: uid(), name, createdAt: todayStr(), checked: {}, category: $('m-cat').value, timeSlot: $('m-time').value, freq: readFreq() });
   saveHabits(habits);
   $('m-name').value = ''; $('new-habit').value = '';
   closeModal('add-modal');
@@ -1952,6 +2055,7 @@ function editHabit(i) {
   $('m-name').value = h.name;
   $('m-cat').value = h.category || '건강';
   $('m-time').value = h.timeSlot || '자유';
+  writeFreq(h);
   openModal('add-modal');
   setTimeout(() => $('m-name').focus(), 80);
 }
@@ -2118,7 +2222,7 @@ function renderStats() {
     return `<div class="hcomp-item">
       <div class="hcomp-top"><span>${esc(h.name)}</span><span style="font-weight:700;color:var(--primary)">${r}%</span></div>
       <div class="hcomp-bar-bg"><div class="hcomp-bar-fill" style="width:${r}%"></div></div>
-      <div class="hcomp-sub">🔥 현재 ${s}일 연속 · 최고 ${maxStreak(h)}일</div>
+      <div class="hcomp-sub">🔥 현재 ${s}${streakUnit(h)} 연속 · 최고 ${maxStreak(h)}${streakUnit(h)} · ${esc(freqLabel(h))}</div>
     </div>`;
   }).join('');
 
@@ -3144,8 +3248,10 @@ function buildAnalysisData() {
       name: h.name,
       category: h.category || '기타',
       timeSlot: h.timeSlot || '자유',
+      freq: freqLabel(h),
       successRate: successRate(h),
       streak: streakCount(h),
+      streakUnit: streakUnit(h),
       maxStreak: maxStreak(h),
       totalChecks: Object.keys(h.checked).length,
       last7days: last7.map(ds => !!h.checked[ds]),
@@ -3162,7 +3268,7 @@ function buildPrompt(d) {
   const moodLabel = { best:'최고😄', good:'좋음😊', neutral:'보통😐', bad:'나쁨😟', worst:'최악😭' };
   const dayNames  = ['일','월','화','수','목','금','토'];
   const habitText = d.habits.map(h =>
-    `- ${h.name}(${h.timeSlot}): 성공률 ${h.successRate}%, 현재 ${h.streak}일 연속, 최고 ${h.maxStreak}일, 최근7일=[${h.last7days.map(v=>v?'O':'X').join('')}]`
+    `- ${h.name}(${h.timeSlot}, ${h.freq}): 성공률 ${h.successRate}%, 현재 ${h.streak}${h.streakUnit} 연속, 최고 ${h.maxStreak}${h.streakUnit}, 최근7일=[${h.last7days.map(v=>v?'O':'X').join('')}]`
   ).join('\n') || '없음';
   const moodText = Object.entries(d.moods).map(([date,m])=>`${date}:${moodLabel[m]||m}`).join(', ') || '기록 없음';
   const goalText = d.goals.map(g=>`- ${g.title}(${g.type==='long'?'장기':g.type==='mid'?'중기':'단기'}, 기한:${g.dueDate})`).join('\n') || '없음';
