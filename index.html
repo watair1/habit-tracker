@@ -478,7 +478,15 @@
     .day-summary-ai { background: var(--primary-light); border: 1px solid rgba(179,240,0,0.25); border-radius: 10px; padding: 12px; margin-top: 12px; font-size: .85rem; line-height: 1.6; color: var(--text); }
     /* AI 비서 대화 */
     .ai-agent-card { background: linear-gradient(135deg, rgba(179,240,0,0.05), rgba(179,240,0,0.01)); border-color: rgba(179,240,0,0.2); }
+    .agent-fab { position: fixed; right: 16px; bottom: calc(86px + env(safe-area-inset-bottom)); width: 52px; height: 52px; border-radius: 50%; border: none; background: var(--primary); color: #000; box-shadow: 0 6px 20px rgba(179,240,0,0.28); cursor: pointer; z-index: 150; display: flex; align-items: center; justify-content: center; transition: transform .18s, opacity .18s; }
+    .agent-fab:active { transform: scale(.92); }
+    .agent-fab svg { width: 23px; height: 23px; stroke-width: 2.2; }
+    .agent-fab.hidden { opacity: 0; pointer-events: none; transform: scale(.8); }
+    .agent-sheet { max-height: 88vh; display: flex; flex-direction: column; }
+    .agent-open-row { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+    .agent-open-hint { flex: 1; text-align: right; font-size: .7rem; color: var(--muted); }
     .agent-log { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .agent-sheet .agent-log { max-height: none; flex: 1; min-height: 120px; }
     .agent-log:empty { display: none; }
     .agent-msg { font-size: .84rem; line-height: 1.5; padding: 9px 12px; border-radius: 12px; max-width: 88%; }
     .agent-msg.user { align-self: flex-end; background: var(--primary); color: #000; font-weight: 600; border-bottom-right-radius: 4px; }
@@ -643,21 +651,11 @@
   </div>
 
   <!-- AI 비서 (접이식) -->
-  <div class="card ai-agent-card">
-    <div class="agent-head" onclick="toggleAgent()">
-      <div class="card-title" style="margin-bottom:0;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서에게 물어보기</div>
-      <div style="display:flex;align-items:center;gap:4px;">
-        <button class="icon-btn" onclick="event.stopPropagation();clearAgentChat()" title="대화 지우기"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
-        <i data-lucide="chevron-down" id="agent-chevron" style="width:18px;height:18px;color:var(--muted);transition:transform .2s;"></i>
-      </div>
-    </div>
-    <div id="agent-body" style="display:none;margin-top:12px;">
-      <div id="agent-log" class="agent-log"></div>
-      <div class="agent-input-row">
-        <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
-        <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
-      </div>
-    </div>
+  <!-- 하루 탭의 기존 입구. 대화 화면 자체는 어느 탭에서든 열리는 시트 하나로 합쳤어요. -->
+  <div class="card ai-agent-card agent-open-row" onclick="openAgent()">
+    <div class="card-title" style="margin-bottom:0;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서에게 물어보기</div>
+    <span class="agent-open-hint" id="agent-open-hint"></span>
+    <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--muted);"></i>
   </div>
 
   <!-- ④ 타임라인 -->
@@ -1062,6 +1060,30 @@
         <div class="wk-grid" id="wk-grid"></div>
       </div>
       <div style="font-size:.66rem;color:var(--muted);margin-top:8px;flex-shrink:0;">칸을 누른 채 위·아래로 드래그하면 30분 단위로 칠해져요</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI 비서 — 어느 탭에서든 뜨는 버튼 -->
+<button id="agent-fab" class="agent-fab" onclick="openAgent()" title="AI 비서">
+  <i data-lucide="sparkles"></i>
+</button>
+
+<!-- AI 비서 대화 시트 (앱 전체에서 이 하나만 사용) -->
+<div class="overlay" id="agent-modal">
+  <div class="sheet agent-sheet">
+    <div class="sheet-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+      <span style="display:inline-flex;align-items:center;gap:7px;"><i data-lucide="sparkles" style="width:17px;height:17px;color:var(--primary);"></i>AI 비서</span>
+      <span style="display:flex;align-items:center;gap:2px;">
+        <button class="icon-btn" onclick="clearAgentChat()" title="대화 지우기"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>
+        <button class="icon-btn" onclick="closeAgent()" title="닫기"><i data-lucide="x" style="width:17px;height:17px;"></i></button>
+      </span>
+    </div>
+    <div class="section-sub" id="agent-scope" style="margin-bottom:11px;"></div>
+    <div id="agent-log" class="agent-log"></div>
+    <div class="agent-input-row">
+      <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
+      <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
     </div>
   </div>
 </div>
@@ -3344,6 +3366,8 @@ function checkStreakRisk() {
 // ── KEYBOARD & EVENTS ─────────────────────────────────────
 $('new-habit').addEventListener('keydown', e=>{ if(e.key==='Enter') openAddModal(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') { closeModal('add-modal'); closeModal('goal-modal'); closeModal('final-goal-modal'); closeModal('memo-modal'); closeModal('recall-modal'); } });
+// 배경을 눌러 닫아도 떠 있는 버튼이 다시 보이도록 closeAgent 를 거쳐요
+$('agent-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeAgent(); });
 $('add-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('add-modal'); });
 $('goal-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('goal-modal'); });
 $('final-goal-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('final-goal-modal'); });
@@ -3676,6 +3700,7 @@ function renderDay(){
   renderTimeline();
   renderDayMoodMemo();
   renderAgentLog();
+  renderAgentHint();
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -4271,12 +4296,27 @@ function applyAutoSchedule(){
 // ── AI 비서 (대화형 에이전트) ─────────────────────────────
 // 대화 기록은 그날의 하루 데이터(d.chat)에 저장돼서, 탭을 나갔다 오거나
 // 새로고침해도 그날 나눈 대화가 그대로 남아있어요 (ChatGPT/Gemini처럼).
-function toggleAgent(){
-  const body=$('agent-body'), chev=$('agent-chevron');
-  const open=body.style.display==='none';
-  body.style.display=open?'block':'none';
-  if(chev) chev.style.transform=open?'rotate(180deg)':'';
-  if(open) setTimeout(()=>$('agent-input').focus(),50);
+// 대화 화면은 앱 전체에서 이 시트 하나만 씁니다. 하루 탭 카드와 떠 있는 버튼이
+// 같은 시트를 열어요. (id 가 하나뿐이라 UI 를 두 벌로 두면 서로 충돌해요)
+function openAgent(){
+  // 비서는 '하루 탭에서 보고 있는 날짜'를 기준으로 움직여요. 다른 탭에서 열었을 땐
+  // 어느 날을 다루는지 알려줘야 헷갈리지 않아요.
+  $('agent-scope').textContent = `${fmtDayHead(dayCursor)} 기준으로 도와드려요`;
+  openModal('agent-modal');
+  $('agent-fab').classList.add('hidden');
+  renderAgentLog();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  setTimeout(()=>$('agent-input').focus(), 80);
+}
+function closeAgent(){
+  closeModal('agent-modal');
+  $('agent-fab').classList.remove('hidden');
+}
+// 하루 탭 카드에 대화가 몇 개 쌓였는지 살짝 보여줌
+function renderAgentHint(){
+  const el=$('agent-open-hint'); if(!el) return;
+  const n=(getDay(dayCursor).chat||[]).length;
+  el.textContent = n ? `대화 ${n}개` : '';
 }
 // 대화는 하루 데이터에 같이 저장돼서 클라우드 문서 용량을 잡아먹어요.
 // 최근 것만 남겨 무한정 늘어나지 않게 합니다.
@@ -4290,6 +4330,7 @@ function clearAgentChat(){
   d.chat=[];
   setDay(dayCursor,d);
   renderAgentLog();
+  renderAgentHint();
   showToast('대화를 지웠어요');
 }
 const TODO_STATUS_LABEL={ o:'완료', partial:'부분완료', x:'미완료', none:'표시 지움' };
