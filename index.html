@@ -144,10 +144,16 @@
     .xp-fill-lg { background: var(--primary); height: 100%; border-radius: 4px; transition: width .5s; }
     .xp-info { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: 6px; }
     .ach-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
-    .ach-item { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 11px 7px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); text-align: center; }
-    .ach-item.unlocked { border-color: rgba(179,240,0,0.3); background: rgba(179,240,0,0.05); }
-    .ach-item.locked { opacity: .2; filter: grayscale(1); }
-    .ach-icon { font-size: 1.75rem; }
+    .ach-item { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 13px 7px; border-radius: 12px; background: var(--card); border: 1px solid var(--border); text-align: center; }
+    .ach-item.unlocked { border-color: rgba(179,240,0,0.28); background: rgba(179,240,0,0.04); }
+    .ach-item.locked { opacity: .45; }
+    .ach-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--card2); border: 1px solid var(--border); color: #5c5c5c; }
+    .ach-icon svg { width: 20px; height: 20px; stroke-width: 2; }
+    .g-stat { display: flex; align-items: center; gap: 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .g-stat-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .g-stat-icon svg { width: 17px; height: 17px; stroke-width: 2.2; }
+    .g-stat-val { font-size: 1.25rem; font-weight: 800; line-height: 1.1; }
+    .g-stat-lbl { font-size: .68rem; color: var(--muted); margin-top: 2px; }
     .ach-name { font-size: .65rem; font-weight: 700; color: var(--text); }
     .ach-desc { font-size: .58rem; color: var(--muted); }
 
@@ -202,7 +208,8 @@
     /* ACHIEVEMENT POPUP */
     .ach-popup { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) scale(.8); background: #141414; border: 1px solid rgba(179,240,0,0.3); border-radius: 16px; padding: 15px 22px; text-align: center; box-shadow: 0 0 40px rgba(179,240,0,0.1); z-index: 999; opacity: 0; transition: all .35s; pointer-events: none; }
     .ach-popup.show { opacity: 1; transform: translateX(-50%) scale(1); }
-    .ach-pop-icon { font-size: 2.3rem; margin-bottom: 5px; }
+    .ach-pop-icon { display: flex; justify-content: center; margin-bottom: 7px; }
+    .ach-pop-icon svg { width: 34px; height: 34px; stroke-width: 2; }
     .ach-pop-badge { font-size: .72rem; color: var(--primary); font-weight: 700; margin-bottom: 3px; }
     .ach-pop-title { font-weight: 700; color: var(--text); font-size: .88rem; }
     .ach-pop-desc { font-size: .76rem; color: var(--muted); }
@@ -1583,16 +1590,18 @@ function showXPFloat(amt) {
 }
 
 // ── ACHIEVEMENTS ─────────────────────────────────────────
+// icon 은 Lucide 아이콘 이름. 이모지는 기기마다 모양이 제각각이라
+// (안드로이드/아이폰/윈도우가 전부 다르게 그려요) 하단 네비와 같은 선 아이콘으로 통일했어요.
 const ACHS = [
-  { id:'first',   icon:'✅', name:'첫 걸음',     desc:'처음으로 습관 완료',     ok:(h,u) => u.totalChecks >= 1 },
-  { id:'s3',      icon:'🔥', name:'3일 연속',     desc:'3일 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 3) },
-  { id:'s7',      icon:'⚡', name:'주간 전사',    desc:'7일 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 7) },
-  { id:'s30',     icon:'🏆', name:'한 달 챔피언', desc:'30일 연속 달성',         ok:(h,u) => h.some(x => streakCount(x) >= 30) },
-  { id:'perfect', icon:'💯', name:'완벽한 하루',  desc:'하루 모든 습관 완료',    ok:(h,u) => { const t=todayStr(); return h.length>0 && h.every(x=>!!x.checked[t]); } },
-  { id:'h5',      icon:'🌟', name:'습관 부자',    desc:'습관 5개 이상 등록',     ok:(h,u) => h.length >= 5 },
-  { id:'rate80',  icon:'📈', name:'성공률 80%',   desc:'전체 평균 성공률 80%+',  ok:(h,u) => h.length>0 && h.reduce((s,x)=>s+successRate(x),0)/h.length >= 80 },
-  { id:'lv3',     icon:'👑', name:'Lv.3 달성',    desc:'레벨 3 달성',            ok:(h,u) => lvInfo(u.xp).lv >= 3 },
-  { id:'c50',     icon:'🎯', name:'50회 달성',    desc:'총 50회 완료',           ok:(h,u) => u.totalChecks >= 50 },
+  { id:'first',   icon:'footprints',   color:'#b3f000', name:'첫 걸음',     desc:'처음으로 습관 완료',     ok:(h,u) => u.totalChecks >= 1 },
+  { id:'s3',      icon:'flame',        color:'#fb923c', name:'3일 연속',     desc:'3일 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 3) },
+  { id:'s7',      icon:'zap',          color:'#facc15', name:'주간 전사',    desc:'7일 연속 달성',          ok:(h,u) => h.some(x => streakCount(x) >= 7) },
+  { id:'s30',     icon:'trophy',       color:'#fbbf24', name:'한 달 챔피언', desc:'30일 연속 달성',         ok:(h,u) => h.some(x => streakCount(x) >= 30) },
+  { id:'perfect', icon:'check-check',  color:'#34d399', name:'완벽한 하루',  desc:'하루 모든 습관 완료',    ok:(h,u) => { const t=todayStr(); return h.length>0 && h.every(x=>!!x.checked[t]); } },
+  { id:'h5',      icon:'sparkles',     color:'#a78bfa', name:'습관 부자',    desc:'습관 5개 이상 등록',     ok:(h,u) => h.length >= 5 },
+  { id:'rate80',  icon:'trending-up',  color:'#38bdf8', name:'성공률 80%',   desc:'전체 평균 성공률 80%+',  ok:(h,u) => h.length>0 && h.reduce((s,x)=>s+successRate(x),0)/h.length >= 80 },
+  { id:'lv3',     icon:'crown',        color:'#f472b6', name:'Lv.3 달성',    desc:'레벨 3 달성',            ok:(h,u) => lvInfo(u.xp).lv >= 3 },
+  { id:'c50',     icon:'target',       color:'#f87171', name:'50회 달성',    desc:'총 50회 완료',           ok:(h,u) => u.totalChecks >= 50 },
 ];
 
 function checkAchs() {
@@ -1634,7 +1643,9 @@ window.addEventListener('error', e => notifyUnexpectedError('실행 중 에러:'
 window.addEventListener('unhandledrejection', e => notifyUnexpectedError('처리되지 않은 오류:', e.reason));
 
 function showAchPopup(a) {
-  $('ap-icon').textContent = a.icon;
+  $('ap-icon').innerHTML = `<i data-lucide="${a.icon}"></i>`;
+  $('ap-icon').style.color = a.color;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
   $('ap-title').textContent = a.name;
   $('ap-desc').textContent  = a.desc;
   const p = $('ach-popup');
@@ -2378,7 +2389,9 @@ function renderGrowth() {
   $('ach-grid').innerHTML = ACHS.map(a => {
     const ok = u.achievements.includes(a.id);
     return `<div class="ach-item ${ok?'unlocked':'locked'}">
-      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-icon" style="${ok?`color:${a.color};background:${a.color}1f;border-color:${a.color}55;`:''}">
+        <i data-lucide="${a.icon}"></i>
+      </div>
       <div class="ach-name">${a.name}</div>
       <div class="ach-desc">${a.desc}</div>
     </div>`;
@@ -2388,13 +2401,23 @@ function renderGrowth() {
   const totChk=habits.reduce((s,h)=>s+Object.keys(h.checked).length,0);
   const bestS=habits.reduce((s,h)=>Math.max(s,maxStreak(h)),0);
   const curS=habits.reduce((s,h)=>Math.max(s,streakCount(h)),0);
-  $('g-stats').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
-      <div style="background:#f8f7ff;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.35rem;font-weight:700;color:var(--primary)">${totChk}</div><div style="font-size:.72rem;color:#999">총 완료 횟수</div></div>
-      <div style="background:#fff3e0;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.35rem;font-weight:700;color:#e65100">${curS}</div><div style="font-size:.72rem;color:#999">현재 최고 스트릭</div></div>
-      <div style="background:#e8f5e9;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.35rem;font-weight:700;color:#2e7d32">${bestS}</div><div style="font-size:.72rem;color:#999">역대 최고 스트릭</div></div>
-      <div style="background:#fce4ec;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.35rem;font-weight:700;color:#c62828">${u.achievements.length}</div><div style="font-size:.72rem;color:#999">업적 달성</div></div>
+  // 예전엔 배경이 흰색·크림색이라 다크 테마에서 이 카드만 확 튀었어요.
+  const gStat = (icon, color, value, label) => `
+    <div class="g-stat">
+      <div class="g-stat-icon" style="color:${color};background:${color}1f;"><i data-lucide="${icon}"></i></div>
+      <div>
+        <div class="g-stat-val" style="color:${color}">${value}</div>
+        <div class="g-stat-lbl">${label}</div>
+      </div>
     </div>`;
+  $('g-stats').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+      ${gStat('check-check', '#b3f000', totChk, '총 완료 횟수')}
+      ${gStat('flame',       '#fb923c', curS,   '현재 최고 스트릭')}
+      ${gStat('trophy',      '#fbbf24', bestS,  '역대 최고 스트릭')}
+      ${gStat('sparkles',    '#a78bfa', u.achievements.length, '업적 달성')}
+    </div>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ── GOALS ─────────────────────────────────────────────────
