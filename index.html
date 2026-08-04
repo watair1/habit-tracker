@@ -1877,7 +1877,7 @@ function switchTab(name, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   $('tab-' + name).classList.add('active');
   btn.classList.add('active');
-  if (name === 'today')    renderMemos();
+  if (name === 'today')    render();        // render() 안에 renderMemos() 가 들어있어요
   if (name === 'day')      renderDay();
   if (name === 'stats')    renderStats();
   if (name === 'growth')   renderGrowth();
