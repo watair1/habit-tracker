@@ -501,6 +501,12 @@
     .agent-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 9px; flex-shrink: 0; }
     .agent-chip { flex: 0 0 auto; padding: 7px 12px; border-radius: 16px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font-size: .74rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
     .agent-chip:active { background: var(--primary); color: #000; }
+    .hist-row { padding: 12px 2px; border-bottom: 1px solid var(--border); cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+    .hist-row:last-child { border-bottom: none; }
+    .hist-row.cur .hist-date { color: var(--primary); }
+    .hist-date { font-size: .82rem; font-weight: 700; color: var(--text); }
+    .hist-count { font-size: .68rem; color: var(--muted); grid-row: 1 / span 2; align-self: center; white-space: nowrap; }
+    .hist-preview { font-size: .74rem; color: var(--muted); line-height: 1.45; }
     .agent-log:empty { display: none; }
     .agent-msg { font-size: .84rem; line-height: 1.5; padding: 9px 12px; border-radius: 12px; max-width: 88%; }
     .agent-msg.user { align-self: flex-end; background: var(--primary); color: #000; font-weight: 600; border-bottom-right-radius: 4px; }
@@ -1103,7 +1109,8 @@
     <div class="sheet-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
       <span style="display:inline-flex;align-items:center;gap:7px;"><i data-lucide="sparkles" style="width:17px;height:17px;color:var(--primary);"></i>AI 비서</span>
       <span style="display:flex;align-items:center;gap:2px;">
-        <button class="icon-btn" onclick="clearAgentChat()" title="대화 지우기"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>
+        <button class="icon-btn" onclick="openAgentHistory()" title="지난 대화"><i data-lucide="history" style="width:16px;height:16px;"></i></button>
+        <button class="icon-btn" onclick="clearAgentChat()" title="이 날짜 대화 지우기"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>
         <button class="icon-btn" onclick="closeAgent()" title="닫기"><i data-lucide="x" style="width:17px;height:17px;"></i></button>
       </span>
     </div>
@@ -1120,6 +1127,18 @@
       <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
       <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
     </div>
+  </div>
+</div>
+
+<!-- AI 지난 대화 목록 (날짜별) -->
+<div class="overlay" id="agent-hist-modal">
+  <div class="sheet" style="max-height:80vh;display:flex;flex-direction:column;">
+    <div class="sheet-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>지난 대화</span>
+      <button class="icon-btn" onclick="closeModal('agent-hist-modal')"><i data-lucide="x" style="width:17px;height:17px;"></i></button>
+    </div>
+    <div class="section-sub" style="margin-bottom:11px;">대화는 날짜별로 저장돼요. 누르면 그날로 이동해요.</div>
+    <div id="agent-hist-list" style="overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -4467,6 +4486,42 @@ function paintAgentMode(){
   document.querySelectorAll('.agent-mode-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === cur));
 }
+// ── 지난 대화 목록 ────────────────────────────────────────
+// 대화는 그날 하루 데이터에 저장돼서, 어제 대화를 보려면 날짜를 옮겨야 했어요.
+// 흩어진 걸 한 목록으로 모아 바로 건너뛸 수 있게 합니다.
+function openAgentHistory(){
+  const days = loadDayData();
+  const rows = Object.keys(days)
+    .filter(ds => days[ds].chat && days[ds].chat.length)
+    .sort((a,b) => b.localeCompare(a));            // 최근 날짜부터
+  const el = $('agent-hist-list');
+  if(!rows.length){
+    el.innerHTML = `<div style="font-size:.82rem;color:var(--muted);text-align:center;padding:22px;">아직 나눈 대화가 없어요</div>`;
+  } else {
+    el.innerHTML = rows.map(ds => {
+      const chat = days[ds].chat;
+      // 마지막으로 '내가' 한 말을 미리보기로 (비서 답보다 뭘 물었는지가 기억에 남아요)
+      const lastUser = [...chat].reverse().find(m => m.role === 'user');
+      const preview = lastUser ? lastUser.text : (chat[chat.length-1].text || '');
+      return `
+        <div class="hist-row${ds===dayCursor?' cur':''}" onclick="jumpToChat('${ds}')">
+          <div class="hist-date">${esc(fmtDayHead(ds))}${ds===dayCursor?' · 지금':''}</div>
+          <div class="hist-preview">${esc(preview.slice(0,60))}${preview.length>60?'…':''}</div>
+          <div class="hist-count">${chat.length}개</div>
+        </div>`;
+    }).join('');
+  }
+  openModal('agent-hist-modal');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+// 그 날짜로 옮기고 대화를 띄움
+function jumpToChat(ds){
+  dayCursor = ds;
+  closeModal('agent-hist-modal');
+  renderDay();
+  openAgent();
+}
+
 // 뭘 물어봐야 할지 막막할 때 바로 누를 수 있는 질문들.
 // 지금 상태(하이라이트·할일·습관)를 보고 필요해 보이는 것만 띄웁니다.
 function renderAgentChips(){
