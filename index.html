@@ -4427,6 +4427,7 @@ function renderAgentHint(){
 // 대화는 하루 데이터에 같이 저장돼서 클라우드 문서 용량을 잡아먹어요.
 // 최근 것만 남겨 무한정 늘어나지 않게 합니다.
 const CHAT_KEEP = 40;
+const HISTORY_SEND = 8;   // AI 에게 같이 보낼 최근 대화 수 (많이 보내면 토큰이 커져요)
 function trimChat(chat){
   return chat.length > CHAT_KEEP ? chat.slice(-CHAT_KEEP) : chat;
 }
@@ -4511,6 +4512,10 @@ async function sendAgent(){
   try{
     const out=await aiCall('/api/day-agent',{
       message:msg, date:dayCursor,
+      // 앞선 대화를 같이 보내야 AI 가 "아까 그거" 를 알아들어요.
+      // 방금 넣은 내 메시지는 빼고(message 로 따로 보냄), 최근 것만 추립니다.
+      history: (d.chat||[]).slice(0,-1).slice(-HISTORY_SEND)
+                 .map(m=>({ role:m.role, text:String(m.text||'').slice(0,400) })),
       events:d.events.map(e=>({id:e.id,title:e.title,start:e.start,end:e.end})),
       todos:d.todos.map(t=>({id:t.id,text:t.text,status:todoStatus(t)})),
       habits:habits.map(h=>({id:h.id,name:h.name,category:h.category,timeSlot:h.timeSlot,doneToday:!!h.checked[dayCursor]})),

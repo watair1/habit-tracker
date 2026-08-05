@@ -158,7 +158,7 @@ router.post('/auto-schedule', async (req, res) => {
 //  하루(일정/할일/하이라이트/기분/수면/메모)뿐 아니라
 //  습관·목표·아이디어 메모까지 앱 전체를 다룰 수 있음.
 router.post('/day-agent', async (req, res) => {
-  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo } = req.body || {};
+  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo, history } = req.body || {};
   if (!need(res, message && message.trim(), '무엇을 도와드릴까요? 메시지를 입력해주세요.')) return;
   try {
     // AI가 없는 항목을 지어내지 못하게, 실제로 보낸 id만 허용
@@ -199,6 +199,7 @@ router.post('/day-agent', async (req, res) => {
 - {"type":"add_memo","text":"아이디어 메모 내용"}
 
 규칙:
+- 아래 "지난 대화"를 반드시 읽어라. 사용자가 "저기 있는 것들", "아까 그거", "나머지" 처럼 앞을 가리키면 지난 대화에서 무엇을 말하는지 찾아 그대로 처리해라. 이미 답을 들은 것을 다시 묻지 마라.
 - 기존 항목(일정/할일/습관/목표)을 가리키면 아래 목록에서 id를 찾아 써라. 목록에 없는 id는 절대 만들어내지 마라.
 - 가리키는 항목을 목록에서 찾을 수 없으면 actions는 [] 로 두고 reply로 어떤 것인지 되물어라.
 - delete_habit / delete_goal 은 기록이 사라지는 위험한 동작이다. 사용자가 "삭제"를 분명히 말했을 때만 써라.
@@ -206,7 +207,14 @@ router.post('/day-agent', async (req, res) => {
 - 요청이 모호하면 actions는 [] 로 두고 reply로 짧게 되물어라.
 - reply는 항상 채운다.`;
 
-    const ctx = `오늘 날짜: ${date || ''}
+    // 지난 대화를 프롬프트에 같이 실어요. 이게 없으면 매 요청이 첫 대화처럼 처리돼서
+    // "아까 준 목록" 같은 걸 못 알아듣고 계속 되묻게 됩니다.
+    const past = (Array.isArray(history) ? history : [])
+      .slice(-10)
+      .map(m => `${m && m.role === 'bot' ? '비서' : '사용자'}: ${String((m && m.text) || '').slice(0, 400)}`)
+      .join('\n');
+
+    const ctx = `${past ? `[지난 대화]\n${past}\n\n` : ''}오늘 날짜: ${date || ''}
 현재 일정 (id: 시간 제목): ${(events || []).map(e => `${e.id}: ${e.start}~${e.end} ${e.title}`).join(', ') || '없음'}
 할 일 (id: 내용 [상태]): ${(todos || []).map(t => `${t.id}: ${t.text} [${t.status || '미표시'}]`).join(', ') || '없음'}
 습관 (id: 이름 (분류/시간대) [오늘]): ${(habits || []).map(h => `${h.id}: ${h.name} (${h.category || '기타'}/${h.timeSlot || '자유'}) [${h.doneToday ? '완료' : '미완'}]`).join(', ') || '없음'}
