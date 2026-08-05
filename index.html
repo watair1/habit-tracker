@@ -498,6 +498,9 @@
     .agent-open-hint { flex: 1; text-align: right; font-size: .7rem; color: var(--muted); }
     .agent-log { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
     .agent-sheet .agent-log { max-height: none; flex: 1; min-height: 120px; }
+    .agent-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 9px; flex-shrink: 0; }
+    .agent-chip { flex: 0 0 auto; padding: 7px 12px; border-radius: 16px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font-size: .74rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .agent-chip:active { background: var(--primary); color: #000; }
     .agent-log:empty { display: none; }
     .agent-msg { font-size: .84rem; line-height: 1.5; padding: 9px 12px; border-radius: 12px; max-width: 88%; }
     .agent-msg.user { align-self: flex-end; background: var(--primary); color: #000; font-weight: 600; border-bottom-right-radius: 4px; }
@@ -1112,6 +1115,7 @@
       </div>
     </div>
     <div id="agent-log" class="agent-log"></div>
+    <div class="agent-chips" id="agent-chips"></div>
     <div class="agent-input-row">
       <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
       <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
@@ -4463,6 +4467,30 @@ function paintAgentMode(){
   document.querySelectorAll('.agent-mode-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === cur));
 }
+// 뭘 물어봐야 할지 막막할 때 바로 누를 수 있는 질문들.
+// 지금 상태(하이라이트·할일·습관)를 보고 필요해 보이는 것만 띄웁니다.
+function renderAgentChips(){
+  const el=$('agent-chips'); if(!el) return;
+  const d=getDay(dayCursor), habits=loadHabits();
+  const chips=[];
+  const big=(d.todos||[]).find(t=>todoStatus(t)!=='o');
+  if(big) chips.push([`"${big.text}" 부담돼요. 25분씩 할 수 있게 쪼개주세요`, '할 일 쪼개기']);
+  if(d.highlight && d.highlight.text && !d.highlight.reward)
+    chips.push(['오늘 하이라이트 끝내면 뭘 보상으로 하면 좋을까요?', '보상 정하기']);
+  if(!d.highlight || !d.highlight.text) chips.push(['오늘 뭐부터 하면 좋을까요?', '뭐부터 할까']);
+  const weak=habits.filter(h=>successRate(h)<50 && habitPeriods(h).length>=5)
+                   .sort((a,b)=>successRate(a)-successRate(b))[0];
+  if(weak) chips.push([`"${weak.name}" 자꾸 못 지켜요. 목표를 낮춰야 할까요?`, '안 지켜지는 습관']);
+  chips.push(['오늘 일정 타이트하게 짜주세요', '일정 짜기']);
+  el.innerHTML = chips.slice(0,4).map(([q,label]) =>
+    `<button class="agent-chip" onclick="askAgent(${JSON.stringify(q).replace(/"/g,'&quot;')})">${esc(label)}</button>`
+  ).join('');
+}
+// 칩을 누르면 그 문장을 그대로 보냄
+function askAgent(q){
+  $('agent-input').value = q;
+  sendAgent();
+}
 function openAgent(){
   // 비서는 '하루 탭에서 보고 있는 날짜'를 기준으로 움직여요. 다른 탭에서 열었을 땐
   // 어느 날을 다루는지 알려줘야 헷갈리지 않아요.
@@ -4471,6 +4499,7 @@ function openAgent(){
   $('agent-fab').classList.add('hidden');
   paintAgentMode();
   renderAgentLog();
+  renderAgentChips();
   if (typeof lucide !== 'undefined') lucide.createIcons();
   setTimeout(()=>$('agent-input').focus(), 80);
 }
@@ -4597,6 +4626,7 @@ async function sendAgent(){
     setDay(dayCursor,d);
   }
   renderAgentLog();
+  renderAgentChips();
   btn.disabled=false;
 }
 function applyAgentActions(idx,btnEl){

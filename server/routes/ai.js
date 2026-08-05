@@ -207,6 +207,10 @@ router.post('/day-agent', async (req, res) => {
 
 [할 일]
 - {"type":"add_todo","text":"할 일","time":"HH:MM" 또는 null}
+  ※ 큰 일을 쪼갤 땐 add_todo 를 여러 개 만들어라. 각 단계는 25~30분 안에 끝낼 수 있고,
+     "무엇을 하면 이 단계가 끝인지"가 분명해야 한다.
+     나쁨: "리포트 쓰기" / 좋음: "참고자료 3개 찾아 링크 모으기", "목차 5줄 잡기", "서론 한 문단 쓰기"
+     순서대로 번호를 붙이지 말고(1. 2. 3.) 내용만 적어라. 시간을 정할 수 있으면 time 도 채워라.
 - {"type":"set_todo_status","id":"기존 할일 id","status":"o|partial|x|none"}  // o=완료, partial=부분완료, x=미완료, none=표시 지움
 - {"type":"delete_todo","id":"기존 할일 id"}
 
