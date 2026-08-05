@@ -397,6 +397,14 @@
     .hl-check { width: 30px; height: 30px; border-radius: 9px; border: 2px solid var(--primary); background: transparent; color: var(--primary); font-size: 1rem; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
     .hl-check.done { background: var(--primary); color: #000; }
     .hl-row { display: flex; align-items: center; gap: 12px; }
+    .hl-reward { display: flex; align-items: center; gap: 6px; margin-top: 9px; padding-top: 9px; border-top: 1px solid rgba(179,240,0,0.15); font-size: .74rem; color: var(--primary); font-weight: 600; }
+    .hl-reward.empty { color: var(--muted); font-weight: 500; }
+    .hl-reward svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .reward-popup { position: fixed; top: 84px; left: 50%; transform: translateX(-50%) scale(.85); background: #141414; border: 1px solid rgba(179,240,0,0.35); border-radius: 18px; padding: 18px 26px; text-align: center; box-shadow: 0 0 44px rgba(179,240,0,0.14); z-index: 999; opacity: 0; transition: all .35s; pointer-events: none; max-width: 90vw; }
+    .reward-popup.show { opacity: 1; transform: translateX(-50%) scale(1); }
+    .reward-popup .rp-label { font-size: .7rem; color: var(--primary); font-weight: 800; letter-spacing: .5px; margin-bottom: 6px; }
+    .reward-popup .rp-text { font-size: 1.05rem; font-weight: 800; color: var(--text); line-height: 1.4; }
+    .reward-popup .rp-sub { font-size: .72rem; color: var(--muted); margin-top: 7px; }
     .hl-done .hl-text { text-decoration: line-through; opacity: .6; }
     #day-rate { margin-top: 13px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
     .drs { display: flex; align-items: center; gap: 10px; }
@@ -934,6 +942,13 @@
       <label>오늘 가장 중요한 일 하나</label>
       <input id="hl-input" placeholder="오늘 가장 중요한 일은?" maxlength="60"/>
     </div>
+    <div class="fg">
+      <label>끝내면 나에게 줄 보상 (선택)</label>
+      <input id="hl-reward" placeholder="예: 좋아하는 영상 보기, 아이스크림" maxlength="40"/>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:6px;line-height:1.5;">
+        보상을 미리 정해두면 끝까지 갈 힘이 생겨요. 거창하지 않아도 돼요.
+      </div>
+    </div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('hl-modal')">취소</button>
       <button class="btn-confirm" onclick="saveHighlight()">저장</button>
@@ -1067,6 +1082,13 @@
   </div>
 </div>
 
+<!-- 하이라이트를 끝냈을 때 약속한 보상을 알려주는 팝업 -->
+<div class="reward-popup" id="reward-popup">
+  <div class="rp-label">약속한 보상</div>
+  <div class="rp-text" id="reward-text"></div>
+  <div class="rp-sub">해냈어요. 지금 누리세요 +15 XP</div>
+</div>
+
 <!-- AI 비서 — 어느 탭에서든 뜨는 버튼 -->
 <button id="agent-fab" class="agent-fab" onclick="openAgent()" title="AI 비서">
   <i data-lucide="sparkles"></i>
@@ -1082,7 +1104,13 @@
         <button class="icon-btn" onclick="closeAgent()" title="닫기"><i data-lucide="x" style="width:17px;height:17px;"></i></button>
       </span>
     </div>
-    <div class="section-sub" id="agent-scope" style="margin-bottom:11px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:11px;">
+      <div class="section-sub" id="agent-scope" style="margin:0;"></div>
+      <div class="cat-mode-toggle" style="flex-shrink:0;">
+        <button class="cat-mode-btn agent-mode-btn" data-mode="coach" onclick="setAgentMode('coach')">코칭</button>
+        <button class="cat-mode-btn agent-mode-btn" data-mode="plain" onclick="setAgentMode('plain')">일반</button>
+      </div>
+    </div>
     <div id="agent-log" class="agent-log"></div>
     <div class="agent-input-row">
       <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
@@ -3825,18 +3853,23 @@ function renderHighlight(){
     <div class="hl-row">
       <button class="hl-check${hl.done?' done':''}" onclick="event.stopPropagation();toggleHighlightDone()">${hl.done?'✓':''}</button>
       <div class="hl-text">${esc(hl.text)}</div>
-    </div>`;
+    </div>
+    ${hl.reward
+      ? `<div class="hl-reward"><i data-lucide="gift"></i>${hl.done?'약속한 보상을 누리세요 — ':'끝내면 '}${esc(hl.reward)}</div>`
+      : `<div class="hl-reward empty"><i data-lucide="gift"></i>끝내면 뭘 할지 정해두면 더 잘 지켜져요</div>`}`;
 }
 function openHighlightModal(){
   const hl=getDay(dayCursor).highlight;
   $('hl-input').value = hl?hl.text:'';
+  $('hl-reward').value = (hl && hl.reward) || '';
   openModal('hl-modal');
   setTimeout(()=>$('hl-input').focus(),80);
 }
 function saveHighlight(){
   const text=$('hl-input').value.trim();
+  const reward=$('hl-reward').value.trim();
   const d=getDay(dayCursor), old=d.highlight;
-  d.highlight = text ? { text, done: old?old.done:false, awarded: old?old.awarded:false } : null;
+  d.highlight = text ? { text, reward, done: old?old.done:false, awarded: old?old.awarded:false } : null;
   setDay(dayCursor,d);
   closeModal('hl-modal');
   renderHighlight(); renderDayRate();
@@ -3846,10 +3879,23 @@ function toggleHighlightDone(){
   const d=getDay(dayCursor);
   if(!d.highlight) return;
   d.highlight.done=!d.highlight.done;
-  if(d.highlight.done && !d.highlight.awarded){ addXP(15); d.highlight.awarded=true; showToast('하이라이트 완료 +15 XP'); }
+  if(d.highlight.done && !d.highlight.awarded){
+    addXP(15); d.highlight.awarded=true;
+    // 미리 정해둔 보상이 있으면, 끝낸 지금 바로 상기시켜줘요.
+    // 보상까지의 거리가 멀수록 미루기 쉬워지니까 최대한 붙여줍니다.
+    if(d.highlight.reward) showRewardPopup(d.highlight.reward);
+    else showToast('하이라이트 완료 +15 XP');
+  }
   setDay(dayCursor,d);
   renderHighlight(); renderDayRate();
   if(typeof lucide!=='undefined') lucide.createIcons();
+}
+function showRewardPopup(reward){
+  const el=$('reward-popup');
+  $('reward-text').textContent = reward;
+  el.classList.add('show');
+  sproutBurst();
+  setTimeout(()=>el.classList.remove('show'), 4200);
 }
 
 // ── ② 실행률 ──────────────────────────────────────────────
@@ -4404,12 +4450,26 @@ function applyAutoSchedule(){
 // 새로고침해도 그날 나눈 대화가 그대로 남아있어요 (ChatGPT/Gemini처럼).
 // 대화 화면은 앱 전체에서 이 시트 하나만 씁니다. 하루 탭 카드와 떠 있는 버튼이
 // 같은 시트를 열어요. (id 가 하나뿐이라 UI 를 두 벌로 두면 서로 충돌해요)
+// 코칭 모드 = 먼저 제안하고 이유를 설명해줌. 일반 모드 = 시킨 것만 짧게 처리.
+// 설정은 사용자 정보(K.u)에 같이 저장돼서 기기 간에도 따라와요. 기본값은 코칭.
+function agentMode(){ return loadUser().agentMode === 'plain' ? 'plain' : 'coach'; }
+function setAgentMode(m){
+  const u = loadUser(); u.agentMode = m; saveUser(u);
+  paintAgentMode();
+  showToast(m === 'coach' ? '코칭 모드 — 먼저 제안해드려요' : '일반 모드 — 시킨 것만 처리해요');
+}
+function paintAgentMode(){
+  const cur = agentMode();
+  document.querySelectorAll('.agent-mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === cur));
+}
 function openAgent(){
   // 비서는 '하루 탭에서 보고 있는 날짜'를 기준으로 움직여요. 다른 탭에서 열었을 땐
   // 어느 날을 다루는지 알려줘야 헷갈리지 않아요.
   $('agent-scope').textContent = `${fmtDayHead(dayCursor)} 기준으로 도와드려요`;
   openModal('agent-modal');
   $('agent-fab').classList.add('hidden');
+  paintAgentMode();
   renderAgentLog();
   if (typeof lucide !== 'undefined') lucide.createIcons();
   setTimeout(()=>$('agent-input').focus(), 80);
@@ -4511,7 +4571,7 @@ async function sendAgent(){
   const habits=loadHabits();
   try{
     const out=await aiCall('/api/day-agent',{
-      message:msg, date:dayCursor,
+      message:msg, date:dayCursor, mode:agentMode(),
       // 앞선 대화를 같이 보내야 AI 가 "아까 그거" 를 알아들어요.
       // 방금 넣은 내 메시지는 빼고(message 로 따로 보냄), 최근 것만 추립니다.
       history: (d.chat||[]).slice(0,-1).slice(-HISTORY_SEND)

@@ -158,7 +158,7 @@ router.post('/auto-schedule', async (req, res) => {
 //  하루(일정/할일/하이라이트/기분/수면/메모)뿐 아니라
 //  습관·목표·아이디어 메모까지 앱 전체를 다룰 수 있음.
 router.post('/day-agent', async (req, res) => {
-  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo, history, highlight } = req.body || {};
+  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo, history, highlight, mode } = req.body || {};
   if (!need(res, message && message.trim(), '무엇을 도와드릴까요? 메시지를 입력해주세요.')) return;
   try {
     // AI가 없는 항목을 지어내지 못하게, 실제로 보낸 id만 허용
@@ -167,7 +167,16 @@ router.post('/day-agent', async (req, res) => {
     const habitIds = new Set((habits || []).map(h => h.id).filter(Boolean));
     const goalIds = new Set((goals || []).map(g => g.id).filter(Boolean));
 
-    const sys = `너는 습관 트래커 앱의 코치다. 단순히 시키는 대로 넣어주는 비서가 아니라,
+    // 사용자가 고른 모드에 따라 성격이 달라져요.
+    //  coach — 이유를 설명하고 먼저 제안 (기본값)
+    //  plain — 시킨 것만 짧게 처리. 조용히 쓰고 싶을 때.
+    const isPlain = mode === 'plain';
+
+    const persona = isPlain
+      ? `너는 습관 트래커 앱의 비서다. 사용자가 시킨 것만 정확히 처리한다.
+답변은 한두 문장으로 짧게. 묻지 않은 조언이나 제안은 절대 하지 마라.
+요청이 모호할 때만 짧게 되물어라.`
+      : `너는 습관 트래커 앱의 코치다. 단순히 시키는 대로 넣어주는 비서가 아니라,
 사용자가 실제로 실행하게 만드는 것이 목표다. 아래 "미루기 방정식"을 늘 염두에 두어라.
 
   실행할 마음 = (해낼 수 있다는 기대 × 그 일의 가치) / (딴짓 충동 × 보상까지의 지연)
@@ -183,9 +192,11 @@ router.post('/day-agent', async (req, res) => {
    일정을 만들 땐 여유를 너무 길게 잡지 말고 타이트하게 잡아라.
 5. 한 번에 하나만. 지금 무엇부터 할지 물으면 여러 개를 나열하지 말고 하나를 골라 이유와 함께 제시해라.
 
-말투: 친근한 한국어 반말이 아닌 존댓말. 필요한 만큼 충분히 설명하되 장황하지 않게
+말투: 친근한 한국어 존댓말. 필요한 만큼 충분히 설명하되 장황하지 않게
 (보통 2~4문장, 쪼개기나 분석처럼 설명이 필요하면 더 길어져도 된다).
-숫자를 근거로 말해라 ("성공률 20%라 부담이 큰 것 같아요"). 훈계하거나 다그치지 마라.
+숫자를 근거로 말해라 ("성공률 20%라 부담이 큰 것 같아요"). 훈계하거나 다그치지 마라.`;
+
+    const sys = `${persona}
 
 반드시 JSON만 출력: {"reply":"사용자에게 할 말","actions":[ ... ]}
 
@@ -224,9 +235,10 @@ router.post('/day-agent', async (req, res) => {
 - delete_habit / delete_goal 은 기록이 사라지는 위험한 동작이다. 사용자가 "삭제"를 분명히 말했을 때만 써라.
 - 조언·질문("뭐부터 할까?", "이번 주 어땠어?")이면 actions는 [] 로 두고 reply로만 답하라.
 - 요청이 모호하면 actions는 [] 로 두고 reply로 짧게 되물어라.
-- 요청을 처리한 뒤, 도움이 될 만한 것이 눈에 띄면 한 가지만 덧붙여 제안해라
+${isPlain ? '- 묻지 않은 제안이나 조언은 하지 마라. 요청한 것만 처리하고 끝내라.'
+: `- 요청을 처리한 뒤, 도움이 될 만한 것이 눈에 띄면 한 가지만 덧붙여 제안해라
   (성공률이 낮은 습관, 보상이 비어 있는 하이라이트, 너무 큰 할 일 등).
-  단 제안은 한 번에 하나까지다. 여러 개를 늘어놓거나 매번 잔소리하지 마라.
+  단 제안은 한 번에 하나까지다. 여러 개를 늘어놓거나 매번 잔소리하지 마라.`}
 - reply는 항상 채운다.`;
 
     // 지난 대화를 프롬프트에 같이 실어요. 이게 없으면 매 요청이 첫 대화처럼 처리돼서
