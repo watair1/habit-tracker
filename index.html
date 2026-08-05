@@ -706,7 +706,7 @@
   <div class="card">
     <div class="card-title">오늘의 할 일</div>
     <div class="add-bar" style="margin-bottom:10px;">
-      <input id="day-todo-input" placeholder="할 일 추가..." maxlength="60" onkeydown="if(event.key==='Enter')addDayTodo()"/>
+      <input id="day-todo-input" placeholder="오늘 할 일 추가..." maxlength="60" onkeydown="if(event.key==='Enter')addDayTodo()"/>
       <input id="day-todo-time" type="time" step="1800" title="시간 지정(선택)" style="flex:0 0 auto;width:auto;padding:10px 8px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:.8rem;"/>
       <button class="btn btn-sm" onclick="addDayTodo()">추가</button>
     </div>
@@ -849,11 +849,12 @@
 <div id="tab-goals" class="tab">
   <div id="final-goal-card"></div>
 
-  <!-- TODO LIST -->
+  <!-- 목표 실천 항목 (하루 탭의 "오늘의 할 일"과는 다른 목록) -->
   <div class="card" style="margin-bottom:14px;">
-    <div class="card-title">할 일</div>
+    <div class="card-title">실천 항목</div>
+    <div class="section-sub" style="margin-bottom:10px;">목표를 이루려면 해야 하는 것들이에요. 오늘 처리할 일은 하루 탭에 적어주세요.</div>
     <div class="add-bar" style="margin-bottom:10px;">
-      <input id="todo-input" placeholder="할 일 추가..." maxlength="50" onkeydown="if(event.key==='Enter')addTodo()"/>
+      <input id="todo-input" placeholder="실천 항목 추가..." maxlength="50" onkeydown="if(event.key==='Enter')addTodo()"/>
       <button class="btn btn-sm" onclick="addTodo()">추가</button>
     </div>
     <div id="todo-list"></div>
@@ -1116,7 +1117,7 @@
 
     <div id="wk-step1-body" style="overflow-y:auto;">
       <div class="add-bar" style="margin-bottom:6px;">
-        <input id="wk-cat-name" placeholder="카테고리 (예: 생리학)" maxlength="16"/>
+        <input id="wk-cat-name" placeholder="분야 (예: 생리학)" maxlength="16"/>
         <input id="wk-cat-target" type="number" min="0" step="any" placeholder="목표" style="flex:0 0 68px;"/>
         <input id="wk-cat-unit" placeholder="단위" maxlength="8" style="flex:0 0 64px;" onkeydown="if(event.key==='Enter')addWeekCat()"/>
         <button class="btn btn-sm" onclick="addWeekCat()">추가</button>
@@ -3196,7 +3197,7 @@ function nextRecall() {
 function renderTodos() {
   const todos = loadTodos();
   const el = $('todo-list');
-  if (!todos.length) { el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;">할 일이 없어요</div>`; return; }
+  if (!todos.length) { el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;">실천 항목이 없어요</div>`; return; }
   el.innerHTML = todos.map((t, i) => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
       <button onclick="toggleTodo(${i})" style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${t.done?'var(--primary)':'#444'};background:${t.done?'var(--primary)':'transparent'};cursor:pointer;flex-shrink:0;font-size:.8rem;color:#000;">${t.done?'✓':''}</button>
@@ -3731,7 +3732,7 @@ function delWeekCat(id){
 function renderWeekCats(){
   const cats=weekCats();
   const el=$('wk-cat-list');
-  if(!cats.length){ el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:16px;">이번 주 카테고리를 추가해보세요</div>`; return; }
+  if(!cats.length){ el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:16px;">이번 주에 시간 쓸 분야를 추가해보세요</div>`; return; }
   el.innerHTML=cats.map(c=>{
     const has=c.targetNum>0;
     const pct=has ? Math.min(100, Math.round(c.doneNum/c.targetNum*100)) : 0;
@@ -3779,7 +3780,7 @@ function renderWeekGrid(){
     + (cats.length ? `<button class="wk-chip${wkActiveCat==='erase'?' active':''}" style="background:#333;" onclick="setWkActiveCat('erase')"><i data-lucide="eraser" style="width:13px;height:13px;"></i></button>` : '');
   if (typeof lucide !== 'undefined') lucide.createIcons();
   if(!cats.length){
-    $('wk-grid').innerHTML = `<div style="grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center;padding:22px;">STEP1에서 카테고리를 먼저 추가해주세요</div>`;
+    $('wk-grid').innerHTML = `<div style="grid-column:1/-1;font-size:.8rem;color:var(--muted);text-align:center;padding:22px;">STEP1에서 분야를 먼저 추가해주세요</div>`;
     return;
   }
   const dates=Array.from({length:7},(_,i)=>addDaysStr(wkPlanCursor,i));

@@ -205,7 +205,7 @@ router.post('/day-agent', async (req, res) => {
 - {"type":"edit_event","id":"기존 일정 id","title":"새 제목"(선택),"start":"HH:MM"(선택),"end":"HH:MM"(선택)}
 - {"type":"delete_event","id":"기존 일정 id"}
 
-[할 일]
+[오늘의 할 일] (하루 탭. 목표 탭의 "실천 항목"과는 다른 목록이며, 비서가 다룰 수 있는 건 이쪽뿐이다)
 - {"type":"add_todo","text":"할 일","time":"HH:MM" 또는 null}
   ※ 큰 일을 쪼갤 땐 add_todo 를 여러 개 만들어라. 각 단계는 25~30분 안에 끝낼 수 있고,
      "무엇을 하면 이 단계가 끝인지"가 분명해야 한다.
@@ -254,7 +254,7 @@ ${isPlain ? '- 묻지 않은 제안이나 조언은 하지 마라. 요청한 것
 
     const ctx = `${past ? `[지난 대화]\n${past}\n\n` : ''}오늘 날짜: ${date || ''}
 현재 일정 (id: 시간 제목): ${(events || []).map(e => `${e.id}: ${e.start}~${e.end} ${e.title}`).join(', ') || '없음'}
-할 일 (id: 내용 [상태]): ${(todos || []).map(t => `${t.id}: ${t.text} [${t.status || '미표시'}]`).join(', ') || '없음'}
+오늘의 할 일 (id: 내용 [상태]): ${(todos || []).map(t => `${t.id}: ${t.text} [${t.status || '미표시'}]`).join(', ') || '없음'}
 습관 (id: 이름 (분류/시간대/빈도) 성공률 [오늘]): ${(habits || []).map(h => `${h.id}: ${h.name} (${h.category || '기타'}/${h.timeSlot || '자유'}/${h.freq || '매일'}) 성공률 ${h.successRate ?? '-'}% [${h.doneToday ? '완료' : '미완'}]`).join(', ') || '없음'}
 오늘의 하이라이트: ${highlight && highlight.text ? `${highlight.text}${highlight.done ? ' (완료)' : ''} / 보상: ${highlight.reward || '아직 없음'}` : '미설정'}
 목표 (id: 제목 (기간)): ${(goals || []).map(g => `${g.id}: ${g.title} (${g.type || ''})`).join(', ') || '없음'}
