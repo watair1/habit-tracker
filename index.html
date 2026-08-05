@@ -507,6 +507,27 @@
     .hist-date { font-size: .82rem; font-weight: 700; color: var(--text); }
     .hist-count { font-size: .68rem; color: var(--muted); grid-row: 1 / span 2; align-self: center; white-space: nowrap; }
     .hist-preview { font-size: .74rem; color: var(--muted); line-height: 1.45; }
+    /* 집중 모드 — 다른 게 눈에 안 들어오게 화면을 통째로 덮어요 */
+    .focus-screen { position: fixed; inset: 0; background: #070707; z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; }
+    .focus-screen.on { display: flex; }
+    .focus-exit { position: absolute; top: calc(14px + env(safe-area-inset-top)); right: 16px; background: none; border: none; color: var(--muted); cursor: pointer; padding: 8px; }
+    .focus-exit svg { width: 22px; height: 22px; }
+    .focus-phase { font-size: .74rem; font-weight: 800; letter-spacing: 2px; color: var(--primary); }
+    .focus-screen.rest .focus-phase { color: #38bdf8; }
+    .focus-screen.rest .focus-arc, .focus-screen.rest #focus-arc { stroke: #38bdf8; }
+    .focus-task { font-size: 1.15rem; font-weight: 800; color: var(--text); line-height: 1.45; max-width: 320px; }
+    .focus-ring { position: relative; width: 220px; height: 220px; max-width: 62vw; max-height: 62vw; }
+    .focus-ring svg { width: 100%; height: 100%; }
+    .focus-time { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+    .focus-round { font-size: .76rem; color: var(--muted); }
+    .focus-btns { display: flex; gap: 9px; margin-top: 4px; }
+    .focus-btns .btn { min-width: 104px; }
+    .focus-hint { font-size: .68rem; color: #555; margin-top: 6px; }
+    .focus-pick-row { padding: 13px 2px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+    .focus-pick-row:last-child { border-bottom: none; }
+    .focus-pick-tag { font-size: .62rem; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--card2); color: var(--muted); flex-shrink: 0; }
+    .focus-pick-tag.hl { background: rgba(179,240,0,0.14); color: var(--primary); }
+    .focus-pick-txt { flex: 1; font-size: .86rem; color: var(--text); }
     .agent-log:empty { display: none; }
     .agent-msg { font-size: .84rem; line-height: 1.5; padding: 9px 12px; border-radius: 12px; max-width: 88%; }
     .agent-msg.user { align-self: flex-end; background: var(--primary); color: #000; font-weight: 600; border-bottom-right-radius: 4px; }
@@ -649,6 +670,13 @@
   <div class="wk-plan-entry" onclick="openWeekPlan()">
     <i data-lucide="calendar"></i>
     <span>이번 주 시간 배분</span>
+    <i data-lucide="chevron-right"></i>
+  </div>
+
+  <!-- 집중 모드 진입 -->
+  <div class="wk-plan-entry" onclick="openFocusPicker()">
+    <i data-lucide="timer"></i>
+    <span>집중 모드 · 25분</span>
     <i data-lucide="chevron-right"></i>
   </div>
 
@@ -1127,6 +1155,39 @@
       <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
       <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
     </div>
+  </div>
+</div>
+
+<!-- 집중 모드 — 화면을 덮어 지금 할 일 하나만 남김 -->
+<div class="focus-screen" id="focus-screen">
+  <button class="focus-exit" onclick="exitFocus()"><i data-lucide="x"></i></button>
+  <div class="focus-phase" id="focus-phase">집중</div>
+  <div class="focus-task" id="focus-task"></div>
+  <div class="focus-ring">
+    <svg viewBox="0 0 220 220">
+      <circle cx="110" cy="110" r="100" fill="none" stroke="#1c1c1c" stroke-width="10"/>
+      <circle id="focus-arc" cx="110" cy="110" r="100" fill="none" stroke="var(--primary)" stroke-width="10"
+              stroke-linecap="round" transform="rotate(-90 110 110)"/>
+    </svg>
+    <div class="focus-time" id="focus-time">25:00</div>
+  </div>
+  <div class="focus-round" id="focus-round"></div>
+  <div class="focus-btns">
+    <button class="btn" id="focus-toggle" onclick="toggleFocusTimer()">시작</button>
+    <button class="btn btn-outline" onclick="resetFocusTimer()">다시</button>
+  </div>
+  <div class="focus-hint">알림을 허용하면 시간이 끝날 때 알려드려요</div>
+</div>
+
+<!-- 집중할 일 고르기 -->
+<div class="overlay" id="focus-pick-modal">
+  <div class="sheet" style="max-height:80vh;display:flex;flex-direction:column;">
+    <div class="sheet-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>무엇에 집중할까요?</span>
+      <button class="icon-btn" onclick="closeModal('focus-pick-modal')"><i data-lucide="x" style="width:17px;height:17px;"></i></button>
+    </div>
+    <div class="section-sub" style="margin-bottom:11px;">하나만 고르세요. 25분 동안 이것만 합니다.</div>
+    <div id="focus-pick-list" style="overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -4486,6 +4547,100 @@ function paintAgentMode(){
   document.querySelectorAll('.agent-mode-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === cur));
 }
+// ── 집중 모드 (포모도로) ──────────────────────────────────
+// 25분 집중 / 5분 휴식. 화면을 덮어서 지금 할 일 하나만 남기는 게 핵심이에요.
+// 큰 일을 통째로 보면 시작이 어렵지만, 25분짜리 한 조각은 시작할 만해집니다.
+const FOCUS_WORK = 25 * 60, FOCUS_REST = 5 * 60;
+let _focusTask = '', _focusLeft = FOCUS_WORK, _focusTimer = null, _focusResting = false, _focusRounds = 0;
+
+// 오늘의 하이라이트와 아직 안 끝난 할 일들 중에서 고르게 함
+function openFocusPicker(){
+  const d = getDay(dayCursor);
+  const items = [];
+  if (d.highlight && d.highlight.text && !d.highlight.done)
+    items.push({ tag: '하이라이트', hl: true, text: d.highlight.text });
+  (d.todos || []).filter(t => todoStatus(t) !== 'o')
+    .forEach(t => items.push({ tag: '할 일', hl: false, text: t.text }));
+  const el = $('focus-pick-list');
+  el.innerHTML = items.length
+    ? items.map(it => `
+        <div class="focus-pick-row" onclick="startFocus(${JSON.stringify(it.text).replace(/"/g,'&quot;')})">
+          <span class="focus-pick-tag${it.hl?' hl':''}">${esc(it.tag)}</span>
+          <span class="focus-pick-txt">${esc(it.text)}</span>
+        </div>`).join('')
+    : `<div style="font-size:.82rem;color:var(--muted);text-align:center;padding:22px;line-height:1.6;">
+         집중할 거리가 없어요.<br>하이라이트나 할 일을 먼저 정해보세요.</div>`;
+  openModal('focus-pick-modal');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function startFocus(task){
+  closeModal('focus-pick-modal');
+  _focusTask = task;
+  _focusResting = false; _focusRounds = 0; _focusLeft = FOCUS_WORK;
+  $('focus-task').textContent = task;
+  $('focus-screen').classList.add('on');
+  $('focus-screen').classList.remove('rest');
+  paintFocus();
+  startFocusTimer();
+}
+function exitFocus(){
+  stopFocusTimer();
+  $('focus-screen').classList.remove('on');
+}
+function startFocusTimer(){
+  stopFocusTimer();
+  _focusTimer = setInterval(() => {
+    _focusLeft--;
+    if (_focusLeft <= 0) nextFocusPhase();
+    paintFocus();
+  }, 1000);
+  $('focus-toggle').textContent = '멈춤';
+}
+function stopFocusTimer(){
+  clearInterval(_focusTimer); _focusTimer = null;
+  const b = $('focus-toggle'); if (b) b.textContent = '시작';
+}
+function toggleFocusTimer(){ _focusTimer ? stopFocusTimer() : startFocusTimer(); }
+function resetFocusTimer(){
+  stopFocusTimer();
+  _focusLeft = _focusResting ? FOCUS_REST : FOCUS_WORK;
+  paintFocus();
+}
+// 집중이 끝나면 휴식으로, 휴식이 끝나면 다시 집중으로
+function nextFocusPhase(){
+  stopFocusTimer();
+  if (!_focusResting) {
+    _focusRounds++;
+    _focusResting = true; _focusLeft = FOCUS_REST;
+    $('focus-screen').classList.add('rest');
+    notifyFocus('25분 집중 완료', '5분 쉬었다 가요');
+    addXP(5);
+  } else {
+    _focusResting = false; _focusLeft = FOCUS_WORK;
+    $('focus-screen').classList.remove('rest');
+    notifyFocus('휴식 끝', '다시 25분 시작해볼까요');
+  }
+  paintFocus();
+}
+function notifyFocus(title, body){
+  showToast(`${title} — ${body}`);
+  try {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted')
+      new Notification(title, { body });
+  } catch(e) {}
+}
+function paintFocus(){
+  const total = _focusResting ? FOCUS_REST : FOCUS_WORK;
+  const m = Math.floor(_focusLeft / 60), s = _focusLeft % 60;
+  $('focus-time').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  $('focus-phase').textContent = _focusResting ? '휴식' : '집중';
+  const C = 2 * Math.PI * 100;
+  $('focus-arc').setAttribute('stroke-dasharray', C.toFixed(1));
+  $('focus-arc').setAttribute('stroke-dashoffset', (C - (_focusLeft / total) * C).toFixed(1));
+  $('focus-round').textContent = _focusRounds ? `${_focusRounds}번째 집중 완료 · +${_focusRounds * 5} XP` : '';
+}
+
 // ── 지난 대화 목록 ────────────────────────────────────────
 // 대화는 그날 하루 데이터에 저장돼서, 어제 대화를 보려면 날짜를 옮겨야 했어요.
 // 흩어진 걸 한 목록으로 모아 바로 건너뛸 수 있게 합니다.
