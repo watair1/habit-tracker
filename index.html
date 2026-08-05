@@ -4518,7 +4518,10 @@ async function sendAgent(){
                  .map(m=>({ role:m.role, text:String(m.text||'').slice(0,400) })),
       events:d.events.map(e=>({id:e.id,title:e.title,start:e.start,end:e.end})),
       todos:d.todos.map(t=>({id:t.id,text:t.text,status:todoStatus(t)})),
-      habits:habits.map(h=>({id:h.id,name:h.name,category:h.category,timeSlot:h.timeSlot,doneToday:!!h.checked[dayCursor]})),
+      // 코치가 "성공률 낮으니 목표를 낮추자" 같은 제안을 하려면 이 숫자들이 필요해요
+      habits:habits.map(h=>({id:h.id,name:h.name,category:h.category,timeSlot:h.timeSlot,
+        doneToday:!!h.checked[dayCursor], freq:freqLabel(h), successRate:successRate(h)})),
+      highlight:d.highlight ? { text:d.highlight.text, done:!!d.highlight.done, reward:d.highlight.reward||'' } : null,
       goals:loadGoals().map(g=>({id:g.id,title:g.title,type:g.type})),
       finalGoal:loadFinalGoal(),
       mood:loadMoods()[dayCursor]||null,

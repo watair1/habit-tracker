@@ -158,7 +158,7 @@ router.post('/auto-schedule', async (req, res) => {
 //  하루(일정/할일/하이라이트/기분/수면/메모)뿐 아니라
 //  습관·목표·아이디어 메모까지 앱 전체를 다룰 수 있음.
 router.post('/day-agent', async (req, res) => {
-  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo, history } = req.body || {};
+  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo, history, highlight } = req.body || {};
   if (!need(res, message && message.trim(), '무엇을 도와드릴까요? 메시지를 입력해주세요.')) return;
   try {
     // AI가 없는 항목을 지어내지 못하게, 실제로 보낸 id만 허용
@@ -167,7 +167,26 @@ router.post('/day-agent', async (req, res) => {
     const habitIds = new Set((habits || []).map(h => h.id).filter(Boolean));
     const goalIds = new Set((goals || []).map(g => g.id).filter(Boolean));
 
-    const sys = `너는 습관 트래커 앱의 비서다. 사용자의 요청을 읽고 (1) 친근한 한국어 한두 문장 답변과 (2) 실행할 액션 목록을 만든다.
+    const sys = `너는 습관 트래커 앱의 코치다. 단순히 시키는 대로 넣어주는 비서가 아니라,
+사용자가 실제로 실행하게 만드는 것이 목표다. 아래 "미루기 방정식"을 늘 염두에 두어라.
+
+  실행할 마음 = (해낼 수 있다는 기대 × 그 일의 가치) / (딴짓 충동 × 보상까지의 지연)
+
+그래서 이렇게 움직여라.
+1. 크고 막막한 일은 쪼개라. "리포트 쓰기" 같은 요청이 오면 25~30분 안에 끝낼 수 있는
+   단계 여러 개로 나눠 add_todo 를 여러 개 만들어라. 각 단계는 무엇을 하면 끝인지 분명해야 한다.
+2. 목표는 지킬 수 있는 크기로 낮춰라. 성공률이 낮은 습관이 보이면 (아래 목록에 성공률이 있다)
+   먼저 알려주고 빈도를 줄이자고 제안해라. "매일 운동"보다 지켜지는 "주 3회 운동"이 낫다.
+3. 보상을 정하게 도와라. 오늘 가장 중요한 일에는 "끝내면 무엇을 할지"를 함께 정하자고 권해라.
+   보상은 거창할 필요 없다 (좋아하는 영상 보기, 아이스크림 하나).
+4. 시간을 붙여라. 막연한 할 일보다 "몇 시에 몇 분 동안"이 정해진 일이 실행된다.
+   일정을 만들 땐 여유를 너무 길게 잡지 말고 타이트하게 잡아라.
+5. 한 번에 하나만. 지금 무엇부터 할지 물으면 여러 개를 나열하지 말고 하나를 골라 이유와 함께 제시해라.
+
+말투: 친근한 한국어 반말이 아닌 존댓말. 필요한 만큼 충분히 설명하되 장황하지 않게
+(보통 2~4문장, 쪼개기나 분석처럼 설명이 필요하면 더 길어져도 된다).
+숫자를 근거로 말해라 ("성공률 20%라 부담이 큰 것 같아요"). 훈계하거나 다그치지 마라.
+
 반드시 JSON만 출력: {"reply":"사용자에게 할 말","actions":[ ... ]}
 
 [일정] (하루 타임라인)
@@ -205,6 +224,9 @@ router.post('/day-agent', async (req, res) => {
 - delete_habit / delete_goal 은 기록이 사라지는 위험한 동작이다. 사용자가 "삭제"를 분명히 말했을 때만 써라.
 - 조언·질문("뭐부터 할까?", "이번 주 어땠어?")이면 actions는 [] 로 두고 reply로만 답하라.
 - 요청이 모호하면 actions는 [] 로 두고 reply로 짧게 되물어라.
+- 요청을 처리한 뒤, 도움이 될 만한 것이 눈에 띄면 한 가지만 덧붙여 제안해라
+  (성공률이 낮은 습관, 보상이 비어 있는 하이라이트, 너무 큰 할 일 등).
+  단 제안은 한 번에 하나까지다. 여러 개를 늘어놓거나 매번 잔소리하지 마라.
 - reply는 항상 채운다.`;
 
     // 지난 대화를 프롬프트에 같이 실어요. 이게 없으면 매 요청이 첫 대화처럼 처리돼서
@@ -217,7 +239,8 @@ router.post('/day-agent', async (req, res) => {
     const ctx = `${past ? `[지난 대화]\n${past}\n\n` : ''}오늘 날짜: ${date || ''}
 현재 일정 (id: 시간 제목): ${(events || []).map(e => `${e.id}: ${e.start}~${e.end} ${e.title}`).join(', ') || '없음'}
 할 일 (id: 내용 [상태]): ${(todos || []).map(t => `${t.id}: ${t.text} [${t.status || '미표시'}]`).join(', ') || '없음'}
-습관 (id: 이름 (분류/시간대) [오늘]): ${(habits || []).map(h => `${h.id}: ${h.name} (${h.category || '기타'}/${h.timeSlot || '자유'}) [${h.doneToday ? '완료' : '미완'}]`).join(', ') || '없음'}
+습관 (id: 이름 (분류/시간대/빈도) 성공률 [오늘]): ${(habits || []).map(h => `${h.id}: ${h.name} (${h.category || '기타'}/${h.timeSlot || '자유'}/${h.freq || '매일'}) 성공률 ${h.successRate ?? '-'}% [${h.doneToday ? '완료' : '미완'}]`).join(', ') || '없음'}
+오늘의 하이라이트: ${highlight && highlight.text ? `${highlight.text}${highlight.done ? ' (완료)' : ''} / 보상: ${highlight.reward || '아직 없음'}` : '미설정'}
 목표 (id: 제목 (기간)): ${(goals || []).map(g => `${g.id}: ${g.title} (${g.type || ''})`).join(', ') || '없음'}
 최종 목표: ${finalGoal ? finalGoal.title : '미설정'}
 오늘 기분: ${mood || '기록 없음'}
