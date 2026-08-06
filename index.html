@@ -283,7 +283,8 @@
     .mood-tick { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 2px 6px; border-radius: 8px; transition: all .2s; opacity: .3; }
     .mood-tick:hover { opacity: .6; }
     .mood-tick.active { opacity: 1; background: rgba(255,255,255,0.04); }
-    .mood-tick .tick-emoji { font-size: 1.35rem; transition: transform .2s cubic-bezier(0.34,1.56,0.64,1); }
+    .mood-tick .tick-emoji { display: flex; align-items: center; transition: transform .2s cubic-bezier(0.34,1.56,0.64,1); }
+    .mood-tick .tick-emoji svg { width: 22px; height: 22px; stroke-width: 2; }
     .mood-tick.active .tick-emoji { transform: scale(1.15); }
     .mood-tick .tick-label { font-size: .72rem; font-weight: 700; color: #888; }
     .mood-tick.active .tick-label { color: var(--text); }
@@ -326,6 +327,7 @@
     .wk-bar { height: 100%; background: var(--primary); border-radius: 8px; }
     .wk-rate { font-size: .72rem; font-weight: 700; color: var(--text); text-align: right; }
     .wk-mood { font-size: .95rem; text-align: center; }
+    .wk-mood-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: 1px; }
     .wk-sleep { font-size: .68rem; color: var(--muted); text-align: right; }
 
     /* ── 하루 관리 탭 ── */
@@ -474,6 +476,9 @@
     .rv-done-row, .rv-rate-row { display: flex; gap: 8px; }
     .rv-done-btn, .rv-rate-btn { flex: 1; padding: 11px 6px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: .8rem; font-weight: 700; cursor: pointer; }
     .rv-done-btn.sel, .rv-rate-btn.sel { border-color: var(--primary); color: var(--text); background: var(--primary-light); }
+    .rv-rate-btn { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .rv-rate-btn svg { width: 19px; height: 19px; stroke-width: 2; }
+    .rv-rate-btn.sel { border-color: var(--m); color: var(--m); background: color-mix(in srgb, var(--m) 12%, transparent); }
     /* 하루 마무리 기분 */
     .day-sub-lbl { font-size: .68rem; color: var(--muted); font-weight: 700; margin: 2px 0 7px; text-transform: uppercase; letter-spacing: .5px; }
     .day-mood-row { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 12px; }
@@ -484,8 +489,10 @@
     .sleep-field input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: #1c1c1c; color: var(--text); font-size: .82rem; font-family: inherit; }
     .sleep-arrow { width: 16px; height: 16px; color: var(--muted); margin-top: 14px; }
     .sleep-result { margin-left: auto; margin-top: 14px; font-size: .9rem; font-weight: 800; color: var(--primary); }
-    .day-mood-btn { flex: 1; padding: 9px 0; font-size: 1.5rem; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; filter: grayscale(0.6); opacity: .6; transition: all .15s; }
-    .day-mood-btn.sel { filter: none; opacity: 1; border-color: var(--primary); transform: scale(1.08); background: var(--primary-light); }
+    .day-mood-btn { flex: 1; padding: 9px 0 7px; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; color: #6b6b6b; opacity: .75; transition: all .15s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .day-mood-btn svg { width: 21px; height: 21px; stroke-width: 2; }
+    .day-mood-btn span { font-size: .62rem; font-weight: 700; }
+    .day-mood-btn.sel { opacity: 1; color: var(--m); border-color: var(--m); background: color-mix(in srgb, var(--m) 12%, transparent); transform: scale(1.06); }
     .day-summary-ai { background: var(--primary-light); border: 1px solid rgba(179,240,0,0.25); border-radius: 10px; padding: 12px; margin-top: 12px; font-size: .85rem; line-height: 1.6; color: var(--text); }
     /* AI 비서 대화 */
     .ai-agent-card { background: linear-gradient(135deg, rgba(179,240,0,0.05), rgba(179,240,0,0.01)); border-color: rgba(179,240,0,0.2); }
@@ -611,11 +618,11 @@
         </div>
       </div>
       <div class="mood-tick-list">
-        <div class="mood-tick" data-mood="best"    onclick="setMood('best')"   ><span class="tick-emoji">😄</span><span class="tick-label">최고</span></div>
-        <div class="mood-tick" data-mood="good"    onclick="setMood('good')"   ><span class="tick-emoji">😊</span><span class="tick-label">좋음</span></div>
-        <div class="mood-tick" data-mood="neutral" onclick="setMood('neutral')"><span class="tick-emoji">😐</span><span class="tick-label">보통</span></div>
-        <div class="mood-tick" data-mood="bad"     onclick="setMood('bad')"    ><span class="tick-emoji">😟</span><span class="tick-label">나쁨</span></div>
-        <div class="mood-tick" data-mood="worst"   onclick="setMood('worst')"  ><span class="tick-emoji">😭</span><span class="tick-label">최악</span></div>
+        <div class="mood-tick" data-mood="best"    onclick="setMood('best')"   ><span class="tick-emoji" style="color:#b3f000"><i data-lucide="laugh"></i></span><span class="tick-label">최고</span></div>
+        <div class="mood-tick" data-mood="good"    onclick="setMood('good')"   ><span class="tick-emoji" style="color:#a3e635"><i data-lucide="smile"></i></span><span class="tick-label">좋음</span></div>
+        <div class="mood-tick" data-mood="neutral" onclick="setMood('neutral')"><span class="tick-emoji" style="color:#9ca3af"><i data-lucide="meh"></i></span><span class="tick-label">보통</span></div>
+        <div class="mood-tick" data-mood="bad"     onclick="setMood('bad')"    ><span class="tick-emoji" style="color:#fb923c"><i data-lucide="frown"></i></span><span class="tick-label">나쁨</span></div>
+        <div class="mood-tick" data-mood="worst"   onclick="setMood('worst')"  ><span class="tick-emoji" style="color:#f87171"><i data-lucide="angry"></i></span><span class="tick-label">최악</span></div>
       </div>
     </div>
   </div>
@@ -745,11 +752,11 @@
     <div class="card-title">하루 마무리</div>
     <div class="day-sub-lbl">오늘 기분</div>
     <div class="day-mood-row" id="day-mood-row">
-      <button class="day-mood-btn" data-m="1" onclick="setDayMood(1)">😭</button>
-      <button class="day-mood-btn" data-m="2" onclick="setDayMood(2)">😟</button>
-      <button class="day-mood-btn" data-m="3" onclick="setDayMood(3)">😐</button>
-      <button class="day-mood-btn" data-m="4" onclick="setDayMood(4)">😊</button>
-      <button class="day-mood-btn" data-m="5" onclick="setDayMood(5)">😄</button>
+      <button class="day-mood-btn" data-m="1" style="--m:#f87171" onclick="setDayMood(1)"><i data-lucide="angry"></i><span>최악</span></button>
+      <button class="day-mood-btn" data-m="2" style="--m:#fb923c" onclick="setDayMood(2)"><i data-lucide="frown"></i><span>나쁨</span></button>
+      <button class="day-mood-btn" data-m="3" style="--m:#9ca3af" onclick="setDayMood(3)"><i data-lucide="meh"></i><span>보통</span></button>
+      <button class="day-mood-btn" data-m="4" style="--m:#a3e635" onclick="setDayMood(4)"><i data-lucide="smile"></i><span>좋음</span></button>
+      <button class="day-mood-btn" data-m="5" style="--m:#b3f000" onclick="setDayMood(5)"><i data-lucide="laugh"></i><span>최고</span></button>
     </div>
     <div class="day-sub-lbl">수면 시간</div>
     <div class="sleep-row">
@@ -1052,9 +1059,9 @@
     <div class="fg">
       <label>어땠나요?</label>
       <div class="rv-rate-row">
-        <button class="rv-rate-btn" data-r="good" onclick="setReviewRating('good')">😀 좋았어</button>
-        <button class="rv-rate-btn" data-r="ok" onclick="setReviewRating('ok')">😐 그럭저럭</button>
-        <button class="rv-rate-btn" data-r="bad" onclick="setReviewRating('bad')">😞 별로</button>
+        <button class="rv-rate-btn" data-r="good" style="--m:#a3e635" onclick="setReviewRating('good')"><i data-lucide="smile"></i>좋았어</button>
+        <button class="rv-rate-btn" data-r="ok" style="--m:#9ca3af" onclick="setReviewRating('ok')"><i data-lucide="meh"></i>그럭저럭</button>
+        <button class="rv-rate-btn" data-r="bad" style="--m:#fb923c" onclick="setReviewRating('bad')"><i data-lucide="frown"></i>별로</button>
       </div>
     </div>
     <div class="fg"><label>한줄 코멘트 (선택)</label><input id="rv-note" placeholder="느낀 점 한 줄..." maxlength="80"/></div>
@@ -2360,8 +2367,10 @@ function renderStats() {
 
   // Habit comparison
   const comp = $('habit-comp');
-  if (!habits.length) { comp.innerHTML='<p style="color:#999;font-size:.83rem;">습관을 추가하면 표시됩니다</p>'; return; }
-  comp.innerHTML = habits.map(h => {
+  // 습관이 없어도 여기서 함수를 끝내면 안 돼요. 아래 주간 요약·기분 차트·상관분석은
+  // 기분과 수면만 있어도 보여줄 수 있는데, 예전엔 통째로 안 그려졌어요.
+  if (!habits.length) comp.innerHTML='<p style="color:var(--muted);font-size:.83rem;">습관을 추가하면 표시됩니다</p>';
+  else comp.innerHTML = habits.map(h => {
     const r=successRate(h), s=streakCount(h);
     return `<div class="hcomp-item">
       <div class="hcomp-top"><span>${esc(h.name)}</span><span style="font-weight:700;color:var(--primary)">${r}%</span></div>
@@ -2380,7 +2389,8 @@ function renderWeekly(){
   const el=$('weekly-dash'); if(!el) return;
   const moods=loadMoods(), days=loadDayData();
   const WD=['일','월','화','수','목','금','토'];
-  const EMO={worst:'😭',bad:'😟',neutral:'😐',good:'😊',best:'😄'};
+  // 칸이 좁아서 아이콘 대신 기분 색 점으로 표시해요
+  const MOOD_DOT={worst:'#f87171',bad:'#fb923c',neutral:'#9ca3af',good:'#a3e635',best:'#b3f000'};
   const rows=[]; let rateSum=0,rateN=0,sleepSum=0,sleepN=0;
   for(let i=6;i>=0;i--){
     const dt=parseYmd(todayStr()); dt.setDate(dt.getDate()-i);
@@ -2402,7 +2412,7 @@ function renderWeekly(){
       <span class="wk-day">${r.wd}</span>
       <div class="wk-bar-wrap"><div class="wk-bar" style="width:${r.rate||0}%;"></div></div>
       <span class="wk-rate">${r.rate!==null?r.rate+'%':'·'}</span>
-      <span class="wk-mood">${r.mood?EMO[r.mood]:'·'}</span>
+      <span class="wk-mood">${r.mood?`<span class="wk-mood-dot" style="background:${MOOD_DOT[r.mood]}" title="${esc(MOOD_LABEL[r.mood]||'')}"></span>`:'·'}</span>
       <span class="wk-sleep">${r.smin!==null?(r.smin/60).toFixed(1)+'h':'·'}</span>
     </div>`).join('');
 }
@@ -2454,7 +2464,7 @@ function renderCorrelation(){
   if(wAvg!==null && pAvg!==null && wAvg>pAvg) insight += `잘 잔 날 실천율이 <b>${wAvg-pAvg}%p</b> 높아요.`;
 
   el.innerHTML=`
-    <div class="corr-group-lbl">😊 기분</div>
+    <div class="corr-group-lbl"><i data-lucide="smile" style="width:13px;height:13px;vertical-align:-2px;"></i> 기분</div>
     ${bar('기분 좋은 날', gAvg, goodRates.length, 'var(--primary)')}
     ${bar('기분 나쁜 날', bAvg, badRates.length, '#f87171')}
     <div class="corr-group-lbl" style="margin-top:12px;">🌙 수면</div>
@@ -2465,7 +2475,7 @@ function renderCorrelation(){
 
 // ── MOOD ──────────────────────────────────────────────────
 const MOODS      = ['worst','bad','neutral','good','best'];
-const MOOD_LABEL = { worst:'😭 최악', bad:'😟 나쁨', neutral:'😐 보통', good:'😊 좋음', best:'😄 최고' };
+const MOOD_LABEL = { worst:'최악', bad:'나쁨', neutral:'보통', good:'좋음', best:'최고' };
 const MOOD_COLOR = { worst:'rgba(248,113,113,0.75)', bad:'rgba(251,191,36,0.75)', neutral:'rgba(156,163,175,0.75)', good:'rgba(52,211,153,0.75)', best:'rgba(179,240,0,0.75)' };
 const MOOD_SOLID = { worst:'#f87171', bad:'#fbbf24', neutral:'#94a3b8', good:'#34d399', best:'#b3f000' };
 // 슬라이더: 위에서부터 best→worst, 각 단계 %
@@ -2606,7 +2616,7 @@ function renderMoodChart() {
           min: 0, max: 100,
           ticks: {
             stepSize: 25, font: { size: 9 }, color: '#555',
-            callback: v => ({ 0:'😭', 25:'😟', 50:'😐', 75:'😊', 100:'😄' })[v] ?? v + '%'
+            callback: v => ({ 0:'최악', 25:'나쁨', 50:'보통', 75:'좋음', 100:'최고' })[v] ?? v + '%'
           },
           grid: { color: '#1a1a1a' }
         },
