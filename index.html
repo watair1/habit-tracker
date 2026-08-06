@@ -277,6 +277,12 @@
     .mood-seg-btn { flex: 1; padding: 10px 0; border: none; background: transparent; color: var(--muted); font-size: .78rem; font-weight: 700; border-radius: 9px; cursor: pointer; transition: background .18s, color .18s, transform .18s; font-family: inherit; }
     .mood-seg-btn:active { transform: scale(.95); }
     .mood-seg-btn.sel { background: var(--m); color: #0a0a0a; }
+    .mood-streak { font-size: .68rem; color: var(--muted); white-space: nowrap; }
+    .mood-recent { display: flex; align-items: flex-end; gap: 5px; margin-top: 13px; }
+    .mood-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .mood-bar { width: 100%; max-width: 26px; border-radius: 5px; background: #1c1c1c; transition: height .25s, background .25s; }
+    .mood-col-lbl { font-size: .58rem; color: #555; }
+    .mood-col.today .mood-col-lbl { color: var(--primary); font-weight: 800; }
     .hcomp-sub { font-size: .68rem; color: #444; margin-top: 3px; }
     .heatmap-legend { display: flex; gap: 7px; align-items: center; margin-top: 9px; font-size: .65rem; color: #444; }
     .hm-legend-box { width: 11px; height: 11px; border-radius: 2px; }
@@ -594,8 +600,12 @@
     </div>
   </div>
   <div class="card" style="margin-bottom:13px;">
-    <div class="card-title">오늘의 기분</div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:11px;">
+      <div class="card-title" style="margin-bottom:0;">오늘의 기분</div>
+      <div class="mood-streak" id="mood-streak"></div>
+    </div>
     <div class="mood-seg" id="mood-seg"></div>
+    <div class="mood-recent" id="mood-recent"></div>
   </div>
 
   <div class="add-bar">
@@ -997,6 +1007,11 @@
     <div class="fg">
       <label>색상</label>
       <div class="ev-color-row" id="ev-color-row"></div>
+    </div>
+    <div class="fg">
+      <label>분야 (선택)</label>
+      <select id="ev-cat"><option value="">없음</option></select>
+      <div style="font-size:.66rem;color:var(--muted);margin-top:5px;">분야를 정하면 통계의 "카테고리별 시간"에 잡혀요</div>
     </div>
     <div class="fg">
       <label>연결할 습관 (선택)</label>
@@ -1640,8 +1655,45 @@ function setDay(date, obj) {
   saveDayData(all);
 }
 // ── 주간 계획 (STEP1 분량확인 · STEP2 시간배분) ────────────
-const loadWeekPlan = () => lsGet(K.wk, {});
+// 분야는 전체 공용, 목표량만 주별로 둡니다.
+//   예전: { '2026-08-02': { cats:[{id,name,color,targetNum,unit,doneNum}] } }   ← 주마다 따로
+//   지금: { cats:[{id,name,color}], weeks:{ '2026-08-02': { catId:{targetNum,unit,doneNum} } } }
+// "생리학"이 주마다 다른 것으로 취급되던 걸 하나로 합치는 거예요.
+function migrateWeekPlan(plan) {
+  const cats = [], weeks = {}, byName = {}, remap = {};
+  Object.keys(plan || {}).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().forEach(ws => {
+    (plan[ws].cats || []).forEach(c => {
+      const n = normWeekCat({ ...c });
+      let g = byName[n.name];
+      if (!g) { g = { id: n.id, name: n.name, color: n.color }; byName[n.name] = g; cats.push(g); }
+      remap[n.id] = g.id;
+      weeks[ws] = weeks[ws] || {};
+      weeks[ws][g.id] = { targetNum: n.targetNum || 0, unit: n.unit || '', doneNum: n.doneNum || 0 };
+    });
+  });
+  // 이미 만들어진 일정에 박힌 예전 분야 id 도 바꿔줘야 통계에서 안 사라져요
+  const changed = Object.keys(remap).filter(k => remap[k] !== k);
+  if (changed.length) {
+    const days = loadDayData(); let touched = false;
+    Object.values(days).forEach(rec => (rec.events || []).forEach(e => {
+      if (e.catId && remap[e.catId] && remap[e.catId] !== e.catId) { e.catId = remap[e.catId]; touched = true; }
+    }));
+    if (touched) saveDayData(days);
+  }
+  return { cats, weeks };
+}
+const loadWeekPlan = () => {
+  const raw = lsGet(K.wk, {});
+  if (raw && raw.cats && raw.weeks) return raw;          // 이미 새 구조
+  const migrated = migrateWeekPlan(raw);
+  lsSet(K.wk, migrated);                                  // 한 번만 변환해서 저장
+  return migrated;
+};
 function saveWeekPlan(d) { lsSet(K.wk, d); scheduleSync(); }
+// 전체 공용 분야 목록
+function allCats() { return loadWeekPlan().cats || []; }
+function saveAllCats(cats) { const p = loadWeekPlan(); p.cats = cats; saveWeekPlan(p); }
+function catById(id) { return allCats().find(c => c.id === id) || null; }
 // 루틴 템플릿
 const loadTemplates = () => lsGet(K.tpl, []);
 function saveTemplates(d) { lsSet(K.tpl, d); scheduleSync(); }
@@ -2211,8 +2263,8 @@ function setCatChartMode(m){ catChartMode=m; renderCategoryChart(loadHabits()); 
 
 // 주간계획 카테고리 id → {name, color} (여러 주에 걸쳐 같은 이름은 하나로 합침)
 function weekCatLookup(){
-  const byId={}, plan=loadWeekPlan();
-  Object.values(plan).forEach(w=>(w.cats||[]).forEach(c=>{ byId[c.id]={ name:c.name, color:c.color }; }));
+  const byId={};
+  allCats().forEach(c=>{ byId[c.id]={ name:c.name, color:c.color }; });
   return byId;
 }
 // 최근 30일 일정에서 카테고리별 배정 시간(분)을 모음. 이름이 같으면 합산.
@@ -2465,7 +2517,35 @@ function setMood(mood) {
 
 function renderMoodPicker() {
   const el = $('mood-seg'); if (!el) return;
-  el.innerHTML = moodSegHTML(loadMoods()[todayStr()], 'setMood');
+  const moods = loadMoods();
+  el.innerHTML = moodSegHTML(moods[todayStr()], 'setMood');
+
+  // 고르고 나면 끝인 카드라 허전해서, 최근 흐름을 같이 보여줘요.
+  // 오늘 기분 하나보다 "요즘 어땠는지"가 더 쓸모 있거든요.
+  const days = 7, bars = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = parseYmd(todayStr()); d.setDate(d.getDate() - i);
+    const ds = ymd(d), m = moods[ds];
+    bars.push({ ds, m, isToday: i === 0, wd: ['일','월','화','수','목','금','토'][d.getDay()] });
+  }
+  $('mood-recent').innerHTML = bars.map(b => {
+    const lvl = { worst: 20, bad: 40, neutral: 60, good: 80, best: 100 }[b.m] || 12;
+    const bg = b.m ? MOOD_SOLID[b.m] : '#1c1c1c';
+    return `<div class="mood-col${b.isToday ? ' today' : ''}" title="${esc(b.ds)}${b.m ? ' · ' + MOOD_LABEL[b.m] : ''}">
+      <div class="mood-bar" style="height:${lvl * 0.44}px;background:${bg};"></div>
+      <div class="mood-col-lbl">${b.wd}</div>
+    </div>`;
+  }).join('');
+
+  // 며칠째 기록 중인지 (기록 자체를 습관으로 만들어주는 장치)
+  let streak = 0;
+  for (let i = 0; i < 400; i++) {
+    const d = parseYmd(todayStr()); d.setDate(d.getDate() - i);
+    if (moods[ymd(d)]) streak++;
+    else if (i > 0) break;                 // 오늘 아직 안 적었어도 어제까지는 인정
+    else continue;
+  }
+  $('mood-streak').textContent = streak >= 2 ? `${streak}일째 기록 중` : '';
 }
 
 function renderMoodChart() {
@@ -3619,40 +3699,54 @@ function normWeekCat(c){
   if(c.doneNum===undefined) c.doneNum=0;
   return c;
 }
-function weekCats(){
-  const plan=loadWeekPlan();
-  return ((plan[wkPlanCursor] && plan[wkPlanCursor].cats) || []).map(normWeekCat);
+// 이번 주 목표량 (분야 id → {targetNum, unit, doneNum})
+function weekTargets(){
+  const p=loadWeekPlan();
+  return (p.weeks && p.weeks[wkPlanCursor]) || {};
 }
-function saveWeekCats(cats){
-  const plan=loadWeekPlan();
-  plan[wkPlanCursor] = plan[wkPlanCursor] || {};
-  plan[wkPlanCursor].cats = cats;
-  saveWeekPlan(plan);
+function saveWeekTargets(t){
+  const p=loadWeekPlan();
+  p.weeks = p.weeks || {};
+  p.weeks[wkPlanCursor] = t;
+  saveWeekPlan(p);
+}
+// STEP1 화면용: 공용 분야 + 이번 주 목표량을 합쳐서 돌려줌
+function weekCats(){
+  const t=weekTargets();
+  return allCats().map(c => ({ ...c, targetNum:0, unit:'', doneNum:0, ...(t[c.id]||{}) }));
 }
 function addWeekCat(){
   const nameInp=$('wk-cat-name'), targetInp=$('wk-cat-target'), unitInp=$('wk-cat-unit');
   const name=nameInp.value.trim();
   if(!name) return;
-  const targetNum=parseFloat(targetInp.value)||0;
-  const cats=weekCats();
-  const color=WK_CAT_COLORS[cats.length % WK_CAT_COLORS.length];
-  cats.push({ id:uid(), name, color, targetNum, unit:unitInp.value.trim(), doneNum:0 });
-  saveWeekCats(cats);
+  const cats=allCats();
+  let c=cats.find(x=>x.name===name);            // 같은 이름이면 새로 만들지 않고 재사용
+  if(!c){
+    c={ id:uid(), name, color:WK_CAT_COLORS[cats.length % WK_CAT_COLORS.length] };
+    cats.push(c); saveAllCats(cats);
+  }
+  const t=weekTargets();
+  t[c.id]={ targetNum:parseFloat(targetInp.value)||0, unit:unitInp.value.trim(), doneNum:(t[c.id]&&t[c.id].doneNum)||0 };
+  saveWeekTargets(t);
   nameInp.value=''; targetInp.value=''; unitInp.value=''; nameInp.focus();
   renderWeekCats();
 }
 // 진행량 입력 (0 ~ 목표량 범위로 정리)
 function setWeekCatDone(id, val){
-  const cats=weekCats(), c=cats.find(x=>x.id===id);
-  if(!c) return;
+  const t=weekTargets(), cur=t[id];
+  if(!cur) return;
   let v=parseFloat(val); if(!isFinite(v)||v<0) v=0;
-  if(c.targetNum>0 && v>c.targetNum) v=c.targetNum;
-  c.doneNum=v;
-  saveWeekCats(cats);
+  if(cur.targetNum>0 && v>cur.targetNum) v=cur.targetNum;
+  t[id]={ ...cur, doneNum:v };
+  saveWeekTargets(t);
   renderWeekCats();
 }
+// 분야를 지우면 모든 주의 목표량도 같이 정리해요 (일정의 분야 표시는 자동으로 풀림)
 function delWeekCat(id){
-  saveWeekCats(weekCats().filter(c=>c.id!==id));
+  saveAllCats(allCats().filter(c=>c.id!==id));
+  const p=loadWeekPlan();
+  Object.values(p.weeks||{}).forEach(w=>{ delete w[id]; });
+  saveWeekPlan(p);
   if(wkActiveCat===id) wkActiveCat=null;
   renderWeekCats();
 }
@@ -3682,13 +3776,15 @@ function renderWeekCats(){
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 // 특정 날짜의 카테고리 연결 이벤트를 30분 슬롯 배열로 변환
+// 격자는 자기가 만든 일정(fromGrid)만 다뤄요. 손으로 만든 일정은 분야가 붙어 있어도
+// 격자가 건드리지 않습니다 — 안 그러면 격자를 칠할 때 통째로 지워져요.
 function dayCellsFromEvents(date, cats){
   const catIds=new Set(cats.map(c=>c.id));
   const day=getDay(date);
   const totalSlots=(WK_GRID_END-WK_GRID_START)*2;
   const cells=new Array(totalSlots).fill(null);
   day.events.forEach(e=>{
-    if(!e.catId || !catIds.has(e.catId)) return;
+    if(!e.fromGrid || !e.catId || !catIds.has(e.catId)) return;
     const s=Math.max(WK_GRID_START*60, hmToMin(e.start)), en=Math.min(WK_GRID_END*60, hmToMin(e.end));
     for(let m=s; m<en; m+=SNAP){
       const idx=(m-WK_GRID_START*60)/SNAP;
@@ -3764,7 +3860,7 @@ function commitWeekGrid(){
   const cats=weekCats(); const catIds=new Set(cats.map(c=>c.id));
   Object.keys(wkGridState).forEach(ds=>{
     const d=getDay(ds);
-    d.events = d.events.filter(e=>!(e.catId && catIds.has(e.catId)));
+    d.events = d.events.filter(e=>!e.fromGrid);        // 격자가 만든 것만 갈아끼움
     const cells=wkGridState[ds];
     let i=0;
     while(i<cells.length){
@@ -3774,7 +3870,7 @@ function commitWeekGrid(){
       while(j<cells.length && cells[j]===catId) j++;
       const startMin=WK_GRID_START*60 + i*SNAP, endMin=WK_GRID_START*60 + j*SNAP;
       const cat=cats.find(c=>c.id===catId);
-      d.events.push({ id:uid(), title:cat?cat.name:'계획', start:minToHm(startMin), end:minToHm(endMin), color:cat?cat.color:'#666', review:null, catId });
+      d.events.push({ id:uid(), title:cat?cat.name:'계획', start:minToHm(startMin), end:minToHm(endMin), color:cat?cat.color:'#666', review:null, catId, fromGrid:true });
       i=j;
     }
     setDay(ds,d);
@@ -4232,12 +4328,15 @@ function openEventModal(id, prefillStart){
   // 연결 습관 드롭다운 채우기
   const habits=loadHabits();
   $('ev-habit').innerHTML=`<option value="">연결 안 함</option>`+habits.map(h=>`<option value="${h.id}">${esc(h.name)}</option>`).join('');
+  // 분야 드롭다운 (주간계획에서 만든 것들 — 이제 주에 상관없이 전부 고를 수 있어요)
+  $('ev-cat').innerHTML=`<option value="">없음</option>`+allCats().map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   if(id){
     const ev=getDay(dayCursor).events.find(x=>x.id===id);
     $('event-modal-title').textContent='일정 편집';
     $('ev-title').value=ev.title; $('ev-start').value=ev.start; $('ev-end').value=ev.end;
     _evColorSel=ev.color||EV_COLORS[0];
     $('ev-habit').value=ev.habitId||'';
+    $('ev-cat').value=ev.catId||'';
     $('event-del-btn').style.display='';
   } else {
     const s=prefillStart||9*60;
@@ -4245,6 +4344,7 @@ function openEventModal(id, prefillStart){
     $('ev-title').value=''; $('ev-start').value=minToHm(s); $('ev-end').value=minToHm(s+60);
     _evColorSel=EV_COLORS[0];
     $('ev-habit').value='';
+    $('ev-cat').value='';
     $('event-del-btn').style.display='none';
   }
   pickEvColor(_evColorSel);
@@ -4258,12 +4358,13 @@ function saveEvent(){
   let start=minToHm(snapMin(hmToMin($('ev-start').value))), end=minToHm(snapMin(hmToMin($('ev-end').value)));
   if(hmToMin(end)<=hmToMin(start)) end=minToHm(hmToMin(start)+SNAP);
   const habitId=$('ev-habit').value||null;
+  const catId=$('ev-cat').value||null;
   const d=getDay(dayCursor);
   if(_editingEventId){
     const ev=d.events.find(x=>x.id===_editingEventId);
-    ev.title=title; ev.start=start; ev.end=end; ev.color=_evColorSel; ev.habitId=habitId;
+    ev.title=title; ev.start=start; ev.end=end; ev.color=_evColorSel; ev.habitId=habitId; ev.catId=catId;
   } else {
-    d.events.push({ id:uid(), title, start, end, color:_evColorSel, review:null, habitId });
+    d.events.push({ id:uid(), title, start, end, color:_evColorSel, review:null, habitId, catId });
   }
   setDay(dayCursor,d);
   closeModal('event-modal'); _editingEventId=null;
