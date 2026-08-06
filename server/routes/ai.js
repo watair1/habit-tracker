@@ -154,6 +154,69 @@ router.post('/auto-schedule', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+
+/**
+ * 모델이 돌려준 [{habit, why}] 중, 실제로 존재하는 습관만 남깁니다.
+ * 없는 습관 이름을 지어내면 사용자는 자기 기록이 아닌 조언을 보게 돼요.
+ * @param {any} arr - 모델 출력
+ * @param {Set<string>} names - 요청에 담겨 온 실제 습관 이름들
+ * @returns {{habit:string, why:string}[]} 최대 2개
+ */
+export function filterHabitNotes(arr, names) {
+  return (Array.isArray(arr) ? arr : [])
+    .filter(x => x && typeof x.habit === 'string' && names.has(x.habit))
+    .slice(0, 2)
+    .map(x => ({ habit: x.habit, why: String(x.why || '').slice(0, 120) }));
+}
+
+// ── 9. 성장 예측 (숫자만 늘려 잡는 대신, 패턴을 읽어 해석) ──
+router.post('/growth-forecast', async (req, res) => {
+  const { habits, goals, finalGoal, trackedDays } = req.body || {};
+  if (!need(res, Array.isArray(habits) && habits.length, '예측하려면 습관이 하나는 있어야 해요.')) return;
+  try {
+    const names = new Set(habits.map(h => h.name));
+    const sys = `너는 습관 기록을 보고 앞날을 현실적으로 내다보는 코치다.
+지금 속도를 그대로 곱하는 단순 계산은 이미 앱이 하고 있다. 너는 기록에서 읽히는
+패턴(무너지는 조짐, 잘 굳은 것, 빈도가 과한 것)으로 판단해라.
+
+반드시 JSON만 출력:
+{
+ "outlook":"이대로 가면 3개월·1년 뒤 어떤 상태일지 (3~4문장, 사용자의 숫자를 근거로)",
+ "risks":[{"habit":"습관 이름","why":"무너질 것 같은 이유 한 문장"}],
+ "keep":[{"habit":"습관 이름","why":"잘 굳고 있는 이유 한 문장"}],
+ "focus":"지금 딱 하나만 바꾼다면 무엇을 어떻게 (2문장)"
+}
+
+규칙:
+- risks 와 keep 은 각각 최대 2개. 해당 없으면 빈 배열로 둬라.
+- 습관 이름은 아래 목록에 있는 것만 그대로 써라. 새로 지어내지 마라.
+- 성공률이 낮다고 다그치지 마라. 빈도를 낮춰 지킬 수 있게 만드는 쪽을 먼저 제안해라.
+- "무조건 성공한다" 같은 근거 없는 장담은 하지 마라. 기록이 적으면 적다고 말해라.
+- 존댓말, 친근하되 담백하게.`;
+
+    const habitText = habits.map(h =>
+      `- ${h.name} (${h.freq || '매일'}): 성공률 ${h.successRate ?? '-'}%, 현재 ${h.streak ?? 0}${h.streakUnit || '일'} 연속, 최고 ${h.maxStreak ?? 0}${h.streakUnit || '일'}, 누적 ${h.totalChecks ?? 0}회, 최근30일=[${(h.last30 || []).map(v => v ? 'O' : '.').join('')}]`
+    ).join('\n');
+    const goalText = (goals || []).map(g => `- ${g.title} (${g.type === 'long' ? '장기' : g.type === 'mid' ? '중기' : '단기'}${g.targetDate ? ', 기한 ' + g.targetDate : ''})`).join('\n') || '없음';
+
+    const user = `기록 기간: ${trackedDays ?? '-'}일
+습관 ${habits.length}개:
+${habitText}
+
+목표:
+${goalText}
+최종 목표: ${finalGoal && finalGoal.title ? finalGoal.title : '미설정'}`;
+
+    const out = await callGemini(sys, user, { json: true });
+    res.json({
+      outlook: String(out.outlook || '').slice(0, 600),
+      risks: filterHabitNotes(out.risks, names),
+      keep: filterHabitNotes(out.keep, names),
+      focus: String(out.focus || '').slice(0, 300),
+    });
+  } catch (e) { fail(res, e); }
+});
+
 // ── 8. 앱 비서 (에이전트: 대화 → 답변 + 실행 액션) ────────
 //  하루(일정/할일/하이라이트/기분/수면/메모)뿐 아니라
 //  습관·목표·아이디어 메모까지 앱 전체를 다룰 수 있음.

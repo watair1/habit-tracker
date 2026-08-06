@@ -264,6 +264,12 @@
     .ai-result-meta { font-size:.67rem; color:#3a3a3a; text-align:right; padding-bottom:8px; }
     .ai-section { background:var(--card); border:1px solid var(--border); border-radius:var(--r); margin-bottom:10px; overflow:hidden; }
     .ai-section-header { display:flex; align-items:center; gap:9px; padding:12px 15px 10px; border-bottom:1px solid var(--border); }
+    .pred-ai-box { background: var(--card2); border: 1px solid var(--border); border-radius: 13px; padding: 14px; }
+    .pred-ai-text { font-size: .82rem; line-height: 1.65; color: var(--text); }
+    .pred-ai-list { margin-top: 11px; display: flex; flex-direction: column; gap: 7px; }
+    .pred-ai-row { display: flex; gap: 7px; font-size: .77rem; line-height: 1.55; color: var(--muted); }
+    .pred-ai-row b { color: var(--text); font-weight: 700; }
+    .pred-ai-focus { display: flex; gap: 7px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); font-size: .79rem; line-height: 1.6; color: var(--primary); }
     .ai-section-icon { display:inline-flex; align-items:center; color:var(--primary); }
     .ai-section-icon svg { width:16px; height:16px; }
     .ai-section-title { font-size:.8rem; font-weight:700; color:var(--primary); }
@@ -863,6 +869,10 @@
     <div class="card-title" style="color:#b3f000;">성장 예측</div>
     <div id="pred-content"></div>
     <div class="chart-box sm"><canvas id="pred-chart"></canvas></div>
+    <button class="btn btn-outline" id="pred-ai-btn" style="width:100%;margin-top:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;" onclick="requestGrowthForecast()">
+      <i data-lucide="sparkles" style="width:15px;height:15px;"></i>AI로 자세히 읽어보기
+    </button>
+    <div id="pred-ai" style="margin-top:12px;"></div>
   </div>
   <div class="card">
     <div class="card-title">추천 루틴</div>
@@ -5108,6 +5118,51 @@ async function requestWeeklyReport(){
 }
 
 // 분석 탭: 실패 패턴 분석
+// 성장 예측을 AI 가 읽어서 해석해줌.
+// 위의 숫자(3개월/1년 예상 완료)는 지금 속도를 그대로 곱한 값이라, 뜻까지는 알려주지 못해요.
+async function requestGrowthForecast(){
+  const habits=loadHabits();
+  const box=$('pred-ai'), btn=$('pred-ai-btn');
+  if(!habits.length){ showToast('습관을 먼저 추가해주세요'); return; }
+  box.innerHTML=`<div class="day-summary-ai"><span class="ai-spin"></span> 기록을 읽는 중...</div>`;
+  btn.disabled=true;
+  // 최근 30일 실행 패턴을 같이 보내서, 평균만이 아니라 흐름을 보게 함
+  const last30=[]; { const t=parseYmd(todayStr());
+    for(let i=29;i>=0;i--){ const d=new Date(t); d.setDate(d.getDate()-i); last30.push(ymd(d)); } }
+  const allDates=new Set(); habits.forEach(h=>Object.keys(h.checked).forEach(d=>allDates.add(d)));
+  try{
+    const out=await aiCall('/api/growth-forecast',{
+      trackedDays: allDates.size,
+      habits: habits.map(h=>({
+        name:h.name, freq:freqLabel(h), successRate:successRate(h),
+        streak:streakCount(h), streakUnit:streakUnit(h), maxStreak:maxStreak(h),
+        totalChecks:Object.keys(h.checked).length,
+        last30: last30.map(ds=>!!h.checked[ds]),
+      })),
+      goals: loadGoals().map(g=>({ title:g.title, type:g.type, targetDate:g.targetDate||'' })),
+      finalGoal: loadFinalGoal(),
+    });
+    const list=(items,icon,color)=> items.length ? `<div class="pred-ai-list">`+items.map(x=>`
+        <div class="pred-ai-row">
+          <i data-lucide="${icon}" style="width:14px;height:14px;color:${color};flex-shrink:0;margin-top:2px;"></i>
+          <div><b>${esc(x.habit)}</b> — ${esc(x.why)}</div>
+        </div>`).join('')+`</div>` : '';
+    box.innerHTML=`
+      <div class="pred-ai-box">
+        <div class="pred-ai-text">${esc(out.outlook||'')}</div>
+        ${list(out.keep||[], 'trending-up', '#b3f000')}
+        ${list(out.risks||[], 'triangle-alert', '#fb923c')}
+        ${out.focus?`<div class="pred-ai-focus">
+          <i data-lucide="target" style="width:14px;height:14px;flex-shrink:0;margin-top:2px;"></i>
+          <div>${esc(out.focus)}</div></div>`:''}
+      </div>`;
+    if(typeof lucide!=='undefined') lucide.createIcons();
+  }catch(err){
+    box.innerHTML=`<div class="ai-error"><div class="ai-error-title">읽지 못했어요</div><div class="ai-error-body">${esc(err.message)}</div></div>`;
+  }
+  btn.disabled=false;
+}
+
 async function requestFailAnalysisAI(){
   const box=$('fail-ai-box');
   box.innerHTML=`<div class="day-summary-ai"><span class="ai-spin"></span> 실패 패턴 분석 중...</div>`;
