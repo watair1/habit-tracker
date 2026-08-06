@@ -171,7 +171,7 @@ export function filterHabitNotes(arr, names) {
 
 // ── 9. 성장 예측 (숫자만 늘려 잡는 대신, 패턴을 읽어 해석) ──
 router.post('/growth-forecast', async (req, res) => {
-  const { habits, goals, finalGoal, trackedDays } = req.body || {};
+  const { habits, goals, finalGoal, trackedDays, pastBets } = req.body || {};
   if (!need(res, Array.isArray(habits) && habits.length, '예측하려면 습관이 하나는 있어야 해요.')) return;
   try {
     const names = new Set(habits.map(h => h.name));
@@ -184,7 +184,9 @@ router.post('/growth-forecast', async (req, res) => {
  "outlook":"이대로 가면 3개월·1년 뒤 어떤 상태일지 (3~4문장, 사용자의 숫자를 근거로)",
  "risks":[{"habit":"습관 이름","why":"무너질 것 같은 이유 한 문장"}],
  "keep":[{"habit":"습관 이름","why":"잘 굳고 있는 이유 한 문장"}],
- "focus":"지금 딱 하나만 바꾼다면 무엇을 어떻게 (2문장)"
+ "focus":"지금 딱 하나만 바꾼다면 무엇을 어떻게 (2문장)",
+ "cheer":"할 수 있다는 근거를 기록에서 찾아 건네는 말 (1~2문장)",
+ "bet":{"habit":"습관 이름","kind":"streak|rate|break","n":숫자,"days":7~30,"say":"예측 한 문장"}
 }
 
 [뻔한 말을 피하는 법 — 가장 중요]
@@ -205,11 +207,43 @@ router.post('/growth-forecast', async (req, res) => {
    이건 확실한 숫자 차이가 있을 때만 써라. 근거가 약하면 아예 쓰지 마라.
    단정하지 말고 "기록상으로는" 처럼 여지를 남겨라. 절대 먼저 나서서 반박하지 마라.
 
+[지난 예측의 성적표]
+아래 사용자 정보에 "지난 예측 채점"이 붙어 있으면, 그건 네가 전에 한 예측을
+앱이 실제 기록으로 채점한 결과다. 빗나간 게 있으면 outlook 의 첫 문장에서
+먼저 인정하고 시작해라. 변명하지 말고 담백하게, 그리고 왜 빗나갔는지 한 줄.
+  예: "지난번에 독서가 2주 안에 무너진다고 봤는데 빗나갔어요. 주말에 몰아서 읽는
+      패턴을 제가 못 봤네요."
+맞힌 것도 한 번은 짚어라. 다만 자랑하지 말고 근거로만 써라.
+채점 결과가 없으면 이 얘기는 아예 꺼내지 마라.
+
+[다음 예측 — bet]
+매번 하나씩, 나중에 앱이 기계적으로 채점할 수 있는 예측을 내놔라.
+사용자가 이걸 보고 "어디 맞나 보자" 하게 만드는 게 목적이다.
+  kind="streak" → 그 습관이 앞으로 days일 안에 n회 연속에 도달한다
+  kind="rate"   → 그 습관의 앞으로 days일 성공률이 n% 이상이다
+  kind="break"  → 그 습관이 앞으로 days일 안에 n회 넘게 비는 구간이 생긴다
+- n 과 days 는 반드시 숫자. days 는 7~30 사이.
+- habit 은 아래 목록에 있는 이름 그대로.
+- say 는 사용자에게 보여줄 한 문장. 숫자를 그대로 담아라.
+  예: "아침 운동, 3주 안에 21일 연속 찍을 것 같아요."
+- 안전하게 맞을 예측(이미 이룬 것)은 하지 마라. 반반쯤 되는 걸 걸어라.
+- 기록이 2주 미만이면 bet 을 null 로 둬라.
+
+[동기부여 — cheer]
+사람을 움직이는 건 "할 수 있겠다"는 느낌이다. 그걸 근거로 만들어줘라.
+- 근거 없는 응원은 금지. "넌 할 수 있어!" 만 있으면 아무 힘이 없다.
+- 반드시 이 사람 기록에서 근거를 하나 집어 붙여라.
+  예: "이미 47일을 해낸 사람이에요. 앞으로 남은 건 지금까지 해온 것보다 쉬워요."
+  예: "성공률 62%면 열 번 중 여섯 번은 이겼다는 뜻이에요. 그 정도면 충분히 굴러가요."
+- 단정하지는 말되 기울기는 확실히 긍정 쪽으로. "될 것 같아요", "못 할 이유가 없어요" 는 좋고
+  "무조건 성공합니다", "반드시 이룹니다" 는 안 된다.
+- risks 에서 겁을 줬다면 cheer 에서 반드시 균형을 잡아라. 걱정만 남기고 끝내지 마라.
+
 규칙:
 - risks 와 keep 은 각각 최대 2개. 해당 없으면 빈 배열로 둬라.
 - 습관 이름은 아래 목록에 있는 것만 그대로 써라. 새로 지어내지 마라.
 - 성공률이 낮다고 다그치지 마라. 빈도를 낮춰 지킬 수 있게 만드는 쪽을 먼저 제안해라.
-- "무조건 성공한다" 같은 근거 없는 장담은 하지 마라.
+- 장담과 격려는 다르다. 격려(cheer)는 반드시 하되, 근거는 반드시 기록에서 가져와라.
 - 기록이 2주 미만이면 억지로 패턴을 찾지 말고, 아직 판단하기 이르다고 솔직히 말해라.
 - 숫자를 지어내지 마라. 아래 준 기록에서 실제로 셀 수 있는 것만 말해라.
 - 존댓말, 친근하되 담백하게.`;
@@ -219,13 +253,21 @@ router.post('/growth-forecast', async (req, res) => {
     ).join('\n');
     const goalText = (goals || []).map(g => `- ${g.title} (${g.type === 'long' ? '장기' : g.type === 'mid' ? '중기' : '단기'}${g.targetDate ? ', 기한 ' + g.targetDate : ''})`).join('\n') || '없음';
 
+    // 지난 예측 채점표 — 앱이 실제 기록으로 매긴 점수라서 AI 가 부정할 수 없다.
+    const betText = (Array.isArray(pastBets) ? pastBets : []).slice(0, 4).map(b =>
+      `- (${b.madeAt || '?'} 예측) "${String(b.say || '').slice(0, 120)}" → ${b.result === 'hit' ? '맞았음' : '빗나감'}${b.detail ? ' (' + String(b.detail).slice(0, 60) + ')' : ''}`
+    ).join('\n');
+
     const user = `기록 기간: ${trackedDays ?? '-'}일
 습관 ${habits.length}개:
 ${habitText}
 
 목표:
 ${goalText}
-최종 목표: ${finalGoal && finalGoal.title ? finalGoal.title : '미설정'}`;
+최종 목표: ${finalGoal && finalGoal.title ? finalGoal.title : '미설정'}${betText ? `
+
+지난 예측 채점:
+${betText}` : ''}`;
 
     const out = await callGemini(sys, user, { json: true });
     res.json({
@@ -233,9 +275,29 @@ ${goalText}
       risks: filterHabitNotes(out.risks, names),
       keep: filterHabitNotes(out.keep, names),
       focus: String(out.focus || '').slice(0, 300),
+      cheer: String(out.cheer || '').slice(0, 300),
+      bet: sanitizeBet(out.bet, names),
     });
   } catch (e) { fail(res, e); }
 });
+
+// AI 가 내놓은 예측을 앱이 채점할 수 있는 형태로만 통과시킨다.
+// 없는 습관 이름이나 이상한 숫자가 들어오면 채점이 불가능해지므로 통째로 버린다.
+export function sanitizeBet(bet, names) {
+  if (!bet || typeof bet !== 'object') return null;
+  const kind = ['streak', 'rate', 'break'].includes(bet.kind) ? bet.kind : null;
+  if (!kind) return null;
+  if (typeof bet.habit !== 'string' || !names.has(bet.habit)) return null;
+  const n = Math.round(Number(bet.n));
+  if (!Number.isFinite(n) || n < 1) return null;
+  if (kind === 'rate' && n > 100) return null;
+  if (kind !== 'rate' && n > 365) return null;
+  const days = Math.round(Number(bet.days));
+  if (!Number.isFinite(days) || days < 7 || days > 30) return null;
+  const say = String(bet.say || '').slice(0, 140).trim();
+  if (!say) return null;
+  return { habit: bet.habit, kind, n, days, say };
+}
 
 // ── 8. 앱 비서 (에이전트: 대화 → 답변 + 실행 액션) ────────
 //  하루(일정/할일/하이라이트/기분/수면/메모)뿐 아니라

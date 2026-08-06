@@ -270,6 +270,25 @@
     .pred-ai-row { display: flex; gap: 7px; font-size: .77rem; line-height: 1.55; color: var(--muted); }
     .pred-ai-row b { color: var(--text); font-weight: 700; }
     .pred-ai-focus { display: flex; gap: 7px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); font-size: .79rem; line-height: 1.6; color: var(--primary); }
+    .pred-ai-cheer { display: flex; gap: 7px; margin-top: 10px; padding: 10px 11px; border-radius: 10px; background: rgba(179,240,0,.07); font-size: .79rem; line-height: 1.6; color: var(--text); }
+
+    /* AI 가 건 예측과 그 채점 결과 */
+    .bet-wrap { margin-top: 13px; display: flex; flex-direction: column; gap: 7px; }
+    .bet-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px 11px; border-radius: 11px; border: 1px solid var(--border); background: var(--card2); }
+    .bet-row i { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
+    .bet-body { flex: 1; min-width: 0; }
+    .bet-say { font-size: .79rem; line-height: 1.55; color: var(--text); }
+    .bet-meta { font-size: .69rem; color: var(--muted); margin-top: 3px; }
+    .bet-open { border-color: rgba(179,240,0,.3); }
+    .bet-open i { color: var(--primary); }
+    .bet-hit { border-color: rgba(52,211,153,.35); }
+    .bet-hit i { color: #34d399; }
+    .bet-miss { border-color: rgba(251,146,60,.35); }
+    .bet-miss i { color: #fb923c; }
+    .bet-void i { color: var(--muted); }
+    .bet-tag { font-size: .66rem; font-weight: 700; padding: 1px 6px; border-radius: 5px; margin-left: 5px; vertical-align: 1px; }
+    .bet-tag.hit { background: rgba(52,211,153,.15); color: #34d399; }
+    .bet-tag.miss { background: rgba(251,146,60,.15); color: #fb923c; }
     .ai-section-icon { display:inline-flex; align-items:center; color:var(--primary); }
     .ai-section-icon svg { width:16px; height:16px; }
     .ai-section-title { font-size:.8rem; font-weight:700; color:var(--primary); }
@@ -870,6 +889,7 @@
     <div class="card-title" style="color:#b3f000;">성장 예측</div>
     <div id="pred-content"></div>
     <div class="chart-box sm"><canvas id="pred-chart"></canvas></div>
+    <div id="pred-bets"></div>
     <button class="btn btn-outline" id="pred-ai-btn" style="width:100%;margin-top:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;" onclick="requestGrowthForecast()">
       <i data-lucide="sparkles" style="width:15px;height:15px;"></i>AI로 자세히 읽어보기
     </button>
@@ -1584,7 +1604,7 @@ async function loadFromCloud() {
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1', wk: 'ht_weekplan_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1', wk: 'ht_weekplan_v1', fc: 'ht_forecast_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 // ── 동기화 대상 목록과 변경 추적 ───────────────────────────
@@ -1595,7 +1615,7 @@ function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def
 const SYNC_STORES = [
   ['habits', K.h], ['user', K.u], ['goals', K.g], ['notif', K.n],
   ['finalgoal', K.f], ['todos', K.t], ['memos', K.m], ['mood', K.md],
-  ['day', K.d], ['templates', K.tpl], ['weekplan', K.wk],
+  ['day', K.d], ['templates', K.tpl], ['weekplan', K.wk], ['forecast', K.fc],
 ];
 const K_SYNCMETA = 'ht_syncmeta_v1';   // { 저장소키: { local: 고친시각, synced: 올린시각 } }
 function loadSyncMeta() { try { return JSON.parse(localStorage.getItem(K_SYNCMETA)) || {}; } catch { return {}; } }
@@ -1763,7 +1783,10 @@ function streakUnit(h) { return habitFreq(h).type === 'weekly' ? '주' : '일'; 
 // 습관을 만든 날부터 오늘까지의 '판정 단위' 목록.
 // 매일·특정요일 → 해야 했던 날짜들, 주 N회 → 각 주.
 // 성공률/현재 스트릭/최고 스트릭을 전부 이 하나에서 뽑아내 서로 어긋나지 않아요.
-function habitPeriods(h) {
+// 판정 단위마다 { key: 그 기간을 가리키는 날짜, done: 해냈는지 } 를 돌려줍니다.
+// key 가 붙어 있어야 "9월 1일부터 3주 동안" 같은 구간을 잘라 볼 수 있어요.
+// (AI 예측 채점이 이걸 씁니다)
+function habitPeriodsDetailed(h) {
   const f = habitFreq(h);
   const out = [];
   if (f.type === 'weekly') {
@@ -1775,22 +1798,24 @@ function habitPeriods(h) {
         const d = new Date(ws); d.setDate(d.getDate() + i);
         if (h.checked[ymd(d)]) n++;
       }
-      out.push(n >= f.times);
+      out.push({ key: ymd(ws), done: n >= f.times });
       ws = new Date(ws); ws.setDate(ws.getDate() + 7);
     }
   } else {
     const d = parseYmd(h.createdAt), today = parseYmd(todayStr());
     while (d <= today) {
-      if (f.type === 'daily' || f.days.includes(d.getDay())) out.push(!!h.checked[ymd(d)]);
+      if (f.type === 'daily' || f.days.includes(d.getDay())) out.push({ key: ymd(d), done: !!h.checked[ymd(d)] });
       d.setDate(d.getDate() + 1);
     }
   }
   // 마지막 기간(오늘 / 이번 주)은 아직 진행 중이에요. 아직 못 채웠다고 해서
   // 실패로 세면, 화요일에 주3회 습관의 연속 기록이 0으로 보이는 이상한 일이 생겨요.
   // 그래서 '진행 중이고 아직 못 채운' 기간은 점수에도 스트릭에도 넣지 않습니다.
-  if (out.length && out[out.length - 1] === false) out.pop();
+  if (out.length && out[out.length - 1].done === false) out.pop();
   return out;
 }
+
+function habitPeriods(h) { return habitPeriodsDetailed(h).map(p => p.done); }
 
 function streakCount(h) {
   const ps = habitPeriods(h);
@@ -1809,6 +1834,68 @@ function successRate(h) {
   const ps = habitPeriods(h);
   if (!ps.length) return 0;
   return Math.round(ps.filter(Boolean).length / ps.length * 100);
+}
+
+// ── AI 예측 채점 ─────────────────────────────────────────
+// 성장 예측이 매번 "검증 가능한 예측" 을 하나씩 내놓습니다.
+// 기한이 지나면 앱이 실제 기록으로 직접 채점해요. AI 한테 다시 물어보지 않습니다
+// (자기가 한 말을 스스로 채점하게 두면 늘 맞았다고 하니까요).
+// 채점 결과는 다음 예측 요청에 같이 보내서, 틀린 걸 먼저 인정하고 시작하게 합니다.
+const loadForecast = () => lsGet(K.fc, { bets: [] });
+function saveForecast(d) { lsSet(K.fc, d); scheduleSync(); }
+
+// 예측 하나를 실제 기록에 대고 채점.
+// 돌려주는 값: { hit: true/false, detail: '실제로는 이랬어요' }
+function scoreBet(bet, habit) {
+  const all = habitPeriodsDetailed(habit);
+  const inWin = p => p.key > bet.madeAt && p.key <= bet.dueAt;
+  const unit = streakUnit(habit);
+
+  if (bet.kind === 'rate') {
+    const ps = all.filter(inWin);
+    if (!ps.length) return null;                       // 아직 판정할 기록이 없음
+    const pct = Math.round(ps.filter(p => p.done).length / ps.length * 100);
+    return { hit: pct >= bet.n, detail: `실제로는 ${pct}%였어요` };
+  }
+
+  // 연속/공백은 예측 이전부터 이어지던 흐름도 함께 봐야 해서 전체를 훑습니다.
+  let run = 0, gap = 0, bestRun = 0, bestGap = 0, seen = 0;
+  all.forEach(p => {
+    if (p.done) { run++; gap = 0; } else { gap++; run = 0; }
+    if (inWin(p)) {
+      seen++;
+      if (run > bestRun) bestRun = run;
+      if (gap > bestGap) bestGap = gap;
+    }
+  });
+  if (!seen) return null;
+
+  if (bet.kind === 'streak') return { hit: bestRun >= bet.n, detail: `최고 ${bestRun}${unit} 연속까지 갔어요` };
+  return { hit: bestGap >= bet.n, detail: bestGap ? `가장 길게 빈 게 ${bestGap}${unit}이었어요` : '한 번도 빠지지 않았어요' };
+}
+
+// 기한이 찬 예측들을 한꺼번에 채점. 앱을 켤 때와 예측을 새로 받기 전에 돌아갑니다.
+function resolveBets() {
+  const fc = loadForecast();
+  if (!Array.isArray(fc.bets) || !fc.bets.length) return fc;
+  const habits = loadHabits(), today = todayStr();
+  let changed = false;
+
+  fc.bets.forEach(b => {
+    if (b.result || b.dueAt > today) return;
+    const h = habits.find(x => x.id === b.habitId) || habits.find(x => x.name === b.habit);
+    if (!h) { b.result = 'void'; b.detail = '습관이 삭제돼서 채점할 수 없었어요'; b.resolvedAt = today; changed = true; return; }
+    const s = scoreBet(b, h);
+    if (!s) { b.result = 'void'; b.detail = '판정할 기록이 없었어요'; b.resolvedAt = today; changed = true; return; }
+    b.result = s.hit ? 'hit' : 'miss';
+    b.detail = s.detail;
+    b.resolvedAt = today;
+    changed = true;
+  });
+
+  if (fc.bets.length > 20) fc.bets = fc.bets.slice(-20);   // 오래된 건 버려요
+  if (changed) saveForecast(fc);
+  return fc;
 }
 
 // ── LEVEL SYSTEM ─────────────────────────────────────────
@@ -3283,6 +3370,8 @@ function renderGoals() {
     });
   }
 
+  renderBets();
+
   // Routines
   const habitNames=habits.map(h=>h.name.toLowerCase());
   $('routine-list').innerHTML=ROUTINES.map((r,ri)=>{
@@ -3293,6 +3382,57 @@ function renderGoals() {
       <div style="font-size:.73rem;color:var(--primary);font-weight:700;">${ov?ov+'개 일치':'추가'} →</div>
     </div>`;
   }).join('');
+}
+
+// 새로 받은 예측을 저장. 아직 채점 안 된 옛 예측은 지웁니다
+// (예측을 다시 받았다는 건 판이 바뀐 거라, 옛날 걸 계속 세는 게 의미 없어요).
+function saveBet(bet, habits) {
+  if (!bet || !bet.habit) return;
+  const h = (habits || loadHabits()).find(x => x.name === bet.habit);
+  if (!h) return;
+  const today = todayStr();
+  const due = new Date(parseYmd(today)); due.setDate(due.getDate() + bet.days);
+  const fc = loadForecast();
+  fc.bets = (fc.bets || []).filter(b => b.result);
+  fc.bets.push({
+    id: uid(), madeAt: today, dueAt: ymd(due),
+    habitId: h.id, habit: h.name,
+    kind: bet.kind, n: bet.n, days: bet.days, say: bet.say,
+    result: null, detail: '', resolvedAt: '',
+  });
+  saveForecast(fc);
+}
+
+// AI 가 건 예측을 보여줍니다. 진행 중인 것 하나 + 최근 채점 결과 둘.
+// 이걸 화면에 남겨둬야 "저번에 뭐라 했더라" 가 되지 않아요.
+function renderBets() {
+  const box = $('pred-bets');
+  if (!box) return;
+  const fc = resolveBets();
+  const bets = Array.isArray(fc.bets) ? fc.bets : [];
+  const open = bets.filter(b => !b.result).slice(-1);
+  const done = bets.filter(b => b.result && b.result !== 'void').slice(-2).reverse();
+  if (!open.length && !done.length) { box.innerHTML = ''; return; }
+
+  const dday = b => {
+    const left = Math.round((parseYmd(b.dueAt) - parseYmd(todayStr())) / 86400000);
+    return left > 0 ? `${left}일 남음` : '오늘 채점';
+  };
+  const row = (b, cls, icon, meta) => `
+    <div class="bet-row ${cls}">
+      <i data-lucide="${icon}"></i>
+      <div class="bet-body">
+        <div class="bet-say">${esc(b.say)}${cls === 'bet-hit' ? '<span class="bet-tag hit">맞음</span>' : cls === 'bet-miss' ? '<span class="bet-tag miss">빗나감</span>' : ''}</div>
+        <div class="bet-meta">${esc(meta)}</div>
+      </div>
+    </div>`;
+
+  box.innerHTML = `<div class="bet-wrap">`
+    + open.map(b => row(b, 'bet-open', 'flag', `AI의 예측 · ${dday(b)}`)).join('')
+    + done.map(b => row(b, b.result === 'hit' ? 'bet-hit' : 'bet-miss', b.result === 'hit' ? 'circle-check' : 'circle-x',
+        `${b.madeAt} 예측 · ${b.detail || ''}`)).join('')
+    + `</div>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function addRoutine(ri) {
@@ -5118,9 +5258,14 @@ async function requestGrowthForecast(){
   const last30=[]; { const t=parseYmd(todayStr());
     for(let i=29;i>=0;i--){ const d=new Date(t); d.setDate(d.getDate()-i); last30.push(ymd(d)); } }
   const allDates=new Set(); habits.forEach(h=>Object.keys(h.checked).forEach(d=>allDates.add(d)));
+  // 지난 예측을 먼저 채점해서 성적표를 같이 보냅니다. 틀린 게 있으면 AI 가 인정하고 시작해요.
+  const fc=resolveBets();
+  const graded=(fc.bets||[]).filter(b=>b.result==='hit'||b.result==='miss').slice(-4)
+    .map(b=>({ madeAt:b.madeAt, say:b.say, result:b.result, detail:b.detail }));
   try{
     const out=await aiCall('/api/growth-forecast',{
       trackedDays: allDates.size,
+      pastBets: graded,
       habits: habits.map(h=>({
         name:h.name, freq:freqLabel(h), successRate:successRate(h),
         streak:streakCount(h), streakUnit:streakUnit(h), maxStreak:maxStreak(h),
@@ -5143,7 +5288,12 @@ async function requestGrowthForecast(){
         ${out.focus?`<div class="pred-ai-focus">
           <i data-lucide="target" style="width:14px;height:14px;flex-shrink:0;margin-top:2px;"></i>
           <div>${esc(out.focus)}</div></div>`:''}
+        ${out.cheer?`<div class="pred-ai-cheer">
+          <i data-lucide="heart" style="width:14px;height:14px;flex-shrink:0;margin-top:2px;color:var(--primary);"></i>
+          <div>${esc(out.cheer)}</div></div>`:''}
       </div>`;
+    saveBet(out.bet, habits);
+    renderBets();
     if(typeof lucide!=='undefined') lucide.createIcons();
   }catch(err){
     box.innerHTML=`<div class="ai-error"><div class="ai-error-title">읽지 못했어요</div><div class="ai-error-body">${esc(err.message)}</div></div>`;
