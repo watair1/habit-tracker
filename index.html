@@ -168,7 +168,8 @@
     .goal-prog-fill { height: 100%; border-radius: 4px; transition: width .5s; }
     .routine-card { display: flex; align-items: center; gap: 11px; padding: 11px 13px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 7px; cursor: pointer; transition: border-color .2s; }
     .routine-card:hover { border-color: #333; }
-    .r-icon { font-size: 1.3rem; }
+    .r-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 11px; background: rgba(179,240,0,0.1); color: var(--primary); flex-shrink: 0; }
+    .r-icon svg { width: 18px; height: 18px; }
     .r-name { font-weight: 600; font-size: .85rem; }
     .r-desc { font-size: .72rem; color: var(--muted); margin-top: 1px; }
 
@@ -263,7 +264,8 @@
     .ai-result-meta { font-size:.67rem; color:#3a3a3a; text-align:right; padding-bottom:8px; }
     .ai-section { background:var(--card); border:1px solid var(--border); border-radius:var(--r); margin-bottom:10px; overflow:hidden; }
     .ai-section-header { display:flex; align-items:center; gap:9px; padding:12px 15px 10px; border-bottom:1px solid var(--border); }
-    .ai-section-icon { font-size:1.1rem; }
+    .ai-section-icon { display:inline-flex; align-items:center; color:var(--primary); }
+    .ai-section-icon svg { width:16px; height:16px; }
     .ai-section-title { font-size:.8rem; font-weight:700; color:var(--primary); }
     .ai-section-body { padding:12px 15px; font-size:.8rem; color:#bbb; line-height:1.75; white-space:pre-wrap; }
     .ai-section-body strong { color:var(--text); font-weight:700; }
@@ -717,7 +719,7 @@
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         <button class="btn btn-sm btn-outline" onclick="openDayTools()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="copy" style="width:13px;height:13px;"></i>복사·템플릿</button>
         <button class="btn btn-sm btn-outline" onclick="toggleFreeGaps()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="search" style="width:13px;height:13px;"></i>빈 시간</button>
-        <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:4px;">✨ 자동</button>
+        <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="sparkles" style="width:13px;height:13px;"></i>자동</button>
       </div>
     </div>
     <div id="freegap-panel" class="freegap-panel" style="display:none;"></div>
@@ -843,7 +845,7 @@
   </div>
 
   <div class="card" style="background:rgba(179,240,0,0.04);border-color:rgba(179,240,0,0.15);">
-    <div class="card-title" style="color:var(--primary);">✨ AI 습관 추천</div>
+    <div class="card-title" style="color:var(--primary);display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;vertical-align:-2px;"></i>AI 습관 추천</div>
     <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px;line-height:1.5;">설정한 최종 목표를 이루는 데 필요한 습관을 AI가 추천해줘요.</p>
     <button class="btn btn-outline btn-sm" style="width:100%;" onclick="requestGoalHabits()">최종 목표로 습관 추천받기</button>
     <div id="goal-habits-box" style="margin-top:10px;"></div>
@@ -882,7 +884,7 @@
       <button class="ai-key-toggle" id="ai-key-toggle-btn" onclick="toggleKeyVisibility()">보기</button>
     </div>
     <a class="ai-key-link" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">API 키 발급받기 →</a>
-    <p class="ai-key-warn">⚠ 공용 기기에서는 사용 후 키를 삭제해주세요.</p>
+    <p class="ai-key-warn" style="display:flex;align-items:center;gap:5px;"><i data-lucide="triangle-alert" style="width:13px;height:13px;vertical-align:-2px;"></i>공용 기기에서는 사용 후 키를 삭제해주세요.</p>
     <button class="btn" style="width:100%;margin-top:13px;" onclick="saveApiKey()">저장하고 연결</button>
   </div>
 
@@ -895,7 +897,7 @@
       </div>
       <button class="btn btn-sm btn-outline" onclick="clearApiKey()">키 삭제</button>
     </div>
-    <button class="btn" id="ai-analyze-btn" style="width:100%;" onclick="requestAIAnalysis()">✦ AI 분석 받기</button>
+    <button class="btn" id="ai-analyze-btn" style="width:100%;" onclick="requestAIAnalysis()" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;"><i data-lucide="sparkles" style="width:16px;height:16px;vertical-align:-2px;"></i>AI 분석 받기</button>
   </div>
 
   <!-- C: 결과 영역 -->
@@ -903,12 +905,12 @@
 
   <!-- Gemini 서버 기반 AI 도우미 -->
   <div class="card">
-    <div class="card-title" style="display:inline-flex;align-items:center;gap:6px;">📋 주간 리포트</div>
+    <div class="card-title" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="clipboard-list" style="width:15px;height:15px;vertical-align:-2px;"></i>주간 리포트</div>
     <button class="btn btn-outline btn-sm" style="width:100%;" onclick="requestWeeklyReport()">이번 주 리포트 받기</button>
     <div id="weekly-report-box"></div>
   </div>
   <div class="card">
-    <div class="card-title">🔍 AI 실패 패턴 분석</div>
+    <div class="card-title" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="search" style="width:15px;height:15px;vertical-align:-2px;"></i>AI 실패 패턴 분석</div>
     <button class="btn btn-outline btn-sm" style="width:100%;" onclick="requestFailAnalysisAI()">실패 패턴 분석하기</button>
     <div id="fail-ai-box"></div>
   </div>
@@ -1032,8 +1034,8 @@
     <div class="fg">
       <label>완료했나요?</label>
       <div class="rv-done-row">
-        <button class="rv-done-btn" id="rv-done-yes" onclick="setReviewDone(true)">✅ 했어요</button>
-        <button class="rv-done-btn" id="rv-done-no" onclick="setReviewDone(false)">❌ 못했어요</button>
+        <button class="rv-done-btn" id="rv-done-yes" onclick="setReviewDone(true)" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;"><i data-lucide="check" style="width:16px;height:16px;vertical-align:-2px;"></i>했어요</button>
+        <button class="rv-done-btn" id="rv-done-no" onclick="setReviewDone(false)" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;"><i data-lucide="x" style="width:16px;height:16px;vertical-align:-2px;"></i>못했어요</button>
       </div>
     </div>
     <div class="fg">
@@ -1075,7 +1077,7 @@
 <!-- AI 자동 일정 짜기 모달 -->
 <div class="overlay" id="autosched-modal">
   <div class="sheet" style="max-height:88vh;display:flex;flex-direction:column;">
-    <div class="sheet-title">✨ AI 일정 자동 짜기</div>
+    <div class="sheet-title" style="display:flex;align-items:center;gap:7px;"><i data-lucide="sparkles" style="width:17px;height:17px;color:var(--primary);"></i>AI 일정 자동 짜기</div>
     <div class="fg">
       <label>오늘 뭘 할 건지 편하게 적어주세요</label>
       <textarea id="as-input" rows="3" placeholder="예: 오전에 운동하고 점심 먹고 오후에 3시간 공부, 저녁엔 책 읽기" style="resize:none;font-family:inherit;"></textarea>
@@ -1229,7 +1231,7 @@
   <div class="sheet">
     <div class="sheet-title" id="add-modal-title">습관 추가</div>
     <div class="fg">
-      <label>✨ AI로 입력 (말하듯 적어보세요)</label>
+      <label style="display:flex;align-items:center;gap:5px;"><i data-lucide="sparkles" style="width:13px;height:13px;color:var(--primary);"></i>AI로 입력 (말하듯 적어보세요)</label>
       <div style="display:flex;gap:6px;">
         <input id="ai-habit-nl" placeholder="예: 매일 아침 7시에 물 마시기" style="flex:1;" onkeydown="if(event.key==='Enter')aiParseHabit()"/>
         <button class="btn btn-sm" id="ai-parse-btn" onclick="aiParseHabit()" style="flex:0 0 auto;">AI</button>
@@ -2133,7 +2135,7 @@ function render() {
         <div class="habit-info">
           <div class="habit-name">${esc(h.name)}</div>
           <div class="badges">
-            ${s>0?`<span class="badge bs"><span class="fire">🔥</span> ${s}${streakUnit(h)} 연속</span>`:''}
+            ${s>0?`<span class="badge bs"><i data-lucide="flame" style="width:11px;height:11px;vertical-align:-1px;"></i> ${s}${streakUnit(h)} 연속</span>`:''}
             <span class="badge br"><i data-lucide="check-circle-2" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r}%</span>
             <span class="badge bf">${esc(freqLabel(h))}</span>
             <span class="badge bt">${esc(h.timeSlot||'자유')}</span>
@@ -2249,7 +2251,7 @@ function delHabit(i) {
 // ── STATS ─────────────────────────────────────────────────
 let chartPie, chartLine, chartMood, chartCat;
 const CAT_COLORS = { 건강:'#22c55e', 학습:'#3b82f6', 마음:'#8b5cf6', 생활:'#f59e0b', 관계:'#ec4899', 재정:'#14b8a6', 기타:'#6b7280' };
-const CAT_NAME   = { 건강:'💪 건강/운동', 학습:'📚 학습/성장', 마음:'🧘 마음/명상', 생활:'🏠 생활/루틴', 관계:'👥 관계/소통', 재정:'💰 재정/절약', 기타:'기타' };
+const CAT_NAME   = { 건강:'건강/운동', 학습:'학습/성장', 마음:'마음/명상', 생활:'생활/루틴', 관계:'관계/소통', 재정:'재정/절약', 기타:'기타' };
 // 도넛 기준: 'time'=일정에 배정한 시간, 'count'=습관 체크 횟수
 // 기본값은 '시간'이지만, 주간계획으로 칠한 시간이 아직 없으면 빈 도넛만 보여요.
 // 그럴 땐 데이터가 있는 '횟수'로 시작합니다. (한 번 직접 바꾸면 그 선택을 따라요)
@@ -2392,7 +2394,7 @@ function renderStats() {
     return `<div class="hcomp-item">
       <div class="hcomp-top"><span>${esc(h.name)}</span><span style="font-weight:700;color:var(--primary)">${r}%</span></div>
       <div class="hcomp-bar-bg"><div class="hcomp-bar-fill" style="width:${r}%"></div></div>
-      <div class="hcomp-sub">🔥 현재 ${s}${streakUnit(h)} 연속 · 최고 ${maxStreak(h)}${streakUnit(h)} · ${esc(freqLabel(h))}</div>
+      <div class="hcomp-sub"><i data-lucide="flame" style="width:11px;height:11px;vertical-align:-1px;"></i> 현재 ${s}${streakUnit(h)} 연속 · 최고 ${maxStreak(h)}${streakUnit(h)} · ${esc(freqLabel(h))}</div>
     </div>`;
   }).join('');
 
@@ -2484,7 +2486,7 @@ function renderCorrelation(){
     <div class="corr-group-lbl"><i data-lucide="smile" style="width:13px;height:13px;vertical-align:-2px;"></i> 기분</div>
     ${bar('기분 좋은 날', gAvg, goodRates.length, 'var(--primary)')}
     ${bar('기분 나쁜 날', bAvg, badRates.length, '#f87171')}
-    <div class="corr-group-lbl" style="margin-top:12px;">🌙 수면</div>
+    <div class="corr-group-lbl" style="margin-top:12px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="moon" style="width:13px;height:13px;"></i> 수면</div>
     ${bar('잘 잔 날 (7h+)', wAvg, wellRates.length, 'var(--primary)')}
     ${bar('못 잔 날 (6h-)', pAvg, poorRates.length, '#f87171')}
     ${insight?`<div class="corr-insight">💡 ${insight}</div>`:'<div class="corr-insight" style="color:var(--muted);">기분·수면과 습관을 며칠 더 기록하면 상관관계를 분석해드려요</div>'}`;
@@ -2700,10 +2702,10 @@ function renderGrowth() {
 // ── GOALS ─────────────────────────────────────────────────
 let chartPred;
 const ROUTINES = [
-  { icon:'🌅', name:'아침 파워 루틴', desc:'기상 30분 · 스트레칭, 물, 일기', habits:['스트레칭','물 마시기','일기 쓰기'] },
-  { icon:'📚', name:'학습 루틴',       desc:'집중 학습 · 독서, 강의, 복습',  habits:['독서','강의 듣기','노트 정리'] },
-  { icon:'🌙', name:'저녁 회고 루틴', desc:'하루 마무리 · 명상, 감사일기',   habits:['명상','감사일기','독서'] },
-  { icon:'💪', name:'운동 루틴',       desc:'건강 관리 · 유산소, 근력',      habits:['달리기','근력운동','스트레칭'] },
+  { icon:'sunrise',   name:'아침 파워 루틴', desc:'기상 30분 · 스트레칭, 물, 일기', habits:['스트레칭','물 마시기','일기 쓰기'] },
+  { icon:'book-open', name:'학습 루틴',       desc:'집중 학습 · 독서, 강의, 복습',  habits:['독서','강의 듣기','노트 정리'] },
+  { icon:'moon',      name:'저녁 회고 루틴', desc:'하루 마무리 · 명상, 감사일기',   habits:['명상','감사일기','독서'] },
+  { icon:'dumbbell',  name:'운동 루틴',       desc:'건강 관리 · 유산소, 근력',      habits:['달리기','근력운동','스트레칭'] },
 ];
 
 function addGoal() {
@@ -2753,7 +2755,7 @@ function renderFinalGoal() {
   const el = $('final-goal-card');
   if (!fg) {
     el.innerHTML = `<div style="background:#141414;border:1px solid rgba(179,240,0,0.2);border-radius:var(--r);padding:18px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;cursor:pointer;" onclick="openFinalGoalModal()">
-      <div style="font-size:2rem;">🌟</div>
+      <div style="display:flex;align-items:center;"><i data-lucide="flag" style="width:30px;height:30px;color:var(--primary);vertical-align:-2px;"></i></div>
       <div>
         <div style="color:rgba(255,255,255,0.6);font-size:.75rem;font-weight:700;margin-bottom:3px;">최종 목표</div>
         <div style="color:rgba(255,255,255,0.4);font-size:.85rem;">탭하여 인생 목표를 설정하세요</div>
@@ -3242,7 +3244,7 @@ function renderGoals() {
   const TL={long:'장기',mid:'중기',short:'단기'}, TO={long:0,mid:1,short:2};
 
   if (!goals.length) {
-    $('goals-list').innerHTML=`<div class="empty"><div class="ei">🎯</div><p>첫 목표를 추가해보세요!</p></div>`;
+    $('goals-list').innerHTML=`<div class="empty"><div class="ei"><i data-lucide="target" style="width:34px;height:34px;"></i></div><p>첫 목표를 추가해보세요!</p></div>`;
   } else {
     $('goals-list').innerHTML=[...goals].sort((a,b)=>TO[a.type]-TO[b.type]).map(g=>{
       const lh=habits.filter(h=>g.habitIds.includes(h.id));
@@ -3254,7 +3256,7 @@ function renderGoals() {
           <div><div style="font-size:.68rem;font-weight:700;color:#999;margin-bottom:2px;">${TL[g.type]} 목표</div><div class="goal-title">${esc(g.title)}</div></div>
           <button class="icon-btn del" onclick="delGoal('${g.id}')">✕</button>
         </div>
-        <div class="goal-meta">📅 ${g.targetDate} · ${dl>0?`D-${dl}`:dl===0?'오늘 마감!':'기한 초과'}${lh.length?` · 연결 ${lh.length}개 습관`:''}</div>
+        <div class="goal-meta" style="display:inline-flex;align-items:center;gap:5px;"><i data-lucide="calendar" style="width:12px;height:12px;vertical-align:-2px;"></i>${g.targetDate} · ${dl>0?`D-${dl}`:dl===0?'오늘 마감!':'기한 초과'}${lh.length?` · 연결 ${lh.length}개 습관`:''}</div>
         ${lh.length?`<div class="goal-prog-bar"><div class="goal-prog-fill" style="width:${prog}%;background:${barColor}"></div></div><div style="font-size:.7rem;color:#999;margin-top:3px;">습관 달성도 ${prog}%</div>`:''}
       </div>`;
     }).join('');
@@ -3288,7 +3290,7 @@ function renderGoals() {
   $('routine-list').innerHTML=ROUTINES.map((r,ri)=>{
     const ov=r.habits.filter(h=>habitNames.some(n=>n.includes(h)||h.includes(n))).length;
     return `<div class="routine-card" onclick="addRoutine(${ri})">
-      <span class="r-icon">${r.icon}</span>
+      <span class="r-icon"><i data-lucide="${r.icon}"></i></span>
       <div style="flex:1"><div class="r-name">${r.name}</div><div class="r-desc">${r.desc}</div></div>
       <div style="font-size:.73rem;color:var(--primary);font-weight:700;">${ov?ov+'개 일치':'추가'} →</div>
     </div>`;
@@ -3323,7 +3325,7 @@ function renderAnalysis() {
   renderAISection();
   const habits=loadHabits();
   if (!habits.length && !$('ai-feedback').innerHTML) {
-    $('ai-feedback').innerHTML = '<div class="fb-card"><div class="fb-title">📊 데이터 부족</div><div class="fb-body">습관을 추가하고 기록하면 AI 분석을 받을 수 있어요!</div></div>';
+    $('ai-feedback').innerHTML = '<div class="fb-card"><div class="fb-title" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="chart-column" style="width:15px;height:15px;"></i>데이터 부족</div><div class="fb-body">습관을 추가하고 기록하면 AI 분석을 받을 수 있어요!</div></div>';
   }
   renderDayAnalysis(habits);
   renderTimeAnalysis(habits);
@@ -3471,16 +3473,16 @@ async function callClaudeAPI(prompt) {
 
 function parseAIResponse(text) {
   const ICON_MAP = [
-    [/성과|요약/, '📊'], [/개선|조언/, '💡'], [/기분|상관/, '😊'],
-    [/목표|추천/, '🎯'], [/응원|메시지/, '✨'],
+    [/성과|요약/, 'chart-column'], [/개선|조언/, 'lightbulb'], [/기분|상관/, 'smile'],
+    [/목표|추천/, 'target'], [/응원|메시지/, 'sparkles'],
   ];
   const sections = text.split(/\n##\s+/).filter(Boolean);
-  if (sections.length <= 1) return [{ icon:'🤖', title:'AI 분석 결과', body: text.trim() }];
+  if (sections.length <= 1) return [{ icon:'bot', title:'AI 분석 결과', body: text.trim() }];
   return sections.map(s => {
     const lines = s.trim().split('\n');
     const title = lines[0].replace(/^#+\s*/, '').trim();
     const body  = lines.slice(1).join('\n').trim();
-    const icon  = (ICON_MAP.find(([re]) => re.test(title)) || [,'🤖'])[1];
+    const icon  = (ICON_MAP.find(([re]) => re.test(title)) || [,'bot'])[1];
     return { icon, title, body };
   });
 }
@@ -3498,7 +3500,7 @@ function renderAIResult(sections) {
     sections.map(s => `
       <div class="ai-section">
         <div class="ai-section-header">
-          <span class="ai-section-icon">${s.icon}</span>
+          <span class="ai-section-icon"><i data-lucide="${s.icon}"></i></span>
           <span class="ai-section-title">${esc(s.title)}</span>
         </div>
         <div class="ai-section-body">${esc(s.body).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</div>
@@ -3556,15 +3558,15 @@ function renderFailAnalysis(habits) {
   let html='';
   if (lowHabits.length) {
     html+=`<div style="background:#fff1f2;border-radius:10px;padding:12px;margin-bottom:9px;">
-      <div style="font-weight:700;font-size:.83rem;color:#be123c;margin-bottom:5px;">🔴 개선 필요 습관</div>
+      <div style="font-weight:700;font-size:.83rem;color:#be123c;margin-bottom:5px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="circle-alert" style="width:14px;height:14px;"></i>개선 필요 습관</div>
       ${lowHabits.map(h=>`<div style="font-size:.8rem;color:#881337;margin-bottom:3px;">• ${esc(h.name)} (${successRate(h)}%)</div>`).join('')}
-      <div style="font-size:.76rem;color:#9f1239;margin-top:5px;">💡 팁: 실행 조건(IF-THEN)을 만들어보세요</div>
+      <div style="font-size:.76rem;color:#9f1239;margin-top:5px;display:flex;align-items:center;gap:5px;"><i data-lucide="lightbulb" style="width:13px;height:13px;flex-shrink:0;"></i>팁: 실행 조건(IF-THEN)을 만들어보세요</div>
     </div>`;
   }
   html+=`<div style="background:#eff6ff;border-radius:10px;padding:12px;">
-    <div style="font-weight:700;font-size:.83rem;color:#1d4ed8;margin-bottom:5px;">📅 요일별 약점</div>
+    <div style="font-weight:700;font-size:.83rem;color:#1d4ed8;margin-bottom:5px;display:inline-flex;align-items:center;gap:5px;"><i data-lucide="calendar-x" style="width:14px;height:14px;"></i>요일별 약점</div>
     <div style="font-size:.8rem;color:#1e40af;">• ${weakDay}요일이 가장 취약해요 (${dayRates[dayNames.indexOf(weakDay)]}%)</div>
-    <div style="font-size:.76rem;color:#2563eb;margin-top:5px;">💡 팁: ${weakDay}요일 전날 미리 준비하거나, 알림 시간을 조정해보세요.</div>
+    <div style="font-size:.76rem;color:#2563eb;margin-top:5px;display:flex;align-items:center;gap:5px;"><i data-lucide="lightbulb" style="width:13px;height:13px;flex-shrink:0;"></i>팁: ${weakDay}요일 전날 미리 준비하거나, 알림 시간을 조정해보세요.</div>
   </div>`;
   $('fail-analysis').innerHTML=html;
 }
@@ -4141,7 +4143,7 @@ function renderTimeline(){
       ${needReview?`<span class="tl-ev-badge" onclick="event.stopPropagation();openReview('${e.id}')">어땠어요?</span>`:''}
       ${e.review?`<span class="tl-ev-badge" style="background:${e.review.done?'#10b981':'#666'};color:#fff;">${e.review.done?'완료':'미완'}</span>`:''}
       ${!hasBadge?`<span class="tl-ev-grip">⠿</span>`:''}
-      <div>${e.habitId?'<span style="opacity:.85;">🔗 </span>':''}${esc(e.title)}</div>
+      <div>${e.habitId?'<i data-lucide="link" style="width:11px;height:11px;vertical-align:-1px;opacity:.85;"></i> ':''}${esc(e.title)}</div>
       <div class="tl-ev-time">${e.start}~${e.end}</div>
       <div class="tl-ev-handle" data-handle="1"></div>
     </div>`;
@@ -5243,7 +5245,7 @@ function initPWA() {
 
 <!-- 앱 설치 배너 (Android Chrome) -->
 <div id="install-btn" style="display:none;position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#6c63ff;color:#fff;border:none;border-radius:22px;padding:10px 22px;font-size:.85rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(108,99,255,0.4);align-items:center;gap:8px;z-index:150;white-space:nowrap;">
-  📲 홈 화면에 앱으로 설치
+  <i data-lucide="download" style="width:16px;height:16px;"></i> 홈 화면에 앱으로 설치
 </div>
 </body>
 </html>
