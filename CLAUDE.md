@@ -72,11 +72,19 @@ All state lives in `localStorage` via `lsGet(key, default)` / `lsSet(key, value)
 | `K.m` | `ht_memos_v1` | memos |
 | `K.md` | `ht_mood_v1` | mood records (`{date: moodString}`) |
 | `K.n` | `ht_notif_v1` | notification settings |
+| `K.d` | `ht_day_v1` | per-day data (`{date: {highlight, todos, events, memo, sleep, chat}}`) |
+| `K.tpl` | `ht_templates_v1` | day templates |
+| `K.wk` | `ht_weekplan_v1` | weekly plan (`{cats, weeks}`) — 분야 is global, targets are per-week |
+| `K.fc` | `ht_forecast_v1` | AI predictions and their scores (`{bets: [...]}`) |
 | `K.ak` | `ht_apikey_v1` | Anthropic API key (not synced to cloud) |
 
 Each data type has a `load*()` / `save*()` pair. `save*()` calls `scheduleSync()` which debounces Firestore writes by 1.5s.
 
-**Cloud sync** — Firestore path: `users/{uid}/data/{habits|user|goals|notif|finalgoal|todos|memos|mood}`. On login, `loadFromCloud()` overwrites localStorage with cloud data. API key (`K.ak`) is intentionally excluded from sync.
+**Cloud sync** — the store list lives in `SYNC_STORES`; Firestore path is `users/{uid}/data/{storeName}`. `lsSet` stamps each store's last-edit time into `ht_syncmeta_v1`, so uploads only carry stores that actually changed and `loadFromCloud()` keeps whichever side is newer per store (it does not blanket-overwrite). API key (`K.ak`) is intentionally excluded from sync.
+
+**Habit shape** — `{id, name, createdAt, checked, category, timeSlot, freq, min}`. `checked[date]` is `true` (완료) or `'min'` (최소 버전만). Both count as done everywhere, so never compare with `=== true`; use truthiness. `min` is the optional "바쁜 날엔 이거라도" text.
+
+**Habit math** — `habitPeriodsDetailed(h)` is the single source of truth: it returns `[{key, done}]` per judged period (day for daily/days, week start for weekly) and drops the still-in-progress trailing period. `habitPeriods`, `streakCount`, `maxStreak`, `successRate`, `habitRecovery`, and `scoreBet` all derive from it.
 
 ## Tab Structure
 
