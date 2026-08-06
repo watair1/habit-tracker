@@ -793,8 +793,9 @@
     <p id="cat-pie-empty" style="display:none;font-size:.8rem;color:var(--muted);text-align:center;margin-top:8px;"></p>
   </div>
   <div class="card">
-    <div class="card-title">성공 / 미완료 비율</div>
-    <div class="chart-box" style="height:175px;"><canvas id="pie-chart"></canvas></div>
+    <div class="card-title">요일별 성공률</div>
+    <div class="section-sub" style="margin-bottom:11px;">어느 요일에 무너지는지 보여요</div>
+    <div id="day-analysis"></div>
   </div>
   <div class="card">
     <div class="card-title">최근 2주 성공률 추이</div>
@@ -925,10 +926,6 @@
     <div id="fail-ai-box"></div>
   </div>
 
-  <div class="card">
-    <div class="card-title">요일별 성공률</div>
-    <div id="day-analysis"></div>
-  </div>
   <div class="card">
     <div class="card-title">시간대별 습관 분포</div>
     <div class="chart-box sm"><canvas id="time-chart"></canvas></div>
@@ -2259,7 +2256,7 @@ function delHabit(i) {
 }
 
 // ── STATS ─────────────────────────────────────────────────
-let chartPie, chartLine, chartMood, chartCat;
+let chartLine, chartMood, chartCat;
 const CAT_COLORS = { 건강:'#22c55e', 학습:'#3b82f6', 마음:'#8b5cf6', 생활:'#f59e0b', 관계:'#ec4899', 재정:'#14b8a6', 기타:'#6b7280' };
 const CAT_NAME   = { 건강:'건강/운동', 학습:'학습/성장', 마음:'마음/명상', 생활:'생활/루틴', 관계:'관계/소통', 재정:'재정/절약', 기타:'기타' };
 // 도넛 기준: 'time'=일정에 배정한 시간, 'count'=습관 체크 횟수
@@ -2364,19 +2361,10 @@ function renderStats() {
   renderHeatmap(habits);
   renderCategoryChart(habits);
 
-  // Pie
-  const totalPossible = habits.reduce((s,h) => {
-    const days = Math.max(1, Math.round((parseYmd(todayStr())-parseYmd(h.createdAt))/86400000)+1);
-    return s + days;
-  }, 0);
-  const fail = Math.max(0, totalPossible - totalChecks);
-  const pCtx = $('pie-chart').getContext('2d');
-  if (chartPie) chartPie.destroy();
-  chartPie = new Chart(pCtx, {
-    type: 'doughnut',
-    data: { labels:['성공','미완료'], datasets:[{ data:[totalChecks, fail], backgroundColor:['#6c63ff','#e5e7eb'], borderWidth:0 }] },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, padding:12 } } }, cutout:'65%' }
-  });
+  // 요일별 성공률 — 분석 탭에 묻혀 있던 걸 통계로 옮겨왔어요.
+  // 예전엔 이 자리에 "성공/미완료" 도넛이 있었는데, 상단 타일의 평균 성공률과
+  // 같은 숫자를 파이로 그린 것뿐이라 없앴습니다. (게다가 습관 빈도를 반영 안 했어요)
+  renderDayAnalysis(habits);
 
   // Line (14 days)
   const labels=[], data=[];
@@ -3337,7 +3325,7 @@ function renderAnalysis() {
   if (!habits.length && !$('ai-feedback').innerHTML) {
     $('ai-feedback').innerHTML = '<div class="fb-card"><div class="fb-title" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="chart-column" style="width:15px;height:15px;"></i>데이터 부족</div><div class="fb-body">습관을 추가하고 기록하면 AI 분석을 받을 수 있어요!</div></div>';
   }
-  renderDayAnalysis(habits);
+  // 요일별 성공률은 통계 탭으로 옮겼어요 (renderStats 가 그립니다)
   renderTimeAnalysis(habits);
   renderFailAnalysis(habits);
 }
