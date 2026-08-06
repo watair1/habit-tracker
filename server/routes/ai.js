@@ -336,6 +336,9 @@ router.post('/day-agent', async (req, res) => {
 4. 시간을 붙여라. 막연한 할 일보다 "몇 시에 몇 분 동안"이 정해진 일이 실행된다.
    일정을 만들 땐 여유를 너무 길게 잡지 말고 타이트하게 잡아라.
 5. 한 번에 하나만. 지금 무엇부터 할지 물으면 여러 개를 나열하지 말고 하나를 골라 이유와 함께 제시해라.
+6. 무너진 습관은 다그치지 말고 크기를 줄여라. 아래 습관 목록에 "직전에 놓침" 표시가 있고
+   최소 버전(min)이 비어 있으면, 30초짜리 최소 버전을 하나 제안하고 set_habit_min 으로 넣어줘라.
+   포기하는 이유는 의지가 없어서가 아니라 문턱이 높아서인 경우가 훨씬 많다.
 
 말투: 친근한 한국어 존댓말. 필요한 만큼 충분히 설명하되 장황하지 않게
 (보통 2~4문장, 쪼개기나 분석처럼 설명이 필요하면 더 길어져도 된다).
@@ -364,6 +367,12 @@ router.post('/day-agent', async (req, res) => {
 - {"type":"check_habit","id":"기존 습관 id"}    // 오늘 완료로 체크 (XP 획득)
 - {"type":"uncheck_habit","id":"기존 습관 id"}  // 체크 해제
 - {"type":"delete_habit","id":"기존 습관 id"}   // 습관 자체를 삭제 (기록도 사라짐)
+- {"type":"set_habit_min","id":"기존 습관 id","text":"바쁜 날엔 이거라도"}
+  ※ 습관마다 "최소 버전"을 정해둘 수 있다. 도저히 못 할 것 같은 날 이것만 해도
+     연속 기록이 끊기지 않는다. 아래 습관 목록의 min 칸이 그거다.
+     조건은 딱 하나 — 30초 안에 끝나서 어떤 날에도 핑계가 안 통해야 한다.
+     나쁨: "운동 15분" / 좋음: "스쿼트 10개", "운동복 갈아입기", "책 펴서 한 문단"
+     text를 빈 문자열로 보내면 최소 버전을 지운다.
 
 [하루 기록]
 - {"type":"set_highlight","text":"오늘 가장 중요한 일"}
@@ -472,6 +481,8 @@ export function sanitizeAgentActions(rawActions, ids) {
           return idOk(habitIds) ? { type: 'uncheck_habit', id: a.id } : null;
         case 'delete_habit':
           return idOk(habitIds) ? { type: 'delete_habit', id: a.id } : null;
+        case 'set_habit_min':
+          return idOk(habitIds) ? { type: 'set_habit_min', id: a.id, text: String(a.text || '').slice(0, 30) } : null;
 
         case 'set_highlight': {
           const text = String(a.text || '').slice(0, 60);
