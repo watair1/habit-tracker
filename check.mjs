@@ -50,17 +50,45 @@ const missing = [...called].filter(([n]) => !defined.has(n));
 if (missing.length) missing.forEach(([n, attr]) => fail(`on${attr} 에서 '${n}()' 을 부르는데 정의가 없어요`));
 else pass(`HTML 이 부르는 함수 ${called.size}개 전부 정의됨 (전역 선언 ${defined.size}개)`);
 
-// ── 3. 날짜를 UTC 로 다루는 실수 ───────────────────────────
+// ── 3. 같은 이름을 두 번 쓴 곳 ─────────────────────────────
+// [1]번 검사만으로는 부족해요. const/let 을 두 번 선언하면 자바스크립트가
+// 에러를 내주지만, function 은 같은 이름으로 몇 번을 선언해도 조용히 통과하고
+// 나중 것이 이깁니다. 그래서 예전에 만든 기능이 소리 없이 죽어요.
+// HTML 의 id 도 마찬가지입니다. $('rv-note') 는 항상 첫 번째 것만 집어옵니다.
+console.log('\n[3] 같은 이름 두 번 쓴 곳');
+let dup = false;
+
+const fnSeen = new Map();
+blocks.forEach(code => {
+  for (const m of code.matchAll(/^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)) {
+    fnSeen.set(m[1], (fnSeen.get(m[1]) || 0) + 1);
+  }
+});
+for (const [name, n] of fnSeen) {
+  if (n > 1) { dup = true; fail(`function ${name}() 가 ${n}번 선언됐어요 — 나중 것만 살아남고 앞의 기능이 죽습니다`); }
+}
+
+const idSeen = new Map();
+for (const m of html.matchAll(/\sid\s*=\s*"([^"]+)"/g)) {
+  idSeen.set(m[1], (idSeen.get(m[1]) || 0) + 1);
+}
+for (const [id, n] of idSeen) {
+  if (n > 1) { dup = true; fail(`id="${id}" 가 ${n}개 있어요 — $('${id}') 는 첫 번째만 집어옵니다`); }
+}
+
+if (!dup) pass(`함수 ${fnSeen.size}개, id ${idSeen.size}개 모두 이름이 겹치지 않음`);
+
+// ── 4. 날짜를 UTC 로 다루는 실수 ───────────────────────────
 // toISOString().slice(0,10) 은 UTC 기준이라 한국에선 새벽에 날짜가 하루 밀려요.
-console.log('\n[3] 날짜 처리');
+console.log('\n[4] 날짜 처리');
 // 주석은 빼고 검사 (설명문에 적힌 예시가 걸리지 않게)
 const codeOnly = blocks.join('\n').replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
 const utc = codeOnly.match(/toISOString\(\)\s*\.\s*slice\(\s*0\s*,\s*10\s*\)/g);
 if (utc) fail(`toISOString().slice(0,10) 이 ${utc.length}곳 있어요 — ymd() 를 쓰세요`);
 else pass('날짜 문자열을 전부 ymd() 로 만들고 있음');
 
-// ── 4. API 키가 코드에 박혀 있지 않은지 ────────────────────
-console.log('\n[4] 비밀값 노출');
+// ── 5. API 키가 코드에 박혀 있지 않은지 ────────────────────
+console.log('\n[5] 비밀값 노출');
 const secrets = [
   [/AIza[0-9A-Za-z_-]{30,}/g, 'Google/Gemini API 키'],
   [/sk-ant-[0-9A-Za-z_-]{20,}/g, 'Anthropic API 키'],

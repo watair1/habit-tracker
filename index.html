@@ -105,6 +105,45 @@
     .min-btn { flex-shrink: 0; background: transparent; border: 1px dashed var(--primary); color: var(--primary); font-size: .7rem; font-weight: 700; padding: 4px 8px; border-radius: 7px; cursor: pointer; }
     .min-btn:active { transform: scale(.94); }
 
+    /* 주간 회고 — 금·토에만 뜨는 카드 + 고른 습관을 계속 보여주는 띠 */
+    .focus-strip { display: flex; align-items: center; gap: 9px; padding: 10px 13px; margin-bottom: 9px;
+      border-radius: 11px; background: rgba(179,240,0,.07); border: 1px solid rgba(179,240,0,.2); }
+    .focus-strip svg { width: 15px; height: 15px; color: var(--primary); flex-shrink: 0; }
+    .focus-strip span { font-size: .69rem; color: var(--muted); display: block; }
+    .focus-strip b { font-size: .84rem; color: var(--text); }
+    .wr-card { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 13px 15px; margin-bottom: 13px; border-radius: var(--r); cursor: pointer;
+      background: var(--card); border: 1px solid rgba(179,240,0,.3); }
+    .wr-card:active { transform: scale(.99); }
+    .wr-card-l { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .wr-card-l > svg { width: 19px; height: 19px; color: var(--primary); flex-shrink: 0; }
+    .wr-card-t { font-size: .88rem; font-weight: 700; color: var(--text); }
+    .wr-card-s { font-size: .73rem; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+    .wr-card-arrow { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
+
+    /* 회고 모달 안쪽 */
+    .wr-total { text-align: center; padding: 6px 0 14px; }
+    .wr-total-n { font-size: 2.4rem; font-weight: 800; color: var(--primary); line-height: 1; }
+    .wr-total-n span { font-size: 1.1rem; margin-left: 2px; }
+    .wr-total-s { font-size: .76rem; color: var(--muted); margin-top: 6px; }
+    .wr-rows { display: flex; flex-direction: column; gap: 9px; }
+    .wr-row { display: flex; align-items: center; gap: 9px; }
+    .wr-row-n { font-size: .79rem; color: var(--text); width: 78px; flex-shrink: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wr-row-b { flex: 1; height: 7px; border-radius: 4px; background: var(--card2); overflow: hidden; }
+    .wr-row-f { height: 100%; border-radius: 4px; background: var(--primary); }
+    .wr-row-v { font-size: .72rem; color: var(--muted); width: 62px; flex-shrink: 0; text-align: right; }
+    .wr-up { color: #34d399; font-weight: 700; }
+    .wr-down { color: #fb923c; font-weight: 700; }
+    .wr-flat { color: var(--muted); }
+    .wr-note-line { font-size: .77rem; line-height: 1.6; color: var(--text); margin-top: 12px; }
+    .wr-note-line.dim { color: var(--muted); margin-top: 5px; }
+    .wr-note-line b { color: var(--primary); }
+    .wr-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+    .wr-pick { font-size: .78rem; padding: 7px 11px; border-radius: 9px; cursor: pointer;
+      background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .wr-pick.on { border-color: var(--primary); color: var(--primary); background: rgba(179,240,0,.08); font-weight: 700; }
+
     /* 회복 카드 — 한 번 놓친 습관을 오늘 탭 위로 끌어올리는 자리 */
     .rec-card { background: var(--card); border: 1px solid rgba(251,146,60,.35); border-radius: var(--r); padding: 13px 15px; margin-bottom: 13px; }
     .rec-head { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; color: #fb923c; margin-bottom: 10px; }
@@ -633,6 +672,7 @@
 <!-- ===== TAB: TODAY ===== -->
 <div id="tab-today" class="tab active">
   <div class="motiv" id="motiv-msg"></div>
+  <div id="wreview-box"></div>
   <div id="recovery-box"></div>
   <div class="card" style="margin-bottom:13px;">
     <div class="today-prog">
@@ -1345,6 +1385,25 @@
   </div>
 </div>
 
+<!-- 주간 회고 -->
+<div class="overlay" id="wreview-modal">
+  <div class="sheet">
+    <div class="sheet-title">이번 주 돌아보기</div>
+    <div id="wr-body"></div>
+    <div class="fg" style="margin-top:15px;"><label>다음 주엔 이것 하나</label>
+      <p class="fg-hint" style="margin-top:0;margin-bottom:8px;">여러 개를 다 잘하려다 다 놓쳐요. 하나만 정하면 그 하나는 지킵니다.</p>
+      <div id="wr-picks" class="wr-picks"></div>
+    </div>
+    <div class="fg"><label>한 줄 남기기 <span style="color:var(--muted);font-weight:400;">(선택)</span></label>
+      <input id="wr-note" maxlength="60" placeholder="예: 저녁 약속 있는 날은 어김없이 무너진다"/>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('wreview-modal')">나중에</button>
+      <button class="btn-confirm" onclick="saveWeekReview()">저장하기</button>
+    </div>
+  </div>
+</div>
+
 <!-- FINAL GOAL MODAL -->
 <div class="overlay" id="final-goal-modal">
   <div class="sheet">
@@ -1631,7 +1690,7 @@ async function loadFromCloud() {
 }
 
 // ── STORAGE ──────────────────────────────────────────────
-const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1', wk: 'ht_weekplan_v1', fc: 'ht_forecast_v1' };
+const K = { h: 'ht_habits_v2', u: 'ht_user_v2', g: 'ht_goals_v1', n: 'ht_notif_v1', f: 'ht_final_goal_v1', t: 'ht_todos_v1', m: 'ht_memos_v1', md: 'ht_mood_v1', ak: 'ht_apikey_v1', d: 'ht_day_v1', tpl: 'ht_templates_v1', wk: 'ht_weekplan_v1', fc: 'ht_forecast_v1', rv: 'ht_review_v1' };
 
 function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } }
 // ── 동기화 대상 목록과 변경 추적 ───────────────────────────
@@ -1642,7 +1701,7 @@ function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def
 const SYNC_STORES = [
   ['habits', K.h], ['user', K.u], ['goals', K.g], ['notif', K.n],
   ['finalgoal', K.f], ['todos', K.t], ['memos', K.m], ['mood', K.md],
-  ['day', K.d], ['templates', K.tpl], ['weekplan', K.wk], ['forecast', K.fc],
+  ['day', K.d], ['templates', K.tpl], ['weekplan', K.wk], ['forecast', K.fc], ['review', K.rv],
 ];
 const K_SYNCMETA = 'ht_syncmeta_v1';   // { 저장소키: { local: 고친시각, synced: 올린시각 } }
 function loadSyncMeta() { try { return JSON.parse(localStorage.getItem(K_SYNCMETA)) || {}; } catch { return {}; } }
@@ -2255,6 +2314,7 @@ function motivMsg(habits) {
 function render() {
   const habits = loadHabits(), today = todayStr();
   $('motiv-msg').textContent = motivMsg(habits);
+  renderWeekReviewCard();
   renderRecovery();
   renderMoodPicker();
 
@@ -2341,6 +2401,158 @@ function renderRecovery() {
     }).join('')}
   </div>`;
   if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── 주간 회고 ─────────────────────────────────────────────
+// 매일 보이면 배경이 돼버려서, 금·토에만 오늘 탭 위에 뜹니다.
+// (이 앱의 한 주는 일요일 시작이라 금·토가 그 주의 끝자락이에요)
+// AI 는 쓰지 않아요. 전부 기록에서 직접 센 숫자입니다.
+// 한글 조사 고르기. 마지막 글자에 받침이 있으면 앞엣것, 없으면 뒤엣것.
+// ("운동은/이" vs "독서는/가") 이거 없으면 "운동이(가)" 같은 게 화면에 나와요.
+function josa(word, withBatchim, without) {
+  const c = String(word).charCodeAt(String(word).length - 1);
+  if (!(c >= 0xac00 && c <= 0xd7a3)) return without;   // 한글이 아니면(숫자·영어) 그냥 뒤엣것
+  return (c - 0xac00) % 28 ? withBatchim : without;
+}
+
+const loadWeekReviews = () => lsGet(K.rv, {});
+function saveWeekReviews(d) { lsSet(K.rv, d); scheduleSync(); }
+
+// 한 주 동안 이 습관을 몇 번 했나
+function weekDone(h, ws) {
+  let n = 0;
+  for (let i = 0; i < 7; i++) if (h.checked[addDaysStr(ws, i)]) n++;
+  return n;
+}
+// 그 주에 몇 번 했어야 했나. upTo 를 주면 그 날짜까지만 셉니다(진행 중인 주).
+function weekTarget(h, ws, upTo) {
+  const f = habitFreq(h);
+  if (f.type === 'weekly') return f.times;
+  let n = 0;
+  for (let i = 0; i < 7; i++) {
+    const ds = addDaysStr(ws, i);
+    if (upTo && ds > upTo) break;
+    if (ds < h.createdAt) continue;              // 만들기 전 날짜는 책임이 없어요
+    if (f.type === 'daily' || f.days.includes(parseYmd(ds).getDay())) n++;
+  }
+  return n;
+}
+
+// 이번 주 성적표. 지난주와 나란히 놓아 변화를 보여줍니다.
+function weekReport(habits, ws, upTo) {
+  const prev = addDaysStr(ws, -7);
+  return habits.filter(h => h.createdAt <= upTo).map(h => {
+    const done = weekDone(h, ws), target = weekTarget(h, ws, upTo);
+    const pDone = weekDone(h, prev), pTarget = weekTarget(h, prev);
+    const pct = target ? Math.round(done / target * 100) : null;
+    const pPct = pTarget ? Math.round(pDone / pTarget * 100) : null;
+    return { h, done, target, pct, pDone, pTarget, pPct,
+             delta: (pct === null || pPct === null) ? null : pct - pPct };
+  });
+}
+
+// 가장 최근에 고른 '집중 하나'. 다음 회고에서 갈아치울 때까지 유지됩니다.
+function latestWeekReview() {
+  const rs = loadWeekReviews();
+  const keys = Object.keys(rs).sort();
+  for (let i = keys.length - 1; i >= 0; i--) if (rs[keys[i]] && rs[keys[i]].focusHabitId) return rs[keys[i]];
+  return null;
+}
+
+function renderWeekReviewCard() {
+  const box = $('wreview-box');
+  if (!box) return;
+  const today = todayStr(), ws = weekStartOf(today), dow = parseYmd(today).getDay();
+  const habits = loadHabits();
+  const reviews = loadWeekReviews();
+  let html = '';
+
+  // 이번 주에 고른 집중 습관 — 회고가 그때만 반짝하고 끝나지 않게 계속 보여줘요
+  const last = latestWeekReview();
+  if (last) {
+    const f = habits.find(x => x.id === last.focusHabitId);
+    if (f) html += `<div class="focus-strip">
+      <i data-lucide="crosshair"></i>
+      <div><span>이번 주 집중</span><b>${esc(f.name)}</b></div>
+    </div>`;
+  }
+
+  // 금·토에만, 그리고 이번 주 회고를 아직 안 했을 때만
+  if (habits.length && (dow === 5 || dow === 6) && !reviews[ws]) {
+    html += `<div class="wr-card" onclick="openWeekReview()">
+      <div class="wr-card-l">
+        <i data-lucide="notebook-pen"></i>
+        <div>
+          <div class="wr-card-t">이번 주 돌아보기</div>
+          <div class="wr-card-s">5분이면 돼요. 다음 주에 뭘 붙잡을지만 정하면 끝.</div>
+        </div>
+      </div>
+      <i data-lucide="chevron-right" class="wr-card-arrow"></i>
+    </div>`;
+  }
+
+  box.innerHTML = html;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+let _wrPick = '';
+function openWeekReview() {
+  const today = todayStr(), ws = weekStartOf(today);
+  const habits = loadHabits();
+  const rows = weekReport(habits, ws, today);
+  if (!rows.length) { showToast('아직 돌아볼 기록이 없어요'); return; }
+
+  const totDone = rows.reduce((s, r) => s + r.done, 0);
+  const totTarget = rows.reduce((s, r) => s + r.target, 0);
+  const totPct = totTarget ? Math.round(totDone / totTarget * 100) : 0;
+
+  // 가장 잘 지킨 것과 가장 무너진 것 — 하나씩만. 여러 개 늘어놓으면 안 읽혀요.
+  const rated = rows.filter(r => r.pct !== null).sort((a, b) => b.pct - a.pct);
+  const best = rated[0], worst = rated.length > 1 ? rated[rated.length - 1] : null;
+
+  const arrow = d => d === null ? '' :
+    d > 0 ? `<span class="wr-up">▲ ${d}</span>` : d < 0 ? `<span class="wr-down">▼ ${-d}</span>` : `<span class="wr-flat">—</span>`;
+
+  $('wr-body').innerHTML = `
+    <div class="wr-total">
+      <div class="wr-total-n">${totPct}<span>%</span></div>
+      <div class="wr-total-s">이번 주 ${totDone}번 / 해야 했던 ${totTarget}번</div>
+    </div>
+    <div class="wr-rows">
+      ${rows.map(r => `
+        <div class="wr-row">
+          <div class="wr-row-n">${esc(r.h.name)}</div>
+          <div class="wr-row-b"><div class="wr-row-f" style="width:${r.pct === null ? 0 : Math.min(100, r.pct)}%"></div></div>
+          <div class="wr-row-v">${r.done}/${r.target} ${arrow(r.delta)}</div>
+        </div>`).join('')}
+    </div>
+    ${best && best.pct > 0 ? `<div class="wr-note-line"><b>${esc(best.h.name)}</b>${josa(best.h.name, '이', '가')} 이번 주 제일 잘 붙었어요.</div>` : ''}
+    ${worst && worst.pct < 60 ? `<div class="wr-note-line dim"><b>${esc(worst.h.name)}</b>${josa(worst.h.name, '은', '는')} 많이 비었고요. 크기를 줄이는 것도 방법이에요.</div>` : ''}`;
+
+  // 기본 선택은 가장 무너진 것. 대개 그게 손봐야 할 것이라서요.
+  _wrPick = (worst && worst.pct < 100 ? worst.h.id : (rows[0] && rows[0].h.id)) || '';
+  $('wr-picks').innerHTML = rows.map(r =>
+    `<button type="button" class="wr-pick${r.h.id === _wrPick ? ' on' : ''}" data-id="${r.h.id}" onclick="pickWeekFocus('${r.h.id}')">${esc(r.h.name)}</button>`
+  ).join('');
+  $('wr-note').value = '';
+  openModal('wreview-modal');
+}
+
+function pickWeekFocus(id) {
+  _wrPick = id;
+  document.querySelectorAll('#wr-picks .wr-pick').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+}
+
+function saveWeekReview() {
+  if (!_wrPick) { showToast('다음 주에 붙잡을 습관을 하나 골라주세요'); return; }
+  const ws = weekStartOf(todayStr());
+  const rs = loadWeekReviews();
+  rs[ws] = { focusHabitId: _wrPick, note: $('wr-note').value.trim().slice(0, 60), doneAt: todayStr() };
+  saveWeekReviews(rs);
+  closeModal('wreview-modal');
+  render();
+  addXP(15);
+  showToast('회고 완료 +15 XP');
 }
 
 // ── HABIT ACTIONS ─────────────────────────────────────────
