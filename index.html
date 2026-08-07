@@ -291,7 +291,11 @@
     .pred-ai-row { display: flex; gap: 7px; font-size: .77rem; line-height: 1.55; color: var(--muted); }
     .pred-ai-row b { color: var(--text); font-weight: 700; }
     .pred-ai-focus { display: flex; gap: 7px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); font-size: .79rem; line-height: 1.6; color: var(--primary); }
-    .pred-ai-cheer { display: flex; gap: 7px; margin-top: 10px; padding: 10px 11px; border-radius: 10px; background: rgba(179,240,0,.07); font-size: .79rem; line-height: 1.6; color: var(--text); }
+    /* 마지막에 한 방 때리는 자리. 짧게 끊어 친 문장이 살도록 줄간격을 넉넉히 주고,
+       글자도 본문보다 키웠어요. 여기서 작아지면 그냥 각주처럼 읽힙니다. */
+    .pred-ai-cheer { margin-top: 14px; padding: 14px 15px; border-radius: 12px;
+      background: rgba(179,240,0,.06); border-left: 3px solid var(--primary);
+      font-size: .92rem; font-weight: 600; line-height: 1.85; color: var(--text); letter-spacing: -.2px; }
 
     /* AI 가 건 예측과 그 채점 결과 */
     .bet-wrap { margin-top: 13px; display: flex; flex-direction: column; gap: 7px; }
@@ -5414,9 +5418,7 @@ async function requestGrowthForecast(){
         ${out.focus?`<div class="pred-ai-focus">
           <i data-lucide="target" style="width:14px;height:14px;flex-shrink:0;margin-top:2px;"></i>
           <div>${esc(out.focus)}</div></div>`:''}
-        ${out.cheer?`<div class="pred-ai-cheer">
-          <i data-lucide="heart" style="width:14px;height:14px;flex-shrink:0;margin-top:2px;color:var(--primary);"></i>
-          <div>${esc(out.cheer)}</div></div>`:''}
+        ${out.cheer?`<div class="pred-ai-cheer">${esc(out.cheer).replace(/\n/g,'<br>')}</div>`:''}
       </div>`;
     saveBet(out.bet, habits);
     renderBets();
