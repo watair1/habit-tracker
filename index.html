@@ -105,6 +105,22 @@
     .min-btn { flex-shrink: 0; background: transparent; border: 1px dashed var(--primary); color: var(--primary); font-size: .7rem; font-weight: 700; padding: 4px 8px; border-radius: 7px; cursor: pointer; }
     .min-btn:active { transform: scale(.94); }
 
+    /* 기능 찾기 */
+    .sc-hit { padding: 11px 12px; border-radius: 11px; border: 1px solid var(--border);
+      background: var(--card2); margin-bottom: 7px; cursor: pointer; }
+    .sc-hit:active { transform: scale(.99); border-color: var(--primary); }
+    .sc-hit-n { font-size: .85rem; font-weight: 700; color: var(--text); }
+    .sc-hit-w { display: flex; align-items: center; gap: 4px; font-size: .71rem; color: var(--primary); margin-top: 3px; }
+    .sc-hit-w svg { width: 12px; height: 12px; flex-shrink: 0; }
+    .sc-hit-d { font-size: .73rem; line-height: 1.5; color: var(--muted); margin-top: 4px; }
+    .sc-empty { font-size: .8rem; line-height: 1.7; color: var(--muted); text-align: center; padding: 26px 10px; }
+    /* 데려다준 자리를 잠깐 밝혀서 "여기예요" 를 알려줍니다 */
+    .sc-flash { animation: scFlash 1.6s ease-out; border-radius: var(--r); }
+    @keyframes scFlash {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(179,240,0,0); }
+      15%, 60% { box-shadow: 0 0 0 3px rgba(179,240,0,.45); }
+    }
+
     /* 주간 회고 — 금·토에만 뜨는 카드 + 고른 습관을 계속 보여주는 띠 */
     .focus-strip { display: flex; align-items: center; gap: 9px; padding: 10px 13px; margin-bottom: 9px;
       border-radius: 11px; background: rgba(179,240,0,.07); border: 1px solid rgba(179,240,0,.2); }
@@ -661,6 +677,7 @@
         <span class="user-name-hdr" id="user-name"></span>
         <button class="notif-btn" onclick="logoutUser()" title="로그아웃">OUT</button>
       </div>
+      <button class="notif-btn" onclick="openSearch()" title="기능 찾기"><i data-lucide="search" style="width:15px;height:15px;vertical-align:-2px;"></i></button>
       <button class="login-btn" id="login-btn" onclick="loginWithGoogle()">로그인</button>
       <button class="notif-btn" onclick="requestNotif()" title="알림 설정">알림</button>
     </div>
@@ -1400,6 +1417,19 @@
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('wreview-modal')">나중에</button>
       <button class="btn-confirm" onclick="saveWeekReview()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 기능 찾기 -->
+<div class="overlay" id="search-modal">
+  <div class="sheet" style="max-height:86vh;display:flex;flex-direction:column;">
+    <div class="sheet-title">기능 찾기</div>
+    <input id="sc-input" placeholder="예: 분야, 최소 버전, 백업..." autocomplete="off" spellcheck="false"
+           oninput="renderSearch()" onkeydown="if(event.key==='Enter')openFirstSearchHit()"/>
+    <div id="sc-results" style="overflow-y:auto;flex:1;margin-top:12px;"></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn-cancel" onclick="closeModal('search-modal')">닫기</button>
     </div>
   </div>
 </div>
@@ -2401,6 +2431,134 @@ function renderRecovery() {
     }).join('')}
   </div>`;
   if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── 기능 찾기 ─────────────────────────────────────────────
+// 탭이 여섯 개에 모달이 열여섯 개라, 만든 사람도 뭐가 어디 있는지 잊어버려요.
+// 검색어를 안 치면 전체 목록이 나옵니다. "이 앱에 뭐가 있더라" 도 여기서 해결.
+//
+// go 는 그 기능이 있는 자리로 데려다주는 함수예요. 탭만 옮기는 것도 있고,
+// 모달까지 열어주는 것도 있습니다.
+
+// 아래쪽 탭 버튼을 대신 눌러줍니다. switchTab 은 눌린 버튼을 인자로 받아서,
+// 코드에서 직접 부르려면 버튼을 찾아 click() 해주는 게 제일 안전해요.
+function gotoTab(name) {
+  const btn = [...document.querySelectorAll('.nav-btn')]
+    .find(b => (b.getAttribute('onclick') || '').includes(`'${name}'`));
+  if (btn) btn.click();
+}
+// 해당 카드로 스크롤하고 잠깐 테두리를 밝혀 어디인지 알려줍니다.
+function flashTo(sel) {
+  setTimeout(() => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('sc-flash');
+    setTimeout(() => el.classList.remove('sc-flash'), 1600);
+  }, 120);
+}
+const tabThen = (tab, sel) => () => { gotoTab(tab); if (sel) flashTo(sel); };
+const tabOpen = (tab, fn) => () => { gotoTab(tab); setTimeout(fn, 160); };
+
+// n=이름, w=어디에 있는지, d=한 줄 설명, k=검색에 걸릴 다른 말들
+const FEATURES = [
+  // 오늘
+  { n:'습관 추가', w:'오늘', d:'이름·카테고리·빈도·시간대를 정해서 새 습관을 만들어요', k:'새습관 만들기 등록', go:tabOpen('today', openAddModal) },
+  { n:'빈도 (매일 / 주 N회 / 특정 요일)', w:'오늘 › 습관 추가·수정', d:'주 3회처럼 정하면 성공률도 그 기준으로 계산돼요', k:'주3회 요일 반복 얼마나자주', go:tabOpen('today', openAddModal) },
+  { n:'최소 버전 (바쁜 날엔 이거라도)', w:'오늘 › 습관 추가·수정', d:'도저히 못 할 날 이것만 해도 연속 기록이 안 끊겨요', k:'이거라도 최소 스쿼트 문턱 낮추기 min', go:tabOpen('today', openAddModal) },
+  { n:'회복 카드 (두 번은 안 빠진다)', w:'오늘 맨 위', d:'한 번 놓친 습관을 끌어올려서 오늘 되살릴 수 있게 해줘요', k:'놓침 빠짐 복구 다시 스트릭', go:tabThen('today', '#recovery-box') },
+  { n:'주간 회고', w:'오늘 맨 위 (금·토에만)', d:'이번 주 성적을 보고 다음 주에 붙잡을 습관 하나를 정해요', k:'돌아보기 회고 리뷰 주간 금요일', go:tabOpen('today', openWeekReview) },
+  { n:'오늘의 기분', w:'오늘', d:'최악~최고 다섯 단계. 통계에서 성공률과 겹쳐 볼 수 있어요', k:'무드 기분 감정 mood', go:tabThen('today', '#mood-seg') },
+  { n:'아이디어 메모', w:'오늘 아래쪽', d:'떠오른 걸 적어두는 곳', k:'메모 아이디어 노트', go:tabOpen('today', openMemoModal) },
+  { n:'아이디어 다시 보기', w:'오늘 › 아이디어', d:'예전에 적어둔 메모를 무작위로 다시 꺼내줘요', k:'리콜 다시보기 랜덤 예전메모', go:tabOpen('today', openRecallModal) },
+
+  // 하루
+  { n:'하루 타임라인', w:'하루', d:'시간표에 일정을 얹어 하루를 짜는 곳', k:'일정 스케줄 시간표 캘린더', go:tabThen('day', '#tab-day') },
+  { n:'일정 평가', w:'하루 › 일정 누르기', d:'끝난 일정에 했다/못했다와 별점을 남겨요', k:'평가 별점 회고 리뷰 완료', go:tabThen('day', '#tab-day') },
+  { n:'오늘의 하이라이트 + 보상', w:'하루', d:'오늘 제일 중요한 일 하나와, 끝내면 받을 보상을 정해요', k:'하이라이트 보상 중요한일 리워드', go:tabOpen('day', openHighlightModal) },
+  { n:'오늘의 할 일', w:'하루', d:'그날 할 일 목록 (목표 탭의 "실천 항목"과는 다른 거예요)', k:'할일 투두 todo 체크리스트', go:tabThen('day', '#tab-day') },
+  { n:'수면 기록', w:'하루 › 하루 마무리', d:'잔 시각과 깬 시각. 통계에서 성공률과 겹쳐 봐요', k:'잠 수면 취침 기상 sleep', go:tabThen('day', '#tab-day') },
+  { n:'분야 (과목·영역)', w:'하루 › 이번 주 시간 배분 › STEP1', d:'생리학처럼 내가 짓는 이름. 일정에 붙이면 통계의 시간 도넛에 잡혀요', k:'분야 과목 영역 카테고리 생리학 공부', go:tabOpen('day', openWeekPlan) },
+  { n:'주간 계획 STEP1 · 분량 확인', w:'하루 › 이번 주 시간 배분', d:'분야를 만들고 이번 주 목표량을 정해요 (100페이지 같은 것)', k:'주간계획 분량 목표량 페이지 step1', go:tabOpen('day', openWeekPlan) },
+  { n:'주간 계획 STEP2 · 시간 배분', w:'하루 › 이번 주 시간 배분', d:'격자에 드래그해서 시간을 칠하면 일정이 자동으로 생겨요', k:'시간배분 드래그 격자 step2 주간계획', go:tabOpen('day', openWeekPlan) },
+  { n:'집중 모드 (25분 타이머)', w:'하루', d:'포모도로. 습관이나 일정 하나를 골라 25분 집중해요', k:'포모도로 타이머 집중 25분 pomodoro', go:tabOpen('day', openFocusPicker) },
+  { n:'어제 일정 복사 · 루틴 템플릿', w:'하루', d:'어제 걸 그대로 가져오거나, 자주 쓰는 하루를 템플릿으로 저장해요', k:'복사 템플릿 루틴 어제 반복', go:tabOpen('day', openDayTools) },
+  { n:'AI 일정 자동 짜기', w:'하루', d:'"오전에 운동하고 오후에 공부" 처럼 적으면 시간표를 만들어줘요', k:'자동 ai 일정만들기 자동일정', go:tabOpen('day', openAutoScheduleModal) },
+  { n:'AI 비서 (코치)', w:'어느 탭에서나 · 오른쪽 아래 버튼', d:'말로 시키면 일정·할 일·습관을 대신 넣고 고쳐줘요', k:'ai 비서 챗 대화 제미나이 코치 어시스턴트', go:openAgent },
+  { n:'AI 대화 기록', w:'AI 비서 › 위쪽 기록 버튼', d:'날짜별로 예전 대화를 다시 볼 수 있어요', k:'대화기록 히스토리 예전대화', go:openAgentHistory },
+  { n:'코칭 모드 / 일반 모드', w:'AI 비서 안', d:'코칭은 먼저 제안하고, 일반은 시킨 것만 조용히 처리해요', k:'모드 코칭 일반 조용히 plain', go:openAgent },
+
+  // 통계
+  { n:'이번 달 히트맵', w:'통계', d:'날짜별로 얼마나 했는지 색으로 한눈에', k:'히트맵 달력 잔디 heatmap', go:tabThen('stats', '#heatmap') },
+  { n:'카테고리별 비중', w:'통계', d:'[시간]은 분야별 쓴 시간, [횟수]는 습관 카테고리별 횟수', k:'도넛 파이 비중 카테고리 시간 분야', go:tabThen('stats', '#cat-pie-chart') },
+  { n:'요일별 성공률', w:'통계', d:'무슨 요일에 무너지는지 보여줘요', k:'요일 월화수목금 무너지는날', go:tabThen('stats', '#day-analysis') },
+  { n:'기분 · 수면과 습관 성공률', w:'통계 아래쪽', d:'기분이 나쁜 날, 못 잔 날 성공률이 어떻게 달라지는지', k:'상관 기분 수면 관계 correlation', go:tabThen('stats', '#tab-stats') },
+
+  // 성장
+  { n:'레벨과 XP', w:'성장', d:'새싹 → 도전자 → 습관인 → 마스터 → 레전드 → 신화', k:'레벨 경험치 xp 등급 새싹', go:tabThen('growth', '#tab-growth') },
+  { n:'업적', w:'성장', d:'조건을 채우면 열리는 배지들', k:'업적 배지 도전과제 achievement', go:tabThen('growth', '#tab-growth') },
+
+  // 목표
+  { n:'최종 목표', w:'목표 맨 위', d:'인생에서 이루고 싶은 하나. AI가 여기 맞는 습관을 추천해줘요', k:'최종목표 인생목표 꿈 finalgoal', go:tabOpen('goals', openFinalGoalModal) },
+  { n:'목표와 실천 항목', w:'목표', d:'장기·중기·단기 목표를 만들고 습관을 연결해요', k:'목표 실천항목 장기 중기 단기 goal', go:tabOpen('goals', openGoalModal) },
+  { n:'성장 예측', w:'목표 아래쪽', d:'지금 속도면 3개월·1년 뒤에 어디쯤 가 있을지', k:'예측 성장 3개월 1년 미래', go:tabThen('goals', '#pred-content') },
+  { n:'AI 예측 채점', w:'목표 › 성장 예측', d:'AI가 건 예측을 앱이 나중에 실제 기록으로 채점해요', k:'예측 채점 맞음 빗나감 내기 bet', go:tabThen('goals', '#pred-bets') },
+  { n:'추천 루틴', w:'목표 맨 아래', d:'아침 파워 루틴 같은 습관 묶음을 한 번에 추가', k:'루틴 추천 묶음 세트', go:tabThen('goals', '#routine-list') },
+
+  // 분석
+  { n:'Claude AI 맞춤 피드백', w:'분석', d:'API 키를 넣으면 Claude가 내 기록을 분석해줘요', k:'클로드 claude 피드백 분석 api키', go:tabThen('analysis', '#tab-analysis') },
+  { n:'시간대별 습관 분포', w:'분석', d:'아침·오후·저녁 중 언제에 몰려 있는지', k:'시간대 아침 저녁 분포', go:tabThen('analysis', '#tab-analysis') },
+  { n:'실패 패턴 분석', w:'분석', d:'어떤 상황에서 자꾸 무너지는지 찾아줘요', k:'실패 패턴 무너짐', go:tabThen('analysis', '#fail-ai-box') },
+  { n:'알림 설정', w:'분석 아래쪽', d:'정해둔 시각에 알려줘요', k:'알림 푸시 리마인더 notification', go:tabThen('analysis', '#tab-analysis') },
+  { n:'데이터 백업 · 복원', w:'분석 맨 아래', d:'기록을 파일로 내보내고 다시 불러와요', k:'백업 복원 내보내기 저장 json 초기화', go:tabThen('analysis', '#tab-analysis') },
+  { n:'구글 로그인 · 클라우드 동기화', w:'맨 위 헤더', d:'로그인하면 폰과 PC의 기록이 같이 맞춰져요', k:'로그인 동기화 구글 클라우드 sync 백업', go:() => showToast('맨 위 "로그인" 버튼을 눌러주세요') },
+];
+
+function openSearch() {
+  $('sc-input').value = '';
+  renderSearch();
+  openModal('search-modal');
+  setTimeout(() => $('sc-input').focus(), 90);
+}
+
+// 띄어쓰기로 나눈 낱말이 전부 걸리는 것만 남깁니다.
+// ("주간 회고" 로 쳐도 "주간"과 "회고"가 둘 다 들어 있으면 걸려요)
+function searchFeatures(q) {
+  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return FEATURES;
+  return FEATURES.filter(f => {
+    const hay = `${f.n} ${f.w} ${f.d} ${f.k}`.toLowerCase();
+    return words.every(w => hay.includes(w));
+  });
+}
+
+function renderSearch() {
+  const q = $('sc-input').value;
+  const hits = searchFeatures(q);
+  const box = $('sc-results');
+  if (!hits.length) {
+    box.innerHTML = `<div class="sc-empty">"${esc(q)}" 로는 못 찾았어요.<br>다른 말로 해보거나, 검색어를 지우면 전체 목록이 나와요.</div>`;
+    return;
+  }
+  box.innerHTML = hits.map((f, i) =>
+    `<div class="sc-hit" onclick="jumpToFeature(${FEATURES.indexOf(f)})">
+      <div class="sc-hit-n">${esc(f.n)}</div>
+      <div class="sc-hit-w"><i data-lucide="corner-down-right"></i>${esc(f.w)}</div>
+      <div class="sc-hit-d">${esc(f.d)}</div>
+    </div>`).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function jumpToFeature(i) {
+  const f = FEATURES[i];
+  if (!f) return;
+  closeModal('search-modal');
+  setTimeout(() => { try { f.go(); } catch (e) { showToast('그 자리로 가지 못했어요'); } }, 140);
+}
+
+function openFirstSearchHit() {
+  const hits = searchFeatures($('sc-input').value);
+  if (hits.length) jumpToFeature(FEATURES.indexOf(hits[0]));
 }
 
 // ── 주간 회고 ─────────────────────────────────────────────
