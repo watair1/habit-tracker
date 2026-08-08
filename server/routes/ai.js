@@ -364,6 +364,10 @@ router.post('/day-agent', async (req, res) => {
 - {"type":"check_habit","id":"기존 습관 id"}    // 오늘 완료로 체크 (XP 획득)
 - {"type":"uncheck_habit","id":"기존 습관 id"}  // 체크 해제
 - {"type":"delete_habit","id":"기존 습관 id"}   // 습관 자체를 삭제 (기록도 사라짐)
+- {"type":"edit_habit","id":"기존 습관 id","name":"새 이름"(선택),"category":"${CATEGORIES.join('|')}"(선택),"timeSlot":"${TIMESLOTS.join('|')}"(선택)}
+  ※ 이미 있는 습관의 이름·분류를 고칠 때 쓴다. 그동안의 기록은 그대로 남는다.
+     이름만 다른 비슷한 습관을 새로 만들지 말고 이걸 써라.
+     새로 만들면 연속 기록이 둘로 쪼개진다 ("달리기" 47일 옆에 "아침 달리기" 0일).
 - {"type":"set_habit_min","id":"기존 습관 id","text":"바쁜 날엔 이거라도"}
   ※ 습관마다 "최소 버전"을 정해둘 수 있다. 도저히 못 할 것 같은 날 이것만 해도
      연속 기록이 끊기지 않는다. 아래 습관 목록의 min 칸이 그거다.
@@ -480,6 +484,16 @@ export function sanitizeAgentActions(rawActions, ids) {
           return idOk(habitIds) ? { type: 'delete_habit', id: a.id } : null;
         case 'set_habit_min':
           return idOk(habitIds) ? { type: 'set_habit_min', id: a.id, text: String(a.text || '').slice(0, 30) } : null;
+        case 'edit_habit': {
+          if (!idOk(habitIds)) return null;
+          const out = { type: 'edit_habit', id: a.id };
+          const name = String(a.name || '').trim().slice(0, 30);
+          if (name) out.name = name;
+          if (CATEGORIES.includes(a.category)) out.category = a.category;
+          if (TIMESLOTS.includes(a.timeSlot)) out.timeSlot = a.timeSlot;
+          // 바꿀 게 하나도 없으면 의미 없는 액션이라 버린다
+          return (out.name || out.category || out.timeSlot) ? out : null;
+        }
 
         case 'set_highlight': {
           const text = String(a.text || '').slice(0, 60);

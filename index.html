@@ -5489,6 +5489,13 @@ function agentActionLabel(a){
     case 'uncheck_habit': return row('circle',`습관 체크 해제: ${hbName(a.id)}`);
     case 'delete_habit': return row('trash-2',`습관 삭제: ${hbName(a.id)}`);
     case 'set_habit_min': return row('life-buoy', a.text ? `${hbName(a.id)} 최소 버전: ${esc(a.text)}` : `${hbName(a.id)} 최소 버전 지움`);
+    case 'edit_habit': {
+      const bits=[];
+      if(a.name!==undefined) bits.push(`이름 → ${esc(a.name)}`);
+      if(a.category!==undefined) bits.push(esc(a.category));
+      if(a.timeSlot!==undefined) bits.push(esc(a.timeSlot));
+      return row('pencil',`습관 수정: ${hbName(a.id)} (${bits.join(' · ')})`);
+    }
     case 'set_highlight': return row('star',`하이라이트: ${esc(a.text)}`);
     case 'set_mood': return row('smile',`기분: ${esc(MOOD_LABEL[a.mood]||a.mood)}`);
     case 'set_sleep': return row('moon',`수면: ${esc(a.bed||'?')}~${esc(a.wake||'?')}`);
@@ -5648,6 +5655,19 @@ function applyAgentActions(idx,btnEl){
       case 'set_habit_min': {
         const h=H().find(x=>x.id===a.id);
         if(h){ h.min=String(a.text||'').slice(0,30); habitsDirty=true; n++; }
+        break;
+      }
+      case 'edit_habit': {
+        // checked(그동안의 기록)는 손대지 않아요. 이름만 바꾸는 게 목적이라서요.
+        // 이 통로가 없으면 코치가 "비슷한 습관 새로 만들기" 밖에 못 해서
+        // 연속 기록이 둘로 쪼개집니다.
+        const h=H().find(x=>x.id===a.id);
+        if(h){
+          if(a.name!==undefined) h.name=String(a.name).slice(0,30);
+          if(a.category!==undefined) h.category=a.category;
+          if(a.timeSlot!==undefined) h.timeSlot=a.timeSlot;
+          habitsDirty=true; n++;
+        }
         break;
       }
       case 'set_highlight': d.highlight={ text:a.text, done:false, awarded:false }; n++; break;

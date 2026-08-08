@@ -114,6 +114,23 @@ async function run(tz, label) {
     ok('코치가 최소 버전을 넣음', loadHabits()[0].min, '신발 신고 나가기');
     R.push({ n: '액션 설명 문구', pass: agentActionLabel({ type: 'set_habit_min', id: 'h_산책', text: '신발 신고 나가기' }).includes('최소 버전'), got: '' });
 
+    // ── AI 코치의 edit_habit — 이름만 바뀌고 기록은 살아 있어야 함 ──
+    localStorage.setItem('ht_habits_v2', JSON.stringify([mk('달리기', [1, 2, 3, 4, 5])]));
+    const before = streakCount(loadHabits()[0]);
+    const d2 = getDay(dayCursor);
+    d2.chat = [{ role: 'ai', text: '이름을 구체적으로 바꿀게요', actions: [
+      { type: 'edit_habit', id: 'h_달리기', name: '아침 달리기 20분', timeSlot: '아침' }] }];
+    setDay(dayCursor, d2);
+    applyAgentActions(0, null);
+    const ed = loadHabits();
+    ok('이름이 바뀜', ed[0].name, '아침 달리기 20분');
+    ok('시간대도 바뀜', ed[0].timeSlot, '아침');
+    ok('습관이 새로 생기지 않음', ed.length, 1);
+    ok('연속 기록 그대로', streakCount(ed[0]), before);
+    ok('체크 기록 개수 그대로', Object.keys(ed[0].checked).length, 5);
+    ok('id 유지', ed[0].id, 'h_달리기');
+    R.push({ n: 'edit_habit 설명 문구', pass: agentActionLabel({ type: 'edit_habit', id: 'h_달리기', name: '아침 달리기 20분' }).includes('습관 수정'), got: '' });
+
     // ── 렌더 전체가 안 터지는가 ──
     let err = '';
     try { render(); renderStats(); renderGoals(); } catch (e) { err = e.message; }
