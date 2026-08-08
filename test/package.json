@@ -4,7 +4,7 @@
   "type": "module",
   "description": "브라우저 테스트 전용. 앱 자체는 여전히 빌드도 설치도 없어요 — 이 폴더 안에서만 씁니다.",
   "scripts": {
-    "test": "node reccheck.mjs && node betcheck.mjs && node reviewcheck.mjs && node searchcheck.mjs"
+    "test": "node reccheck.mjs && node betcheck.mjs && node reviewcheck.mjs && node searchcheck.mjs && node agentinputcheck.mjs"
   },
   "devDependencies": {
     "playwright": "^1.49.0"

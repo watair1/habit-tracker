@@ -661,10 +661,12 @@
     .agent-actions { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
     .agent-act { font-size: .76rem; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; display: flex; align-items: center; gap: 6px; }
     .agent-act svg { width: 13px; height: 13px; color: var(--primary); flex-shrink: 0; }
-    .agent-input-row { display: flex; gap: 6px; }
-    .agent-input-row input { flex: 1; padding: 10px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: .85rem; outline: none; background: var(--card); color: var(--text); }
-    .agent-input-row input:focus { border-color: var(--primary); }
-    .agent-input-row button { flex: 0 0 auto; display: inline-flex; align-items: center; }
+    /* 보내는 칸은 여러 줄이 돼야 해요. 습관 목록처럼 줄줄이 붙여넣을 일이 있어서요.
+       한 줄로 시작해서 내용만큼 늘어나고, 다섯 줄쯤에서 멈추고 스크롤됩니다. */
+    .agent-input-row { display: flex; gap: 6px; align-items: flex-end; }
+    .agent-input-row textarea { flex: 1; padding: 10px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: .85rem; outline: none; background: var(--card); color: var(--text); font-family: inherit; line-height: 1.5; resize: none; max-height: 116px; overflow-y: auto; }
+    .agent-input-row textarea:focus { border-color: var(--primary); }
+    .agent-input-row button { flex: 0 0 auto; display: inline-flex; align-items: center; height: 40px; }
     .as-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 9px; margin-bottom: 6px; }
     .as-item-time { font-size: .68rem; color: var(--primary); font-weight: 700; flex-shrink: 0; }
     .as-item-title { font-size: .85rem; flex: 1; }
@@ -1279,7 +1281,7 @@
     <div id="agent-log" class="agent-log"></div>
     <div class="agent-chips" id="agent-chips"></div>
     <div class="agent-input-row">
-      <input id="agent-input" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="if(event.key==='Enter')sendAgent()"/>
+      <textarea id="agent-input" rows="1" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="agentInputKey(event)" oninput="growAgentInput()"></textarea>
       <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
     </div>
   </div>
@@ -5438,7 +5440,7 @@ function openAgent(){
   renderAgentEmpty();
   renderAgentChips();
   if (typeof lucide !== 'undefined') lucide.createIcons();
-  setTimeout(()=>$('agent-input').focus(), 80);
+  setTimeout(()=>{ growAgentInput(); $('agent-input').focus(); }, 80);
 }
 function closeAgent(){
   closeModal('agent-modal');
@@ -5536,13 +5538,33 @@ function renderAgentLog(){
   log.scrollTop=log.scrollHeight;
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+// 폰에는 Shift 키가 없어요. 그래서 터치 기기에서 Enter 로 보내버리면
+// 여러 줄을 쓸 방법이 아예 없어집니다. 그래서 기기에 따라 다르게 해요.
+//   폰  — Enter 는 줄바꿈. 보내는 건 옆의 버튼으로.
+//   PC  — Enter 는 보내기, Shift+Enter 는 줄바꿈. (원래 쓰던 대로)
+const IS_TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
+function agentInputKey(e){
+  if(e.key!=='Enter') return;
+  if(IS_TOUCH || e.shiftKey) return;      // 줄바꿈으로 두기
+  e.preventDefault();
+  sendAgent();
+}
+// 내용만큼 칸이 자라게. CSS 의 max-height 에서 멈추고 그때부턴 스크롤돼요.
+function growAgentInput(){
+  const t=$('agent-input');
+  if(!t) return;
+  t.style.height='auto';
+  t.style.height=t.scrollHeight+'px';
+}
+
 async function sendAgent(){
   const inp=$('agent-input'), msg=inp.value.trim();
   if(!msg) return;
   let d=getDay(dayCursor);
   d.chat=trimChat([...(d.chat||[]), { role:'user', text:msg }]);
   setDay(dayCursor,d);
-  inp.value=''; const btn=$('agent-send'); btn.disabled=true;
+  inp.value=''; growAgentInput();          // 비운 뒤 칸 높이도 한 줄로 되돌림
+  const btn=$('agent-send'); btn.disabled=true;
   renderAgentLog();
   const log=$('agent-log');
   log.insertAdjacentHTML('beforeend',
