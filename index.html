@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" id="apple-icon" />
 
   <!-- PWA: Android / General -->
-  <meta name="theme-color" content="#6c63ff" />
+  <meta name="theme-color" content="#0a0a0a" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="manifest" id="pwa-manifest" />
 
@@ -261,7 +261,10 @@
     /* MODAL */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 200; align-items: flex-end; justify-content: center; }
     .overlay.open { display: flex; }
-    .sheet { background: #0c0c0c; border-radius: 24px 24px 0 0; padding: 26px 20px calc(36px + env(safe-area-inset-bottom)); width: 100%; max-width: 500px; animation: slideUp .3s cubic-bezier(0.32,0.72,0,1); border-top: 1px solid var(--border); }
+    /* max-height + overflow: 내용이 화면보다 길면 시트 안에서 스크롤돼요.
+       예전엔 이게 없어서 '이번 주 돌아보기'처럼 긴 모달이 아래가 잘린 채
+       스크롤도 안 됐습니다. (개별 모달이 inline 으로 더 큰 값을 줘도 괜찮아요) */
+    .sheet { background: #0c0c0c; border-radius: 24px 24px 0 0; padding: 26px 20px calc(36px + env(safe-area-inset-bottom)); width: 100%; max-width: 500px; animation: slideUp .3s cubic-bezier(0.32,0.72,0,1); border-top: 1px solid var(--border); max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
     @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
     .sheet-title { font-size: 1rem; font-weight: 700; margin-bottom: 15px; color: var(--text); }
     .fg { margin-bottom: 13px; }
@@ -735,6 +738,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div class="card-title" style="margin-bottom:0;">아이디어</div>
       <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="openMemoExport()" style="background:transparent;color:var(--muted);border:1px solid var(--border);display:inline-flex;align-items:center;gap:5px;" title="내보내기"><i data-lucide="share" style="width:14px;height:14px;"></i></button>
         <button class="btn btn-sm" onclick="openRecallModal()" style="background:transparent;color:var(--primary);border:1px solid var(--primary);display:inline-flex;align-items:center;gap:5px;"><i data-lucide="lightbulb" style="width:14px;height:14px;"></i>다시 보기</button>
         <button class="btn btn-sm" onclick="openMemoModal()">+ 새 메모</button>
       </div>
@@ -1510,6 +1514,25 @@
   </div>
 </div>
 
+<!-- 메모 내보내기 -->
+<div class="overlay" id="memo-export-modal">
+  <div class="sheet">
+    <div class="sheet-title">메모 내보내기</div>
+    <p class="fg-hint" id="mex-count" style="margin-top:0;margin-bottom:15px;"></p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;" onclick="exportMemosFile()">
+        <i data-lucide="download" style="width:15px;height:15px;"></i>파일로 저장
+      </button>
+      <button class="btn btn-outline" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;" onclick="exportMemosCopy()">
+        <i data-lucide="copy" style="width:15px;height:15px;"></i>복사하기
+      </button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" style="flex:1;" onclick="closeModal('memo-export-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- RECALL MODAL -->
 <div class="overlay" id="recall-modal">
   <div class="sheet" style="max-height:90vh;display:flex;flex-direction:column;">
@@ -2237,16 +2260,21 @@ function exportData() {
     if (raw !== null) data[K[k]] = raw;      // 원본 문자열 그대로 담아 손실 없이 복원
   });
   const payload = { app: BACKUP_TAG, version: 1, exportedAt: new Date().toISOString(), data };
-  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  downloadBlob(`habit-tracker-${todayStr()}.json`,
+    new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  showToast('백업 파일을 저장했어요');
+}
+
+// 만든 파일을 브라우저가 내려받게 하는 공통 함수. 백업과 메모 내보내기가 같이 씁니다.
+function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `habit-tracker-${todayStr()}.json`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  showToast('백업 파일을 저장했어요');
 }
 
 function importData(input) {
@@ -2274,11 +2302,37 @@ function importData(input) {
   reader.readAsText(file);
 }
 
+// ── 마지막에 본 탭 기억하기 ────────────────────────────────
+// 폰에서 앱을 잠깐 나갔다 오면 브라우저가 페이지를 통째로 다시 켜요. 그럼
+// HTML 에 박힌 대로 늘 '오늘' 탭으로 돌아갔습니다. 그래서 탭을 옮길 때마다
+// 어디에 있었는지 적어두고, 다시 켜질 때 그 자리로 돌려놓습니다.
+//
+// 단, '잠깐 나갔다 온 경우'에만요. 어제 통계 탭을 보다 껐는데 오늘 아침에
+// 통계로 시작하면 그건 그거대로 이상하니까, 4시간이 지났으면 그냥 오늘로 엽니다.
+const K_LASTTAB = 'ht_lasttab_v1';       // 이 기기에서만 쓰는 값 — 동기화·백업 대상 아님
+const LASTTAB_TTL = 4 * 60 * 60 * 1000;  // 4시간
+
+function saveLastTab(name) {
+  try { localStorage.setItem(K_LASTTAB, JSON.stringify({ tab: name, at: Date.now() })); } catch {}
+}
+function restoreLastTab() {
+  let v;
+  try { v = JSON.parse(localStorage.getItem(K_LASTTAB)); } catch { return; }
+  if (!v || !v.tab || v.tab === 'today') return;
+  if (!v.at || Date.now() - v.at > LASTTAB_TTL) return;
+  if (!$('tab-' + v.tab)) return;         // 없어진 탭 이름이 남아 있어도 안전하게
+  switchTab(v.tab);
+}
+
+// btn 을 안 넘기면 아래 탭 버튼 중에서 알아서 찾아요.
 function switchTab(name, btn) {
+  if (!btn) btn = [...document.querySelectorAll('.nav-btn')]
+    .find(b => (b.getAttribute('onclick') || '').includes(`'${name}'`));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   $('tab-' + name).classList.add('active');
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
+  saveLastTab(name);
   if (name === 'today')    render();        // render() 안에 renderMemos() 가 들어있어요
   if (name === 'day')      renderDay();
   if (name === 'stats')    renderStats();
@@ -2479,6 +2533,7 @@ const FEATURES = [
   { n:'주간 회고', w:'오늘 맨 위 (금·토에만)', d:'이번 주 성적을 보고 다음 주에 붙잡을 습관 하나를 정해요', k:'돌아보기 회고 리뷰 주간 금요일', go:tabOpen('today', openWeekReview) },
   { n:'오늘의 기분', w:'오늘', d:'최악~최고 다섯 단계. 통계에서 성공률과 겹쳐 볼 수 있어요', k:'무드 기분 감정 mood', go:tabThen('today', '#mood-seg') },
   { n:'아이디어 메모', w:'오늘 아래쪽', d:'떠오른 걸 적어두는 곳', k:'메모 아이디어 노트', go:tabOpen('today', openMemoModal) },
+  { n:'메모 내보내기', w:'오늘 → 아이디어 오른쪽 위', d:'메모를 글자로 뽑아 파일로 저장하거나 복사해요', k:'메모 내보내기 저장 복사 공유 txt 텍스트', go:tabOpen('today', openMemoExport) },
   { n:'아이디어 다시 보기', w:'오늘 › 아이디어', d:'예전에 적어둔 메모를 무작위로 다시 꺼내줘요', k:'리콜 다시보기 랜덤 예전메모', go:tabOpen('today', openRecallModal) },
 
   // 하루
@@ -3385,20 +3440,27 @@ function ratingIcon(r) {
   return '';
 }
 
-function renderMemos() {
+// 지금 화면에 보이는 메모 목록. 필터(전체·즐겨찾기·졸업)와 검색어를 적용해요.
+// 화면에 그릴 때와 내보낼 때가 같은 규칙을 쓰도록 여기 한 군데로 모아뒀습니다.
+function filteredMemos() {
   const q = ($('memo-search') ? $('memo-search').value.trim().toLowerCase() : '');
   let memos = loadMemos();
   if (memoFilter === 'starred') memos = memos.filter(m => m.starred);
   else if (memoFilter === 'graduated') memos = memos.filter(m => m.graduated);
   else memos = memos.filter(m => !m.graduated);
-  const el = $('memo-list');
-  if (!el) return;
-  const filtered = q ? memos.filter(m =>
+  if (q) memos = memos.filter(m =>
     (m.title||'').toLowerCase().includes(q) ||
     (m.content||'').toLowerCase().includes(q) ||
     (m.tags||[]).some(t => t.toLowerCase().includes(q)) ||
     (m.appendix||[]).some(a => (a.text||'').toLowerCase().includes(q))
-  ) : memos;
+  );
+  return { list: memos, q };
+}
+
+function renderMemos() {
+  const el = $('memo-list');
+  if (!el) return;
+  const { list: filtered, q } = filteredMemos();
   if (!filtered.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;">${q ? '검색 결과가 없어요' : '메모가 없어요'}</div>`;
     return;
@@ -3422,6 +3484,90 @@ function renderMemos() {
     </div>`;
   }).join('');
   if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── 메모 내보내기 ─────────────────────────────────────────
+// 지금 보고 있는 메모(필터·검색이 걸려 있으면 그것까지 반영)를 사람이 읽기 좋은
+// 글자로 바꿔요. 카톡에 붙여넣거나 노션에 옮겨두기 좋게요.
+const MEMO_IMP_LABEL  = { 1: '보통', 2: '중요', 3: '핵심' };
+const MEMO_RATE_LABEL = { bad: '별로', meh: '그저그래', good: '좋아' };
+const MEMO_RULE = '─'.repeat(28);
+
+function memoExportText() {
+  const { list, q } = filteredMemos();
+  const where = memoFilter === 'starred' ? '즐겨찾기' : memoFilter === 'graduated' ? '졸업' : '전체';
+  const head = `아이디어 메모 ${list.length}개\n${todayStr()} 내보냄 · ${where}` +
+               (q ? ` · 검색 "${q}"` : '') + `\n${MEMO_RULE}\n`;
+
+  const body = list.map(m => {
+    const meta = [
+      m.createdAt || '',
+      MEMO_IMP_LABEL[m.importance || 1],
+      m.starred ? '즐겨찾기' : '',
+      m.graduated ? '졸업' : '',
+      MEMO_RATE_LABEL[m.rating] || ''
+    ].filter(Boolean).join(' · ');
+
+    const lines = [`# ${m.title || '제목 없음'}`, meta];
+    if ((m.tags || []).length) lines.push(m.tags.map(t => '#' + t).join(' '));
+    lines.push('', (m.content || '').trim() || '(내용 없음)');
+    if ((m.appendix || []).length) {
+      lines.push('', '└ 덧댄 생각');
+      m.appendix.forEach(a => lines.push(`   · ${a.at || ''}  ${a.text || ''}`.trimEnd()));
+    }
+    return lines.join('\n');
+  });
+
+  return head + body.join(`\n\n${MEMO_RULE}\n\n`) + '\n';
+}
+
+function openMemoExport() {
+  const { list, q } = filteredMemos();
+  if (!list.length) { showToast('내보낼 메모가 없어요'); return; }
+
+  // 필터나 검색이 걸려 있으면 "지금 보이는 것만 나간다"는 걸 미리 알려줘요.
+  const bits = [];
+  if (memoFilter === 'starred')   bits.push('즐겨찾기');
+  if (memoFilter === 'graduated') bits.push('졸업한');
+  if (q) bits.push(`"${q}" 검색에 걸린`);
+  $('mex-count').textContent = bits.length
+    ? `${bits.join(' ')} 메모 ${list.length}개만 나가요. 전부 내보내려면 위에서 필터와 검색을 지우고 다시 눌러주세요.`
+    : `메모 ${list.length}개를 내보내요.`;
+
+  openModal('memo-export-modal');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function exportMemosFile() {
+  // 파일 이름은 영어로. 한글로 지으면 브라우저가 이름을 통째로 버리고
+  // 확장자도 없는 'download' 로 저장해버려서 파일이 안 열려요.
+  downloadBlob(`habit-memo-${todayStr()}.txt`,
+    new Blob(['\ufeff' + memoExportText()], { type: 'text/plain;charset=utf-8' }));
+  //         ↑ BOM. 윈도우 메모장이 한글을 안 깨뜨리고 열게 해주는 표식이에요.
+  closeModal('memo-export-modal');
+  showToast('메모를 파일로 저장했어요');
+}
+
+async function exportMemosCopy() {
+  const text = memoExportText();
+  let done = false;
+  try {
+    // 이 방법은 https 에서만 돼요. 안 되면 아래 옛날 방식으로 넘어갑니다.
+    await navigator.clipboard.writeText(text);
+    done = true;
+  } catch {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      done = document.execCommand('copy');
+      ta.remove();
+    } catch {}
+  }
+  closeModal('memo-export-modal');
+  showToast(done ? '메모를 복사했어요. 붙여넣기 하세요' : '복사가 안 됐어요. 파일로 저장해주세요');
 }
 
 function setMemoFilter(name) {
@@ -5891,47 +6037,100 @@ function applyGoalHabits(){
   showToast(`${n}개 습관을 등록했어요`); render();
 }
 
-(function init() {
-  const d=new Date(), days=['일','월','화','수','목','금','토'];
-  $('hdr-date').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
-  updateHdrXP();
-  render();
-  scheduleNotifs();
-  setTimeout(checkStreakRisk, 3000);
-  initPWA();
-  initFirebase();
-  if (typeof lucide !== 'undefined') lucide.createIcons();
-})();
+// 앱을 실제로 켜는 코드는 이 파일 맨 아래에 있어요.
+// (아이콘 색 같은 상수들이 다 만들어진 뒤에 시작해야 해서요)
 
 // ── PWA SETUP ─────────────────────────────────────────────
-function generateIcon() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 192;
-  const ctx = c.getContext('2d');
-  const r = 42;
-  ctx.fillStyle = '#6c63ff';
+// ── 홈 화면 아이콘 ────────────────────────────────────────
+// 예전엔 보라 배경에 🌱 이모지를 얹었어요. 두 가지가 문제였습니다.
+//  1. 앱 안은 검정+라임인데 아이콘만 보라라서 따로 노는 앱처럼 보였어요.
+//  2. 이모지는 기기마다 생김새가 달라요. 삼성/애플/구글이 다 다르게 그립니다.
+// 그래서 새싹을 직접 그립니다. 어디서 보든 똑같이 나와요.
+
+const ICON_BG = '#0a0a0a';       // 앱 배경(--bg)과 같은 톤
+const ICON_FG = '#b3f000';       // 앱 포인트색(--primary)과 같은 라임
+
+// 192 기준으로 잡은 좌표를 실제 캔버스 크기로 옮겨 그려요.
+// k 는 그림이 차지하는 비율 — 1이면 꽉 차고, 0.72면 가장자리에 여백이 생깁니다.
+function drawSprout(ctx, size, k) {
+  const u = (size / 192) * k;
+  const c = size / 2;
+  // 새싹 그림이 실제로 차지하는 범위는 세로 51~154 라 가운데가 96 이 아니라 102 예요.
+  // 96 을 기준으로 놓으면 아이콘 안에서 아래로 처져 보입니다.
+  const X = x => c + (x - 97) * u;
+  const Y = y => c + (y - 102) * u;
+
+  ctx.fillStyle = ICON_FG;
+  ctx.strokeStyle = ICON_FG;
+
+  // 줄기 — 아래에서 위로 살짝 휘어 올라가요
   ctx.beginPath();
-  ctx.moveTo(r, 0); ctx.lineTo(192-r, 0);
-  ctx.quadraticCurveTo(192, 0, 192, r);
-  ctx.lineTo(192, 192-r);
-  ctx.quadraticCurveTo(192, 192, 192-r, 192);
-  ctx.lineTo(r, 192);
-  ctx.quadraticCurveTo(0, 192, 0, 192-r);
-  ctx.lineTo(0, r);
-  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.moveTo(X(96), Y(154));
+  ctx.quadraticCurveTo(X(89), Y(122), X(96), Y(96));
+  ctx.lineWidth = 11 * u;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // 왼쪽 잎 — 아래쪽에 조금 작게
+  ctx.beginPath();
+  ctx.moveTo(X(97), Y(118));
+  ctx.bezierCurveTo(X(62), Y(120), X(41), Y(103), X(39), Y(72));
+  ctx.bezierCurveTo(X(73), Y(74), X(93), Y(92), X(97), Y(118));
   ctx.closePath();
   ctx.fill();
-  ctx.font = '110px serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('🌱', 96, 100);
-  return c.toDataURL('image/png');
+
+  // 오른쪽 잎 — 위쪽에 조금 크게 (좌우가 똑같으면 도장처럼 뻣뻣해 보여요)
+  ctx.beginPath();
+  ctx.moveTo(X(95), Y(102));
+  ctx.bezierCurveTo(X(132), Y(104), X(154), Y(85), X(156), Y(51));
+  ctx.bezierCurveTo(X(120), Y(53), X(99), Y(73), X(95), Y(102));
+  ctx.closePath();
+  ctx.fill();
+}
+
+// 모서리가 둥근 정사각형 아이콘. 런처가 모양을 안 씌우는 곳(iOS, 웹)에서 써요.
+function generateIcon(size = 192) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  const ctx = cv.getContext('2d');
+  const r = size * 0.22;
+
+  ctx.fillStyle = ICON_BG;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(0, 0, size, size, r);
+  else {
+    ctx.moveTo(r, 0); ctx.lineTo(size - r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size - r);
+    ctx.quadraticCurveTo(size, size, size - r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+  }
+  ctx.fill();
+
+  drawSprout(ctx, size, 0.78);
+  return cv.toDataURL('image/png');
+}
+
+// 안드로이드용. 런처가 동그라미든 사각형이든 제 모양대로 잘라내기 때문에
+// 배경을 끝까지 채우고, 새싹은 잘려나가지 않게 가운데로 작게 그립니다.
+function generateMaskableIcon(size = 192) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = ICON_BG;
+  ctx.fillRect(0, 0, size, size);
+  drawSprout(ctx, size, 0.62);     // 안전 영역(가운데 80%) 안에 들어오게
+  return cv.toDataURL('image/png');
 }
 
 function initPWA() {
-  const iconUrl = generateIcon();
+  const iconUrl = generateIcon(192);
+  const maskUrl = generateMaskableIcon(192);
 
-  // iOS 아이콘
+  // iOS 아이콘 — 애플은 모양을 안 씌워서 둥근 사각형 쪽을 씁니다
   document.getElementById('apple-icon').href = iconUrl;
 
   // Android 매니페스트 (blob URL)
@@ -5941,11 +6140,14 @@ function initPWA() {
     description: '매일 습관을 기록하고 성장하세요',
     start_url: '.',
     display: 'standalone',
-    background_color: '#f8f7ff',
-    theme_color: '#6c63ff',
+    background_color: '#0a0a0a',
+    theme_color: '#0a0a0a',
     orientation: 'portrait',
+    // any 와 maskable 을 한 아이콘에 같이 주면 안 돼요. 안드로이드가 그걸
+    // 잘라내는데, 둥근 사각형을 또 자르면 모서리가 깎여 나갑니다. 따로 줍니다.
     icons: [
-      { src: iconUrl, sizes: '192x192', type: 'image/png', purpose: 'any maskable' }
+      { src: iconUrl, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: maskUrl, sizes: '192x192', type: 'image/png', purpose: 'maskable' }
     ]
   };
   const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
@@ -5978,10 +6180,28 @@ function initPWA() {
     if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
   });
 }
+
+// ── 앱 시작 ───────────────────────────────────────────────
+// 맨 아래에 둔 이유: 위에서 만든 함수와 상수가 전부 준비된 뒤에 켜야 해요.
+// 예전엔 이게 중간에 있어서, 아래쪽에 선언한 아이콘 색 상수를 읽으려다
+// "아직 값이 없다" 는 에러가 나면서 아이콘이 통째로 안 만들어졌습니다.
+(function init() {
+  const d=new Date(), days=['일','월','화','수','목','금','토'];
+  $('hdr-date').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+  updateHdrXP();
+  render();
+  restoreLastTab();      // 잠깐 나갔다 온 거면 보던 탭으로 되돌려놔요
+  scheduleNotifs();
+  setTimeout(checkStreakRisk, 3000);
+  initPWA();
+  initFirebase();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+})();
+
 </script>
 
 <!-- 앱 설치 배너 (Android Chrome) -->
-<div id="install-btn" style="display:none;position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#6c63ff;color:#fff;border:none;border-radius:22px;padding:10px 22px;font-size:.85rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(108,99,255,0.4);align-items:center;gap:8px;z-index:150;white-space:nowrap;">
+<div id="install-btn" style="display:none;position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:var(--primary);color:#000;border:none;border-radius:22px;padding:10px 22px;font-size:.85rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(179,240,0,0.35);align-items:center;gap:8px;z-index:150;white-space:nowrap;">
   <i data-lucide="download" style="width:16px;height:16px;"></i> 홈 화면에 앱으로 설치
 </div>
 </body>
