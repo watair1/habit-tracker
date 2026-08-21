@@ -78,7 +78,24 @@ All state lives in `localStorage` via `lsGet(key, default)` / `lsSet(key, value)
 | `K.fc` | `ht_forecast_v1` | AI predictions and their scores (`{bets: [...]}`) |
 | `K.ak` | `ht_apikey_v1` | Anthropic API key (not synced to cloud) |
 
+Two localStorage keys sit outside `K` because they are per-device UI state, not data:
+`ht_lasttab_v1` (`{tab, at}` — the tab you were last on, restored on load if less than
+4 hours old) and `ht_syncmeta_v1`. Neither is synced or backed up.
+
+**Photos live in IndexedDB, not localStorage** — db `ht_images_v1`, store `imgs`,
+records `{id, blob, w, h, size, at}`. localStorage caps out around 5MB, which a few
+phone photos would blow through, taking habit saves down with it. Memos and day
+records store only photo *ids* (`memo.images[]`, `day.photos[]`); `imgUrl(id)` turns an
+id into a displayable object URL (cached in `_imgUrls`). Incoming files are shrunk to
+1600px / JPEG 0.82 by `shrinkImage()` before storage. IndexedDB is per-device, so
+photos do not sync between phone and PC — but `exportData()` packs them into the
+backup file as data URLs and `importData()` unpacks them.
+
 Each data type has a `load*()` / `save*()` pair. `save*()` calls `scheduleSync()` which debounces Firestore writes by 1.5s.
+
+`exportData()` is async because it has to read photos out of IndexedDB. Backup
+payloads are `version: 2` (`{app, version, exportedAt, data, images}`); version 1
+files have no `images` key and still restore fine.
 
 **Cloud sync** — the store list lives in `SYNC_STORES`; Firestore path is `users/{uid}/data/{storeName}`. `lsSet` stamps each store's last-edit time into `ht_syncmeta_v1`, so uploads only carry stores that actually changed and `loadFromCloud()` keeps whichever side is newer per store (it does not blanket-overwrite). API key (`K.ak`) is intentionally excluded from sync.
 
@@ -92,7 +109,8 @@ Five tabs rendered on demand via `switchTab(name)`:
 
 | Tab | Render function | Key content |
 |-----|----------------|-------------|
-| `today` | `render()` | habit list, mood slider, memos |
+| `today` | `render()` | habit list, mood slider, memos (+ photos, export) |
+| `day` | `renderDay()` | calendar, todos, events, day memo, day photos |
 | `stats` | `renderStats()` | heatmap, pie/line/mood charts |
 | `growth` | `renderGrowth()` | level/XP bar, achievements grid |
 | `goals` | `renderGoals()` + `renderFinalGoal()` + `renderTodos()` | life goal, todos, goal cards, growth prediction |
@@ -119,7 +137,9 @@ The Analysis tab calls the Anthropic API directly from the browser:
 
 ## Modals
 
-`openModal(id)` / `closeModal(id)` toggle `.open` class on `.overlay` elements. The add-habit modal doubles as edit-habit modal: `editingHabitIdx` tracks whether `addHabit()` should insert or update.
+`openModal(id)` / `closeModal(id)` toggle `.open` class on `.overlay` elements.
+`.sheet` carries `max-height: 88vh; overflow-y: auto`, so long modals scroll instead
+of running off the bottom of the screen — do not remove it. The add-habit modal doubles as edit-habit modal: `editingHabitIdx` tracks whether `addHabit()` should insert or update.
 
 ## Key Patterns
 
@@ -129,4 +149,10 @@ The Analysis tab calls the Anthropic API directly from the browser:
 - `esc(s)` — HTML-escapes strings; must be used for any user-supplied strings in `innerHTML`
 - CSS variables in `:root` — accent `--primary: #b3f000` (lime green), background `--bg: #0a0a0a`
 - Chart instances (`chartPie`, `chartLine`, `chartMood`, `chartTime`, `chartPred`) must be `.destroy()`-ed before re-creating to avoid canvas reuse errors
-- PWA manifest and icon generated dynamically at runtime via canvas — no static manifest file
+- PWA manifest and icon generated dynamically at runtime via canvas — no static manifest file.
+  `drawSprout()` draws the sprout by hand (emoji render differently per device); `generateIcon()`
+  is the rounded-square version and `generateMaskableIcon()` the full-bleed one Android crops.
+- The app is started by an IIFE at the **bottom** of the script. It has to run after the
+  consts above it are initialized — when it sat mid-file it crashed reading `ICON_BG`.
+- Download filenames must be ASCII. Browsers drop a non-ASCII `download` attribute
+  entirely and save the file as extensionless `download`.
