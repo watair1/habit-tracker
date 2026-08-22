@@ -150,8 +150,10 @@ of running off the bottom of the screen — do not remove it. The add-habit moda
 - CSS variables in `:root` — accent `--primary: #b3f000` (lime green), background `--bg: #0a0a0a`
 - Chart instances (`chartPie`, `chartLine`, `chartMood`, `chartTime`, `chartPred`) must be `.destroy()`-ed before re-creating to avoid canvas reuse errors
 - PWA manifest and icon generated dynamically at runtime via canvas — no static manifest file.
-  `drawSprout()` draws the sprout by hand (emoji render differently per device); `generateIcon()`
-  is the rounded-square version and `generateMaskableIcon()` the full-bleed one Android crops.
+  `drawGrass()` draws the stats-tab heatmap grid by hand (emoji render differently per device);
+  `generateIcon()` is the rounded-square version and `generateMaskableIcon()` the full-bleed one
+  Android crops. `GRASS` runs greener than the on-screen `.hm-*` colors on purpose — the exact
+  screen values go muddy at 44px.
 - The app is started by an IIFE at the **bottom** of the script. It has to run after the
   consts above it are initialized — when it sat mid-file it crashed reading `ICON_BG`.
 - Download filenames must be ASCII. Browsers drop a non-ASCII `download` attribute
