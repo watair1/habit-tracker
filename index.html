@@ -5694,7 +5694,8 @@ const AI_IS_LOCAL = AI_SERVER.startsWith('http://localhost');
 // 무료 호스팅(Render)은 한동안 안 쓰면 서버가 잠들어서 첫 요청이 오래 걸려요.
 // 응답이 늦어지면 "고장난 게 아니라 깨우는 중"이라고 알려주는 안내 띠.
 const AI_HINT_DELAY = 4000;     // 이 시간을 넘기면 안내를 띄움
-const AI_TIMEOUT   = 90000;     // 이 시간을 넘기면 포기
+const AI_TIMEOUT   = 90000;     // AI 가 답을 만드는 데 줄 시간
+const AI_WAKE_TIMEOUT = 120000; // 자는 서버를 깨우는 데 줄 시간 (Gemini 를 안 부르니 따로 잡아요)
 let _aiPending = 0, _aiHintTimer = null;
 
 function showAiWakeHint(){
@@ -5712,32 +5713,72 @@ function showAiWakeHint(){
 }
 function hideAiWakeHint(){ const el = $('ai-wake-hint'); if(el) el.classList.remove('show'); }
 
+// ── 자는 서버를 먼저 깨우기 ───────────────────────────────
+// 무료 요금제(Render)는 15분쯤 요청이 없으면 서버를 재웁니다. 깨우는 데만
+// 1분 가까이 걸려요. 그 상태에서 AI 요청을 바로 보내면 '깨우는 시간 +
+// AI 가 답을 만드는 시간' 이 한꺼번에 몰려 제한 시간(90초)을 넘겨버립니다.
+// 그래서 "응답하지 않아요" 가 떴어요. 서버가 고장난 게 아니라 일어나는
+// 중에 우리가 먼저 포기한 거예요. 보낸 말이 "안녕" 한 마디여도 똑같습니다 —
+// 오래 걸리는 건 말의 길이가 아니라 서버가 일어나는 시간이니까요.
+//
+// 이제 무거운 요청 전에 가벼운 인사(GET /)로 먼저 깨웁니다. 이 인사는
+// Gemini 를 안 부르니까 서버만 일어나면 바로 답이 와요. 그 다음에 진짜
+// 요청을 보내면 90초를 온전히 AI 몫으로 쓸 수 있습니다.
+let _aiAwake = false;
+
+async function wakeAiServer(){
+  if (_aiAwake || AI_IS_LOCAL) return { ok:true };
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const killer = ctrl ? setTimeout(()=>ctrl.abort(), AI_WAKE_TIMEOUT) : null;
+  try {
+    const res = await fetch(AI_SERVER + '/', { signal: ctrl ? ctrl.signal : undefined });
+    if (!res.ok) return { ok:false, why:'status' };
+    const info = await res.json().catch(()=>({}));
+    _aiAwake = true;
+    // 서버는 살아 있는데 Gemini 키가 안 꽂혀 있는 경우예요. 이건 아무리
+    // 기다려도 안 풀리니까 기다리라고 하면 안 됩니다.
+    if (info && info.hasKey === false) return { ok:false, why:'nokey' };
+    return { ok:true };
+  } catch(e){
+    return { ok:false, why: (e && e.name === 'AbortError') ? 'timeout' : 'unreachable' };
+  } finally { if(killer) clearTimeout(killer); }
+}
+
 async function aiCall(path, body){
   if(_aiPending === 0){
     clearTimeout(_aiHintTimer);
     _aiHintTimer = setTimeout(showAiWakeHint, AI_HINT_DELAY);
   }
   _aiPending++;
-  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const killer = ctrl ? setTimeout(()=>ctrl.abort(), AI_TIMEOUT) : null;
   try {
-    let res;
-    try {
-      res = await fetch(AI_SERVER+path, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
-      });
-    } catch(e){
-      if(e && e.name === 'AbortError') throw { message:'AI 서버가 응답하지 않아요. 잠시 후 다시 시도해주세요.' };
+    const wake = await wakeAiServer();
+    if(!wake.ok){
+      if(wake.why === 'nokey')   throw { message:'서버에 AI 키가 안 꽂혀 있어요. Render 설정에서 GEMINI_API_KEY 를 확인해주세요.' };
+      if(wake.why === 'timeout') throw { message:'AI 서버가 잠에서 안 깨어나요. 1~2분 뒤에 다시 눌러주세요.' };
       throw { message: AI_IS_LOCAL
         ? 'AI 서버가 꺼져 있어요. 서버를 켠 뒤 다시 시도해주세요.'
-        : 'AI 서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.' };
+        : 'AI 서버에 연결하지 못했어요. 서버가 내려갔는지 확인해주세요.' };
     }
-    let data={}; try { data=await res.json(); } catch(e){}
-    if(!res.ok || data.error) throw { message: data.message || 'AI 요청에 실패했어요. 잠시 후 다시 시도해주세요.' };
-    return data;
+
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const killer = ctrl ? setTimeout(()=>ctrl.abort(), AI_TIMEOUT) : null;
+    try {
+      let res;
+      try {
+        res = await fetch(AI_SERVER+path, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+        });
+      } catch(e){
+        _aiAwake = false;          // 사이에 다시 잠들었을 수도 있어요. 다음엔 또 깨웁니다
+        if(e && e.name === 'AbortError') throw { message:'AI 가 답을 만드는 데 너무 오래 걸려요. 다시 시도해주세요.' };
+        throw { message:'AI 서버와 연결이 끊겼어요. 잠시 후 다시 시도해주세요.' };
+      }
+      let data={}; try { data=await res.json(); } catch(e){}
+      if(!res.ok || data.error) throw { message: data.message || 'AI 요청에 실패했어요. 잠시 후 다시 시도해주세요.' };
+      return data;
+    } finally { if(killer) clearTimeout(killer); }
   } finally {
-    if(killer) clearTimeout(killer);
     _aiPending--;
     if(_aiPending === 0){ clearTimeout(_aiHintTimer); hideAiWakeHint(); }
   }
