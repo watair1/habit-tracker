@@ -58,6 +58,14 @@ Single-file PWA (`index.html`) — all CSS, HTML, and JavaScript in one file. Ko
 - Lucide icons
 - Pretendard font
 
+**Nothing but the font and Lucide is in `<head>`, and Lucide is `defer`.** Chart.js and the
+three Firebase SDKs are fetched at the moment they are needed via `loadScript(src)` (which
+caches the promise, so a URL is only fetched once). Chart.js loads when a chart is drawn,
+Firebase from `initFirebase()` which `init()` defers with `setTimeout(..., 0)` so it starts
+after first paint. This is not an optional nicety: when all six sat in `<head>` as blocking
+scripts, the browser painted nothing until 736KB had downloaded and executed — about 844ms on
+good LTE — and the first screen uses none of it. Do not move these back into `<head>`.
+
 ## Data Layer
 
 All state lives in `localStorage` via `lsGet(key, default)` / `lsSet(key, value)` wrappers (JSON parse/stringify). The constant `K` maps data types to their storage keys:
@@ -156,7 +164,12 @@ of running off the bottom of the screen — do not remove it. The add-habit moda
 - `uid()` — generates random 8-char alphanumeric IDs
 - `esc(s)` — HTML-escapes strings; must be used for any user-supplied strings in `innerHTML`
 - CSS variables in `:root` — accent `--primary: #b3f000` (lime green), background `--bg: #0a0a0a`
-- Chart instances (`chartPie`, `chartLine`, `chartMood`, `chartTime`, `chartPred`) must be `.destroy()`-ed before re-creating to avoid canvas reuse errors
+- Charts go through `drawChart(key, canvasId, config)`, which loads Chart.js if needed, bails
+  if the canvas left the DOM while loading, and destroys the previous instance before creating
+  a new one (canvas reuse throws otherwise). Instances live in the `CHARTS` registry; clear one
+  with `killChart(key)`. Never call `new Chart()` directly.
+- If Chart.js can't be fetched (offline), `drawChart` gives up quietly — the rest of the tab
+  still renders. Keep it that way: the numbers and heatmap matter more than the graph.
 - PWA manifest and icon generated dynamically at runtime via canvas — no static manifest file.
   `drawGrass()` draws the stats-tab heatmap grid by hand (emoji render differently per device);
   `generateIcon()` is the rounded-square version and `generateMaskableIcon()` the full-bleed one

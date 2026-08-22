@@ -17,13 +17,13 @@
   <link rel="manifest" id="pwa-manifest" />
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- 라이브러리는 여기서 안 부릅니다.
+       예전엔 Chart.js·Firebase·lucide 를 head 에서 바로 불렀어요. 이것들이
+       다 내려오고 실행될 때까지 브라우저가 화면을 아예 안 그립니다. 습관
+       목록 하나 띄우는 데 736KB 를 기다린 셈이에요. 정작 첫 화면에 필요한
+       건 하나도 없고요 (Chart.js 는 통계 탭, Firebase 는 로그인할 때만 씀).
+       이제 필요해지는 순간에 불러옵니다 — loadScript() 를 보세요. -->
+  <script src="https://unpkg.com/lucide@latest" defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
@@ -1646,9 +1646,11 @@ const FIREBASE_CONFIG = {
 
 let fbAuth = null, fbDb = null, fbUser = null, syncTimer = null;
 
-function initFirebase() {
-  if (typeof firebase === 'undefined') return;
+async function initFirebase() {
   if (FIREBASE_CONFIG.apiKey === '여기에-복사') return;
+  // SDK 를 여기서 직접 불러와요. 예전엔 head 에서 미리 받았는데, 그 490KB 가
+  // 첫 화면을 막고 있었습니다. 로그인 안 한 사람에겐 아예 필요 없는 짐이에요.
+  if (!(await ensureFirebaseSdk())) return;
   try {
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     fbAuth = firebase.auth();
@@ -1674,8 +1676,10 @@ async function onFbAuthChange(user) {
   }
 }
 
-function loginWithGoogle() {
-  if (!fbAuth) { showToast('Firebase 설정을 먼저 완료해주세요'); return; }
+async function loginWithGoogle() {
+  // 앱을 켜자마자 눌렀다면 Firebase 가 아직 준비 중일 수 있어요. 기다려줍니다.
+  if (!fbAuth) { showToast('로그인 준비 중...'); await initFirebase(); }
+  if (!fbAuth) { showToast('로그인을 준비하지 못했어요. 인터넷을 확인해주세요'); return; }
   const provider = new firebase.auth.GoogleAuthProvider();
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   if (isSafari) {
@@ -1849,6 +1853,49 @@ function saveMoods(d) { lsSet(K.md, d); scheduleSync(); }
 const loadDayData = () => lsGet(K.d, {});
 function saveDayData(d) { lsSet(K.d, d); scheduleSync(); }
 // 특정 날짜의 하루 데이터를 꺼냄 (없으면 기본 껍데기 반환)
+// ── 라이브러리를 필요할 때 불러오기 ─────────────────────────
+// 예전엔 Chart.js·Firebase 를 head 에서 통째로 불렀어요. 그 736KB 가 다
+// 내려올 때까지 브라우저가 화면을 안 그려서, 앱을 열 때마다 한참 기다려야
+// 했습니다. 첫 화면(습관 목록)엔 정작 하나도 안 쓰이는데도요.
+//
+// 이제 진짜 쓰는 순간에 부릅니다. 한 번 부른 건 기억해뒀다 다시 안 불러요.
+
+const _scripts = new Map();
+function loadScript(src) {
+  if (_scripts.has(src)) return _scripts.get(src);
+  const p = new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.async = true;
+    el.onload  = () => res();
+    el.onerror = () => { _scripts.delete(src); rej(new Error('불러오지 못했어요: ' + src)); };
+    document.head.appendChild(el);
+  });
+  _scripts.set(src, p);
+  return p;
+}
+
+const CHART_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+const FB_SDK = [
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js',
+];
+
+// 그래프를 그리기 직전에 부릅니다. 통계·성장·분석 탭에 들어가야 처음 불려요.
+async function ensureChart() {
+  if (typeof Chart !== 'undefined') return true;
+  try { await loadScript(CHART_URL); return typeof Chart !== 'undefined'; }
+  catch { return false; }        // 인터넷이 없으면 그래프만 빠지고 나머지는 그대로 써요
+}
+
+// Firebase 는 순서대로 불러야 해요 (app 이 먼저 있어야 auth·firestore 가 붙습니다).
+async function ensureFirebaseSdk() {
+  if (typeof firebase !== 'undefined' && firebase.apps) return true;
+  try { for (const u of FB_SDK) await loadScript(u); return typeof firebase !== 'undefined'; }
+  catch { return false; }
+}
+
 // ── 사진 보관함 ───────────────────────────────────────────
 // 사진은 localStorage 에 못 넣어요. 거기는 5MB 남짓이 한계라 사진 몇 장이면
 // 꽉 차서 습관 기록까지 저장이 안 되기 시작합니다. 그래서 사진만 따로
@@ -3181,7 +3228,27 @@ function delHabit(i) {
 }
 
 // ── STATS ─────────────────────────────────────────────────
-let chartLine, chartMood, chartCat;
+// ── 그래프 ────────────────────────────────────────────────
+// 그려둔 그래프를 여기에 모아둡니다. 같은 캔버스에 두 번 그리려 하면
+// Chart.js 가 에러를 내기 때문에, 다시 그리기 전에 반드시 destroy() 를
+// 불러야 해요. 예전엔 그리는 자리마다 그 규칙을 손으로 지켰는데,
+// 이제 drawChart() 한 곳에서만 지키면 됩니다.
+const CHARTS = {};
+
+function killChart(key) {
+  if (CHARTS[key]) { CHARTS[key].destroy(); delete CHARTS[key]; }
+}
+
+// Chart.js 는 통계 탭에 들어와야 처음 불러와요. 아직 없으면 불러온 뒤에 그립니다.
+function drawChart(key, canvasId, config) {
+  ensureChart().then(ok => {
+    if (!ok) return;                      // 인터넷이 없으면 그래프만 빠지고 나머지는 그대로
+    const el = $(canvasId);
+    if (!el || !el.isConnected) return;    // 불러오는 사이 다른 탭으로 갔으면 넘어가요
+    killChart(key);
+    CHARTS[key] = new Chart(el.getContext('2d'), config);
+  }).catch(() => {});
+}
 const CAT_COLORS = { 건강:'#22c55e', 학습:'#3b82f6', 마음:'#8b5cf6', 생활:'#f59e0b', 관계:'#ec4899', 재정:'#14b8a6', 기타:'#6b7280' };
 const CAT_NAME   = { 건강:'건강/운동', 학습:'학습/성장', 마음:'마음/명상', 생활:'생활/루틴', 관계:'관계/소통', 재정:'재정/절약', 기타:'기타' };
 // 도넛 기준: 'time'=일정에 배정한 시간, 'count'=습관 체크 횟수
@@ -3253,14 +3320,12 @@ function renderCategoryChart(habits){
         : '습관을 체크하면 카테고리 비중이 표시돼요';
     }
     if(legendEl) legendEl.innerHTML='';
-    if(chartCat){ chartCat.destroy(); chartCat=null; }
+    killChart('cat');
     return;
   }
   if(emptyEl) emptyEl.style.display='none';
   const labels=names.map(k=>catChartMode==='time' ? k : (CAT_NAME[k]||k));
-  const ctx=$('cat-pie-chart').getContext('2d');
-  if(chartCat) chartCat.destroy();
-  chartCat=new Chart(ctx,{
+  drawChart('cat', 'cat-pie-chart', {
     type:'doughnut',
     data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderWidth:0 }] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, cutout:'62%' }
@@ -3299,9 +3364,7 @@ function renderStats() {
     labels.push(ds.slice(5));
     data.push(habits.length ? Math.round(habits.filter(h=>!!h.checked[ds]).length/habits.length*100) : 0);
   }
-  const lCtx = $('line-chart').getContext('2d');
-  if (chartLine) chartLine.destroy();
-  chartLine = new Chart(lCtx, {
+  drawChart('line', 'line-chart', {
     type:'line',
     data:{ labels, datasets:[{ label:'성공률(%)', data, borderColor:'#6c63ff', backgroundColor:'rgba(108,99,255,0.1)', fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#6c63ff' }] },
     options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ min:0, max:100, ticks:{font:{size:10},callback:v=>v+'%'}, grid:{color:'#f0f0f0'} }, x:{ ticks:{font:{size:9},maxRotation:45}, grid:{display:false} } }, plugins:{legend:{display:false}} }
@@ -3492,8 +3555,8 @@ function renderMoodChart() {
     successData.push(hasHabits ? Math.round(habits.filter(h => !!h.checked[ds]).length / habits.length * 100) : null);
   }
 
+  // 그라데이션은 캔버스 기능이라 Chart.js 없이도 만들 수 있어요
   const ctx = $('mood-chart').getContext('2d');
-  if (chartMood) chartMood.destroy();
 
   const gSuccess = ctx.createLinearGradient(0, 0, 0, 190);
   gSuccess.addColorStop(0, 'rgba(179,240,0,0.25)');
@@ -3502,7 +3565,7 @@ function renderMoodChart() {
   gMood.addColorStop(0, 'rgba(129,140,248,0.25)');
   gMood.addColorStop(1, 'rgba(129,140,248,0)');
 
-  chartMood = new Chart(ctx, {
+  drawChart('mood', 'mood-chart', {
     type: 'line',
     data: {
       labels,
@@ -3623,7 +3686,6 @@ function renderGrowth() {
 }
 
 // ── GOALS ─────────────────────────────────────────────────
-let chartPred;
 const ROUTINES = [
   { icon:'sunrise',   name:'아침 파워 루틴', desc:'기상 30분 · 스트레칭, 물, 일기', habits:['스트레칭','물 마시기','일기 쓰기'] },
   { icon:'book-open', name:'학습 루틴',       desc:'집중 학습 · 독서, 강의, 복습',  habits:['독서','강의 듣기','노트 정리'] },
@@ -4353,7 +4415,7 @@ function renderGoals() {
   // Prediction
   if (!habits.length) {
     $('pred-content').innerHTML='<p style="font-size:.83rem;color:#b3f000;opacity:.6;">습관을 추가하면 예측이 표시됩니다.</p>';
-    if (chartPred) { chartPred.destroy(); chartPred=null; }
+    killChart('pred');
   } else {
     const avg=habits.reduce((s,h)=>s+successRate(h),0)/habits.length;
     const totChk=habits.reduce((s,h)=>s+Object.keys(h.checked).length,0);
@@ -4364,9 +4426,7 @@ function renderGoals() {
       <div class="pred-item"><div class="pred-val">${p1y}</div><div class="pred-lbl">1년 예상 완료</div></div>
     </div>`;
     const ms=[0,30,60,90,180,365];
-    const pCtx=$('pred-chart').getContext('2d');
-    if (chartPred) chartPred.destroy();
-    chartPred=new Chart(pCtx,{
+    drawChart('pred', 'pred-chart', {
       type:'line',
       data:{ labels:['현재','1개월','2개월','3개월','6개월','1년'], datasets:[{ data:ms.map(m=>Math.round(totChk+(avg/100)*habits.length*m)), borderColor:'#16a34a', backgroundColor:'rgba(22,163,74,0.1)', fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#16a34a' }] },
       options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ticks:{font:{size:9}}}, x:{ticks:{font:{size:9}},grid:{display:false}} }, plugins:{legend:{display:false}} }
@@ -4454,7 +4514,6 @@ function addRoutine(ri) {
 }
 
 // ── ANALYSIS ─────────────────────────────────────────────
-let chartTime;
 
 function renderAnalysis() {
   const notif=loadNotif();
@@ -4685,9 +4744,7 @@ function renderTimeAnalysis(habits) {
   const labels=slots.filter(s=>counts[s]), data=labels.map(s=>counts[s]);
   const colors=['#fbbf24','#f97316','#22c55e','#3b82f6','#8b5cf6','#6b7280'];
   if (!data.length) { $('time-txt').textContent='습관을 추가하면 표시됩니다.'; return; }
-  const ctx=$('time-chart').getContext('2d');
-  if (chartTime) chartTime.destroy();
-  chartTime=new Chart(ctx,{ type:'bar', data:{ labels, datasets:[{ data, backgroundColor:colors.slice(0,labels.length), borderRadius:6, borderSkipped:false }] }, options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ticks:{stepSize:1,font:{size:10}},grid:{color:'#f0f0f0'}}, x:{ticks:{font:{size:10}},grid:{display:false}} }, plugins:{legend:{display:false}} } });
+  drawChart('time', 'time-chart', { type:'bar', data:{ labels, datasets:[{ data, backgroundColor:colors.slice(0,labels.length), borderRadius:6, borderSkipped:false }] }, options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ticks:{stepSize:1,font:{size:10}},grid:{color:'#f0f0f0'}}, x:{ticks:{font:{size:10}},grid:{display:false}} }, plugins:{legend:{display:false}} } });
   const peak=labels[data.indexOf(Math.max(...data))];
   $('time-txt').textContent=`"${peak}" 시간대 습관이 가장 많아요. 시간대를 다양하게 분산하면 더 균형잡힌 하루를 만들 수 있어요!`;
 }
@@ -6547,9 +6604,21 @@ function initPWA() {
   scheduleNotifs();
   setTimeout(checkStreakRisk, 3000);
   initPWA();
-  initFirebase();
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+  // Firebase 는 화면을 다 그린 뒤에 뒤에서 붙여요. 동기화가 몇백 ms 늦어지는
+  // 대신, 앱이 눈에 보이기까지가 그만큼 빨라집니다.
+  setTimeout(initFirebase, 0);
+  drawIcons();
 })();
+
+// lucide 는 defer 로 부르고 있어서 이 코드보다 늦게 도착할 수 있어요.
+// 도착했으면 바로 그리고, 아직이면 도착했을 때 그립니다.
+function drawIcons() {
+  if (typeof lucide !== 'undefined') { lucide.createIcons(); return; }
+  const tag = document.querySelector('script[src*="lucide"]');
+  if (tag) tag.addEventListener('load', () => {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }, { once: true });
+}
 
 </script>
 

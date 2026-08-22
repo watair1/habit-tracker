@@ -13,15 +13,22 @@
 //  API 호출(AI 서버, Firebase)은 캐시하지 않아요. 오래된 답을 돌려주면
 //  안 되고, POST 요청은 Cache API 가 아예 저장하지 못합니다.
 // ────────────────────────────────────────────────────────────
-const CACHE = 'ht-v2';
+const CACHE = 'ht-v3';
 
 // 설치할 때 미리 받아둘 것들. 하나라도 실패해도 설치는 계속돼요.
+//
+// Chart.js 는 여기서 뺐어요. 이제 통계 탭에 들어가야 불러오는데, 통계를
+// 안 보는 사람에게 210KB 를 미리 받게 할 이유가 없습니다. 한 번 쓰고 나면
+// 아래 fetch 처리가 알아서 캐시에 넣어둬요.
+//
+// 폰트도 주소가 틀려 있었어요. 페이지는 pretendard.min.css 를 부르는데
+// 여기선 pretendard-dynamic-subset.css 를 받아뒀습니다. 그래서 미리 받아둔
+// 게 한 번도 안 쓰였어요.
 const PRECACHE = [
   './',
   './index.html',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://unpkg.com/lucide@latest',
-  'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css',
+  'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css',
 ];
 
 // 캐시하면 안 되는 곳 (실시간 데이터라 오래된 답이 해로움)
