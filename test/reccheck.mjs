@@ -62,18 +62,26 @@ async function run(tz, label) {
     ok('최소 버전도 연속에 포함', streakCount(after), streakBefore + 1);
     // 습관이 하나뿐이라 '오늘 모든 습관 완료 +20' 보너스가 같이 붙어요
     ok('최소 XP 5 + 하루 보너스 20', loadUser().xp, 25);
-    ok('누적 횟수 +1', loadUser().totalChecks, 1);
+    // 예전엔 체크할 때마다 손으로 +1 을 했어요. 그래서 이미 4일치 기록이 있는
+    // 습관인데도 1이 나왔습니다(취소해도 안 줄었고요). 이제 기록에서 직접 셉니다.
+    ok('누적 횟수 = 실제 기록 수 (4일치 + 오늘)', loadUser().totalChecks, 5);
 
     // 최소 → 완료로 올리기. XP는 차액만.
     toggle(0);
     ok('완료로 승격됨', loadHabits()[0].checked[T], true);
     // 승격은 차액(완료 15 - 최소 5 = 10)만. 하루 보너스는 다시 주면 안 됨.
     ok('승격은 차액만, 보너스 재지급 없음', loadUser().xp, 35);
-    ok('누적 횟수 중복 안 됨', loadUser().totalChecks, 1);
+    ok('승격은 횟수를 안 늘림', loadUser().totalChecks, 5);
 
     // 같은 걸 다시 누르면 취소
     toggle(0);
     ok('취소됨', loadHabits()[0].checked[T], undefined);
+    checkAchs();
+    ok('취소하면 누적 횟수도 줄어듦', loadUser().totalChecks, 4);
+    // 취소해도 준 XP 는 안 깎이고, 다시 체크해도 또 안 줍니다
+    const xpAfterCancel = loadUser().xp;
+    toggle(0); toggle(0); toggle(0);
+    ok('껐다 켰다 해도 XP 그대로', loadUser().xp, xpAfterCancel);
 
     // ── 회복 카드 렌더 ──
     localStorage.setItem('ht_habits_v2', JSON.stringify([

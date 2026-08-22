@@ -2323,6 +2323,12 @@ const ACHS = [
 
 function checkAchs() {
   const h = loadHabits(), u = loadUser();
+  // 업적을 따지기 전에 총 횟수를 기록에서 다시 셉니다. 예전에 부풀려진
+  // 숫자가 남아 있어도 여기서 저절로 제자리를 찾아요.
+  const real = habitCheckTotal(h);
+  let dirty = u.totalChecks !== real;
+  u.totalChecks = real;
+
   const fresh = [];
   for (const a of ACHS) {
     if (!u.achievements.includes(a.id) && a.ok(h, u)) {
@@ -2330,10 +2336,9 @@ function checkAchs() {
       fresh.push(a);
     }
   }
-  if (fresh.length) {
-    saveUser(u);
-    fresh.forEach((a, i) => setTimeout(() => showAchPopup(a), i * 2200));
-  }
+  if (fresh.length) dirty = true;
+  if (dirty) saveUser(u);
+  if (fresh.length) fresh.forEach((a, i) => setTimeout(() => showAchPopup(a), i * 2200));
 }
 
 // ── UI HELPERS ────────────────────────────────────────────
@@ -3112,6 +3117,43 @@ function editHabit(i) {
 const MIN_XP = 5;
 function fullXP(h) { const s = streakCount(h); return 10 + (s >= 7 ? 10 : s >= 3 ? 5 : 0); }
 
+// ── XP 는 날짜당 한 번만 ──────────────────────────────────
+// 예전엔 체크하는 순간마다 줬어요. 그래서 체크 → 취소 → 체크를 반복하면
+// XP 가 무한정 들어왔습니다.
+//
+// 이제 습관마다 "이 날짜에 얼마를 이미 줬는지" 를 적어둡니다(h.paid).
+// 체크를 취소해도 이 기록은 안 지워요. 그래야 다시 체크할 때 또 안 줍니다.
+// 최소(5) → 완료(10) 로 올릴 땐 모자란 5만 줘요.
+//
+// 체크를 부르는 곳이 네 군데(오늘 탭·하루 탭·일정 연결·AI 코치)라
+// 각자 XP를 주다 규칙이 어긋났어요. 이제 전부 이 함수를 거칩니다.
+function awardHabitXP(h, date, want) {
+  if (!h.paid) h.paid = {};
+  const target  = want === 'min' ? MIN_XP : fullXP(h);
+  const already = h.paid[date] || 0;
+  const pay = Math.max(0, target - already);
+  if (pay > 0) { h.paid[date] = already + pay; addXP(pay); }
+  return pay;
+}
+
+// 하루를 다 채운 보너스도 날짜당 한 번만. 하나 풀었다 다시 채우면
+// 예전엔 20 XP 가 또 들어왔어요.
+function awardAllDoneBonus(habits, date) {
+  if (!habits.length || !habits.every(x => !!x.checked[date])) return;
+  const u = loadUser();
+  if (!u.dayBonus) u.dayBonus = {};
+  if (u.dayBonus[date]) return;
+  u.dayBonus[date] = true;
+  saveUser(u);
+  addXP(20);
+  showToast('오늘 모든 습관 완료 +20 XP');
+}
+
+// 총 완료 횟수는 따로 세지 않고 기록에서 바로 셉니다. 따로 세어두면
+// 체크를 취소해도 숫자가 안 줄어서 실제와 어긋나요.
+const habitCheckTotal = habits =>
+  habits.reduce((n, h) => n + Object.keys(h.checked || {}).length, 0);
+
 function setCheck(i, want) {
   const habits = loadHabits(), today = todayStr();
   const h = habits[i], cur = h.checked[today];
@@ -3120,22 +3162,11 @@ function setCheck(i, want) {
     saveHabits(habits); render();
     return;
   }
-  const wasMin = cur === 'min';
   h.checked[today] = want;
-
-  // 최소 → 완료로 올린 경우엔 이미 받은 5 XP를 빼고 차액만 줍니다.
-  const xp = want === 'min' ? (cur ? 0 : MIN_XP) : (fullXP(h) - (wasMin ? MIN_XP : 0));
-  if (xp > 0) addXP(xp);
-  if (!cur) {                                // 새로 체크한 것만 누적 횟수에 반영
-    const u = loadUser();
-    u.totalChecks = (u.totalChecks || 0) + 1;
-    saveUser(u);
-  }
+  awardHabitXP(h, today, want);
   saveHabits(habits);
-  // 하루 보너스는 '오늘 처음 다 채운 순간'에만. 최소 버전을 완료로 올릴 때는
-  // 이미 다 채운 상태였으니 또 주면 안 돼요.
-  if (!cur && habits.every(x => !!x.checked[today])) { addXP(20); showToast('오늘 모든 습관 완료 +20 XP'); }
-  else if (want === 'min') showToast('최소 버전 완료 — 연속 기록은 안 끊겨요');
+  awardAllDoneBonus(habits, today);
+  if (want === 'min') showToast('최소 버전 완료 — 연속 기록은 안 끊겨요');
   checkAchs();
   render();
 }
@@ -5488,8 +5519,10 @@ function ensureHabitChecked(habitId, date){
   if(!habitId) return;
   const habits=loadHabits(), h=habits.find(x=>x.id===habitId);
   if(h && !h.checked[date]){
-    h.checked[date]=true; saveHabits(habits);
-    const u=loadUser(); u.totalChecks=(u.totalChecks||0)+1; saveUser(u);
+    h.checked[date]=true;
+    awardHabitXP(h, date, true);          // 예전엔 자동 체크만 XP 를 안 줬어요. 이제 똑같이 줍니다
+    saveHabits(habits);
+    awardAllDoneBonus(habits, date);
     checkAchs(); render();
     showToast(`연결된 습관 '${h.name}' 자동 체크`);
   }
@@ -5538,10 +5571,9 @@ function toggleHabitDate(habitId, date){
   if(h.checked[date]){ delete h.checked[date]; saveHabits(habits); }
   else {
     h.checked[date]=true;
-    const s=streakCount(h); addXP(10+(s>=7?10:s>=3?5:0));
-    const u=loadUser(); u.totalChecks=(u.totalChecks||0)+1; saveUser(u);
+    awardHabitXP(h, date, true);
     saveHabits(habits);
-    if(habits.every(x=>!!x.checked[date])){ addXP(20); showToast('모든 습관 완료 +20 XP'); }
+    awardAllDoneBonus(habits, date);
     checkAchs();
   }
   render();          // 오늘 탭도 동기화
@@ -6140,8 +6172,7 @@ function applyAgentActions(idx,btnEl){
         const h=H().find(x=>x.id===a.id);
         if(h && !h.checked[dayCursor]){
           h.checked[dayCursor]=true;
-          const s=streakCount(h); addXP(10+(s>=7?10:s>=3?5:0));
-          const u=loadUser(); u.totalChecks=(u.totalChecks||0)+1; saveUser(u);
+          awardHabitXP(h, dayCursor, true);
           habitsDirty=true; checkedAny=true; n++;
         }
         break;

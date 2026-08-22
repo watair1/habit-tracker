@@ -99,7 +99,15 @@ files have no `images` key and still restore fine.
 
 **Cloud sync** — the store list lives in `SYNC_STORES`; Firestore path is `users/{uid}/data/{storeName}`. `lsSet` stamps each store's last-edit time into `ht_syncmeta_v1`, so uploads only carry stores that actually changed and `loadFromCloud()` keeps whichever side is newer per store (it does not blanket-overwrite). API key (`K.ak`) is intentionally excluded from sync.
 
-**Habit shape** — `{id, name, createdAt, checked, category, timeSlot, freq, min}`. `checked[date]` is `true` (완료) or `'min'` (최소 버전만). Both count as done everywhere, so never compare with `=== true`; use truthiness. `min` is the optional "바쁜 날엔 이거라도" text.
+**Habit shape** — `{id, name, createdAt, checked, paid, category, timeSlot, freq, min}`. `checked[date]` is `true` (완료) or `'min'` (최소 버전만). Both count as done everywhere, so never compare with `=== true`; use truthiness. `min` is the optional "바쁜 날엔 이거라도" text.
+
+`paid[date]` is the XP ledger — how much that date has already paid out. Unchecking
+does **not** clear it, so check→uncheck→check pays nothing the second time. All four
+check paths (today tab, day tab, event-linked auto-check, AI coach) go through
+`awardHabitXP(h, date, want)`; never award habit XP anywhere else. The all-done
++20 is gated separately by `user.dayBonus[date]`. `user.totalChecks` is no longer
+incremented by hand — `checkAchs()` recomputes it from `habitCheckTotal(habits)`
+on every call, so an inflated value from the old bug heals itself.
 
 **Habit math** — `habitPeriodsDetailed(h)` is the single source of truth: it returns `[{key, done}]` per judged period (day for daily/days, week start for weekly) and drops the still-in-progress trailing period. `habitPeriods`, `streakCount`, `maxStreak`, `successRate`, `habitRecovery`, and `scoreBet` all derive from it.
 
