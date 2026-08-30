@@ -118,6 +118,46 @@ const yes = (n, cond, got) => R.push({ n, pass: !!cond, got: got ?? '' });
   yes('파일 안에 메모가 들어 있음', body.includes('# 첫 아이디어') && body.includes('덧댄 한 줄'));
 }
 
+// ── 졸업 ─────────────────────────────────────────────────
+// 졸업시키면 '전체' 목록에서 사라져요. 저장이 안 된 걸로 오해하기 쉬워서,
+// 값이 진짜 저장되는지와 어디로 갔는지 알려주는지를 같이 봅니다.
+{
+  await page.evaluate(() => {
+    saveMemos([{ id:'g1', title:'졸업 시킬 메모', content:'내용', tags:[],
+      createdAt:'2026-08-01', updatedAt:'2026-08-01', importance:1, rating:null,
+      starred:false, graduated:false, appendix:[], images:[] }]);
+    setMemoFilter('all'); renderMemos(); openMemoModal('g1');
+  });
+  await page.waitForTimeout(150);
+  await page.evaluate(() => toggleGraduated());
+  await page.waitForTimeout(250);
+
+  yes('졸업이 저장됨', await page.evaluate(() => loadMemos()[0].graduated));
+  yes('전체 목록에선 사라짐', !/졸업 시킬 메모/.test(await page.textContent('#memo-list')));
+  yes('어디로 갔는지 알려줌',
+      /졸업/.test(await page.textContent('#toast').catch(()=>'')) ||
+      /졸업한 메모 1개/.test(await page.textContent('#memo-list')),
+      await page.textContent('#memo-list'));
+  yes('빈 목록이 이유를 설명함', /졸업한 메모 1개/.test(await page.textContent('#memo-list')),
+      await page.textContent('#memo-list'));
+
+  await page.evaluate(() => setMemoFilter('graduated'));
+  await page.waitForTimeout(150);
+  yes('졸업 목록엔 있음', /졸업 시킬 메모/.test(await page.textContent('#memo-list')));
+
+  // 화면 상태가 아니라 저장소에 진짜 들어갔는지 확인해요
+  yes('저장소에 실제로 기록됨', await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('ht_memos_v1'))[0].graduated === true));
+
+  // 다시 풀면 전체로 돌아옴
+  await page.evaluate(() => { openMemoModal('g1'); });
+  await page.waitForTimeout(150);
+  await page.evaluate(() => { toggleGraduated(); closeModal('memo-modal'); setMemoFilter('all'); });
+  await page.waitForTimeout(200);
+  yes('졸업을 풀면 전체로 돌아옴', /졸업 시킬 메모/.test(await page.textContent('#memo-list')));
+  yes('푼 것도 저장됨', await page.evaluate(() => !loadMemos()[0].graduated));
+}
+
 // ── 메모가 하나도 없으면 ────────────────────────────────
 {
   await page.evaluate(() => { saveMemos([]); renderMemos(); openMemoExport(); });

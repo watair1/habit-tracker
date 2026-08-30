@@ -3809,7 +3809,13 @@ function renderMemos() {
   if (!el) return;
   const { list: filtered, q } = filteredMemos();
   if (!filtered.length) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;">${q ? '검색 결과가 없어요' : '메모가 없어요'}</div>`;
+    // 그냥 '메모가 없어요' 라고만 하면, 졸업시켜서 숨겨진 것뿐인데도
+    // 사라진 줄 압니다. 숨어 있는 게 있으면 몇 개인지 알려줘요.
+    const hidden = (memoFilter === 'all' && !q)
+      ? loadMemos().filter(m => m.graduated).length : 0;
+    el.innerHTML = `<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:10px 0;line-height:1.6;">${
+      q ? '검색 결과가 없어요' : '메모가 없어요'
+    }${hidden ? `<br><span style="font-size:.78rem;">졸업한 메모 ${hidden}개는 위 '졸업'에서 볼 수 있어요</span>` : ''}</div>`;
     return;
   }
   el.innerHTML = filtered.map(m => {
@@ -4025,6 +4031,12 @@ function toggleGraduated() {
   currentMemoGraduated = !currentMemoGraduated;
   updateGraduatedUI();
   persistCurrentMemoMeta();
+  // 졸업시키면 '전체' 목록에서 바로 사라져요(전체 = 아직 굴리는 중인 것만).
+  // 그런데 아무 말 없이 없어지니까 저장이 안 된 걸로 보였어요. 어디로 갔는지
+  // 알려줍니다. 저장 자체는 위 persistCurrentMemoMeta() 에서 이미 끝났어요.
+  showToast(currentMemoGraduated
+    ? '졸업했어요 · 목록 위 \'졸업\'에서 볼 수 있어요'
+    : '졸업을 풀었어요 · 다시 전체 목록에 나와요');
 }
 
 function persistCurrentMemoMeta() {
