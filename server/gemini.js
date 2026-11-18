@@ -9,6 +9,12 @@
 import { GoogleGenAI } from '@google/genai';
 
 const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+// 기본 모델이 붐벼서 끝내 못 받을 때 대신 물어볼 예비(폴백) 모델.
+// 이름이 바뀌거나 틀려도 코드를 안 고치게 Render 환경변수로 바꿀 수 있어요.
+// 비워두고 싶으면 GEMINI_FALLBACK_MODEL= (빈 값)으로 두면 폴백을 안 씁니다.
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL !== undefined
+  ? process.env.GEMINI_FALLBACK_MODEL.trim()
+  : 'gemini-flash-lite-latest';
 
 let ai = null;
 function getClient() {
@@ -48,6 +54,20 @@ export function isOverloaded(err) {
  * @throws  rateLimit:true 가 붙은 에러(재시도 소진) 또는 일반 에러
  */
 export async function callGemini(systemPrompt, userContent, opts = {}) {
+  try {
+    return await callModel(MODEL, [2000, 4000, 8000], systemPrompt, userContent, opts);
+  } catch (err) {
+    // 기본 모델이 재시도를 다 쓰고도 붐볐을 때만 예비 모델로 한 번 더 물어봐요.
+    // 한도 초과(429)나 키 없음은 모델을 바꿔도 안 풀리니 그대로 알립니다.
+    if (err && err.overloaded && FALLBACK_MODEL && FALLBACK_MODEL !== MODEL) {
+      console.warn(`[AI] ${MODEL} 가 붐벼서 ${FALLBACK_MODEL} 로 대신 물어봅니다`);
+      return await callModel(FALLBACK_MODEL, [2000], systemPrompt, userContent, opts);
+    }
+    throw err;
+  }
+}
+
+async function callModel(model, backoffs, systemPrompt, userContent, opts) {
   const json = !!opts.json;
   const config = {
     systemInstruction: systemPrompt,
@@ -55,14 +75,13 @@ export async function callGemini(systemPrompt, userContent, opts = {}) {
   };
   if (json) config.responseMimeType = 'application/json';
 
-  const backoffs = [2000, 4000, 8000]; // 최대 3회 재시도
   let lastErr;
 
   for (let attempt = 0; attempt <= backoffs.length; attempt++) {
     try {
       const client = getClient();
       const res = await client.models.generateContent({
-        model: MODEL,
+        model,
         contents: userContent,
         config,
       });
