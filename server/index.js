@@ -7,6 +7,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import aiRoutes from './routes/ai.js';
+import { requireUser, allowedEmails } from './auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,12 +61,19 @@ app.get('/', (req, res) => {
   res.json({ ok: true, service: 'habit-tracker-ai', hasKey: !!process.env.GEMINI_API_KEY });
 });
 
-app.use('/api', rateLimit, aiRoutes);
+// 문지기를 횟수 제한보다 먼저 세워요. 허락 안 된 사람이 하루 한도를 깎지 못하게요.
+app.use('/api', requireUser, rateLimit, aiRoutes);
 
 // 키 없이 켰을 때 친절한 안내
 if (!process.env.GEMINI_API_KEY) {
   console.log('\n⚠️  GEMINI_API_KEY가 비어 있어요.');
   console.log('   server/.env 파일을 만들고 키를 넣어주세요. (README.md 참고)\n');
+}
+
+if (!allowedEmails().length) {
+  console.log('⚠️  ALLOWED_EMAILS 가 비어 있어요. 지금은 누구나 이 서버의 AI 를 쓸 수 있어요.');
+} else if (!process.env.FIREBASE_WEB_API_KEY) {
+  console.log('⚠️  ALLOWED_EMAILS 는 있는데 FIREBASE_WEB_API_KEY 가 없어요. 로그인 확인이 실패합니다.');
 }
 
 app.listen(PORT, () => {

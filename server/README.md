@@ -141,6 +141,20 @@ const AI_SERVER = 'http://localhost:3000';
 
 ---
 
+## 나랑 친구만 쓰게 잠그기
+
+서버 주소는 공개된 index.html 에 적혀 있어서, 그냥 두면 누구나 이 서버의 AI 를 쓸 수 있어요.
+Render → 서비스 → **Environment** 에 아래 두 개를 넣으면 허락한 구글 계정만 쓸 수 있어요.
+
+| 이름 | 값 |
+|---|---|
+| `ALLOWED_EMAILS` | 쓸 수 있는 구글 이메일. 여러 개면 쉼표로 (`me@gmail.com,friend@gmail.com`) |
+| `FIREBASE_WEB_API_KEY` | index.html 의 `FIREBASE_CONFIG.apiKey` 와 똑같은 값 |
+
+- 넣으면 앱에서 **구글 로그인을 해야** AI 가 돼요. 로그인 안 하면 "로그인해야 쓸 수 있어요" 가 떠요.
+- `ALLOWED_EMAILS` 를 비워두면 잠금이 꺼져서 예전처럼 누구나 쓸 수 있어요.
+- 친구를 추가할 땐 `ALLOWED_EMAILS` 에 이메일만 붙이면 돼요. 코드는 안 고쳐도 돼요.
+
 ## 자주 있는 문제
 
 | 증상 | 해결 |
