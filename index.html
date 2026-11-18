@@ -165,15 +165,15 @@
     .agent-head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 
     /* TODAY */
-    .motiv { background: var(--primary-light); border-left: 2px solid var(--primary); padding: 9px 13px; border-radius: 8px; font-size: 0.82rem; color: var(--primary); margin-bottom: 13px; font-style: italic; }
-    .today-prog { display: flex; align-items: center; gap: 12px; }
-    .ring-wrap { position: relative; width: 68px; height: 68px; flex-shrink: 0; }
+    /* 오늘 탭 맨 위 한 줄 — 링은 작게, 숫자는 크게 */
+    .today-head { display: flex; align-items: center; gap: 11px; margin: 2px 2px 12px; }
+    .ring-wrap { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
     .ring { transform: rotate(-90deg); }
     .ring-bg { fill: none; stroke: #1c1c1c; stroke-width: 6; }
     .ring-fill { fill: none; stroke: var(--primary); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .5s; }
-    .ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .95rem; font-weight: 800; color: var(--primary); }
-    .prog-text h2 { font-size: 1rem; font-weight: 700; }
-    .prog-text p { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+    .prog-text h2 { font-size: 1.12rem; font-weight: 800; letter-spacing: -.01em; }
+    .prog-text p { font-size: .78rem; color: var(--muted); margin-top: 1px; }
 
     /* ADD BAR */
     .add-bar { display: flex; gap: 8px; margin-bottom: 14px; }
@@ -257,17 +257,11 @@
     .wr-pick.on { border-color: var(--primary); color: var(--primary); background: rgba(179,240,0,.08); font-weight: 700; }
 
     /* 회복 카드 — 한 번 놓친 습관을 오늘 탭 위로 끌어올리는 자리 */
-    .rec-card { background: var(--card); border: 1px solid rgba(251,146,60,.35); border-radius: var(--r); padding: 13px 15px; margin-bottom: 13px; }
-    .rec-head { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; color: #fb923c; margin-bottom: 10px; }
-    .rec-head svg { width: 15px; height: 15px; }
-    .rec-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
-    .rec-row:first-of-type { border-top: none; padding-top: 0; }
-    .rec-body { flex: 1; min-width: 150px; }
-    .rec-name { font-size: .86rem; font-weight: 700; color: var(--text); }
-    .rec-line { font-size: .74rem; line-height: 1.55; color: var(--muted); margin-top: 2px; }
-    .rec-line b { color: var(--text); font-weight: 700; }
-    .rec-min { font-size: .71rem; color: var(--primary); margin-top: 3px; }
-    .rec-acts { display: flex; gap: 5px; flex-shrink: 0; }
+    /* 한 번 놓친 습관 — 따로 카드 대신 그 습관 줄 안에서 알려줘요 */
+    .rec-line { font-size: .74rem; line-height: 1.5; color: #fb923c; margin-top: 3px; }
+    .rec-line b { font-weight: 700; }
+    .rec-fix { background: none; border: none; padding: 0; margin-left: 4px; color: var(--muted); font-size: .72rem; text-decoration: underline; cursor: pointer; }
+    .habit-sep { font-size: .72rem; font-weight: 700; color: var(--muted); margin: 14px 4px 7px; }
     @keyframes checkPop { 0%{transform:scale(0.7)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
     .habit-info { flex: 1; min-width: 0; }
     .habit-name { font-size: .9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -819,24 +813,25 @@
 
 <!-- ===== TAB: TODAY ===== -->
 <div id="tab-today" class="tab active">
-  <div class="motiv" id="motiv-msg"></div>
-  <div id="wreview-box"></div>
-  <div id="recovery-box"></div>
-  <div class="card" style="margin-bottom:13px;">
-    <div class="today-prog">
-      <div class="ring-wrap">
-        <svg class="ring" width="68" height="68" viewBox="0 0 68 68">
-          <circle class="ring-bg" cx="34" cy="34" r="28"/>
-          <circle class="ring-fill" id="ring-fill" cx="34" cy="34" r="28" stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
-        </svg>
-        <div class="ring-center" id="ring-pct">0%</div>
-      </div>
-      <div class="prog-text">
-        <h2 id="prog-title">오늘의 습관</h2>
-        <p id="prog-sub">시작해볼까요?</p>
-      </div>
+  <!-- 맨 위 한 줄: 몇 개 했는지 + 한마디. 습관 목록이 바로 아래에 오게 작게 -->
+  <div class="today-head">
+    <div class="ring-wrap">
+      <svg class="ring" width="40" height="40" viewBox="0 0 68 68">
+        <circle class="ring-bg" cx="34" cy="34" r="28"/>
+        <circle class="ring-fill" id="ring-fill" cx="34" cy="34" r="28" stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
+      </svg>
+    </div>
+    <div class="prog-text">
+      <h2 id="prog-title">오늘의 습관</h2>
+      <p id="motiv-msg"></p>
     </div>
   </div>
+  <div id="habit-list"></div>
+  <div class="add-bar">
+    <input id="new-habit" type="text" placeholder="새 습관 이름..." maxlength="30"/>
+    <button class="btn" onclick="openAddModal()">+ 추가</button>
+  </div>
+
   <div class="card" style="margin-bottom:13px;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:11px;">
       <div class="card-title" style="margin-bottom:0;">오늘의 기분</div>
@@ -845,12 +840,7 @@
     <div class="mood-seg" id="mood-seg"></div>
     <div class="mood-recent" id="mood-recent"></div>
   </div>
-
-  <div class="add-bar">
-    <input id="new-habit" type="text" placeholder="새 습관 이름..." maxlength="30"/>
-    <button class="btn" onclick="openAddModal()">+ 추가</button>
-  </div>
-  <div id="habit-list"></div>
+  <div id="wreview-box"></div>
 
   <!-- MEMO SECTION -->
   <div class="card" style="margin-top:14px;">
@@ -3041,7 +3031,7 @@ function motivMsg(habits) {
   if (!tot) return '첫 습관을 추가해보세요.';
   if (done === tot) return `오늘 모든 습관 완료 — 완벽한 하루.`;
   const dayNum = Math.floor(parseYmd(t) / 86400000);
-  return `${done} / ${tot} 완료. ${MSGS[dayNum % MSGS.length]}`;
+  return MSGS[dayNum % MSGS.length];               // 몇 개 했는지는 바로 위 큰 글씨가 보여줘요
 }
 
 // ── TODAY RENDER ──────────────────────────────────────────
@@ -3049,41 +3039,50 @@ function render() {
   const habits = loadHabits(), today = todayStr();
   $('motiv-msg').textContent = motivMsg(habits);
   renderWeekReviewCard();
-  renderRecovery();
   renderMoodPicker();
 
   const done = habits.filter(h => h.checked[today]).length, tot = habits.length;
   const pct = tot ? Math.round(done / tot * 100) : 0;
   const C = 175.9;
   $('ring-fill').style.strokeDashoffset = C - (pct / 100) * C;
-  $('ring-pct').textContent  = pct + '%';
-  $('prog-title').textContent = `${done}/${tot} 완료`;
-  $('prog-sub').textContent   = pct === 100 ? '완벽한 하루' : pct >= 50 ? '절반 이상 달성' : '아직 더 할 수 있어요';
+  $('prog-title').textContent = tot ? `${done}/${tot} 완료` : '오늘의 습관';
 
   if (!habits.length) {
     $('habit-list').innerHTML = `<div class="empty"><div class="ei">🌱</div><p>첫 습관을 추가해보세요!</p></div>`;
     return;
   }
 
-  $('habit-list').innerHTML = habits.map((h, i) => {
+  // 보이는 순서: 놓친 것 → 오늘 할 것(지금 시간대 먼저) → 오늘은 안 해도 되는 것 → 끝낸 것.
+  // toggle(i) 등은 원래 자리(i)를 써야 하니 i 는 그대로 들고 다녀요.
+  const slot = slotNow(), focusId = (latestWeekReview() || {}).focusHabitId;
+  const rows = habits.map((h, i) => {
+    const isDone = !!h.checked[today], rec = habitRecovery(h), due = dueToday(h);
+    const warn = !isDone && due && rec.state !== 'ok';
+    const rank = isDone ? 4 : warn ? 0 : !due ? 3 : (h.timeSlot === slot || h.id === focusId) ? 1 : 2;
+    return { h, i, rec, warn, rank };
+  }).sort((a, b) => a.rank - b.rank || (a.rank === 0 ? a.rec.missed - b.rec.missed : 0) || a.i - b.i);
+  const doneN = rows.filter(r => r.rank === 4).length;
+  const doneSep = doneN && doneN < rows.length ? `<div class="habit-sep">끝낸 습관 ${doneN}</div>` : '';
+
+  $('habit-list').innerHTML = rows.map(({ h, i, rec, warn, rank }, k) => {
     const mark = h.checked[today];                       // true = 다 함, 'min' = 최소 버전
     const isDone = !!mark, isMin = mark === 'min';
     const s = streakCount(h), r = successRate(h);
-    const rec = habitRecovery(h);
-    // 한 번 놓친 습관은 카드에도 표시해요. 복구 카드를 닫아버려도 눈에 띄게.
-    const warn = !isDone && dueToday(h) && rec.state !== 'ok';
-    return `
+    const sep = rank === 4 && (k === 0 || rows[k - 1].rank !== 4) ? doneSep : '';
+    return sep + `
       <div class="habit-card${isDone?' done-card':''}${isMin?' min-card':''}${warn?' warn-card':''}">
         <button class="check-btn${isDone?' done':''}${isMin?' min':''}" onclick="toggle(${i})">${isMin?'<i data-lucide="minus"></i>':isDone?'<i data-lucide="check"></i>':''}</button>
         <div class="habit-info">
           <div class="habit-name">${esc(h.name)}</div>
           <div class="badges">
+            ${h.id===focusId&&!isDone?`<span class="badge bm">이번 주 집중</span>`:''}
             ${isMin?`<span class="badge bm">최소 버전</span>`:''}
             ${s>0?`<span class="badge bs"><i data-lucide="flame" style="width:11px;height:11px;vertical-align:-1px;"></i> ${s}${streakUnit(h)} 연속</span>`:''}
             <span class="badge br"><i data-lucide="check-circle-2" style="width:11px;height:11px;vertical-align:-1px;"></i> ${r}%</span>
             <span class="badge bf">${esc(freqLabel(h))}</span>
             <span class="badge bt">${esc(h.timeSlot||'자유')}</span>
           </div>
+          ${warn ? recLine(h, rec, i) : ''}
         </div>
         ${(!isDone && h.min) ? `<button class="min-btn" onclick="toggleMin(${i})" title="${esc(h.min)}">최소</button>` : ''}
         <button class="icon-btn" onclick="editHabit(${i})"><i data-lucide="pencil"></i></button>
@@ -3094,47 +3093,29 @@ function render() {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-// ── 회복 카드 ─────────────────────────────────────────────
-// 오늘 탭 맨 위. 한 번 놓친 습관을 여기로 끌어올려요.
-// 혼내려는 게 아니라 "아직 안 늦었다"를 보여주는 자리입니다.
-function renderRecovery() {
-  const box = $('recovery-box');
-  if (!box) return;
-  const habits = loadHabits(), today = todayStr();
-  const rows = habits
-    .map((h, i) => ({ h, i, rec: habitRecovery(h) }))
-    .filter(x => !x.h.checked[today] && dueToday(x.h) && x.rec.state !== 'ok')
-    .sort((a, b) => a.rec.missed - b.rec.missed)     // 되살릴 수 있는 것부터
-    .slice(0, 3);
-  if (!rows.length) { box.innerHTML = ''; return; }
+// ── 한 번 놓친 습관 ───────────────────────────────────────
+// 예전엔 오늘 탭 맨 위에 '회복 카드'를 따로 띄웠어요. 지금은 그 습관 줄을 목록 맨 위로
+// 올리고, 줄 안에 한 줄로 알려줘요. 혼내려는 게 아니라 "아직 안 늦었다"를 보여주는 자리.
+function recLine(h, rec, i) {
+  // 주 N회 습관은 '며칠'이 아니라 '몇 주'로 말해야 뜻이 맞아요.
+  const weekly = streakUnit(h) === '주', n = rec.missed;
+  const line = n === 1
+    ? (weekly ? `지난주를 놓쳤어요. <b>이번 주에 채우면 안 끊겨요.</b>`
+              : `어제 놓쳤어요. <b>오늘 하면 안 끊겨요.</b>`)
+    : n <= 3
+      ? (weekly ? `${n}주째 비었어요. 이번 주에 채우면 다시 이어져요.`
+                : `${n}일째 쉬는 중이에요. 오늘부터 다시 세면 돼요.`)
+      : `${n}${weekly ? '주' : '일'}째 비어 있어요. 지금 목표가 버거운 걸지도 몰라요.`
+        + `<button class="rec-fix" onclick="editHabit(${i})">빈도 낮추기</button>`;
+  const min = h.min ? ` 바쁘면 — ${esc(h.min)}` : '';
+  return `<div class="rec-line">${line}${min}</div>`;
+}
 
-  box.innerHTML = `<div class="rec-card">
-    <div class="rec-head"><i data-lucide="life-buoy"></i><span>다시 붙잡을 수 있어요</span></div>
-    ${rows.map(({ h, i, rec }) => {
-      // 주 N회 습관은 '며칠'이 아니라 '몇 주'로 말해야 뜻이 맞아요.
-      const weekly = streakUnit(h) === '주', n = rec.missed;
-      const line = n === 1
-        ? (weekly ? `지난주를 놓쳤어요. <b>이번 주에 채우면 안 끊겨요.</b>`
-                  : `어제 놓쳤어요. <b>오늘 하면 안 끊겨요.</b>`)
-        : n <= 3
-          ? (weekly ? `${n}주째 비었어요. 이번 주에 채우면 다시 이어져요.`
-                    : `${n}일째 쉬는 중이에요. 오늘부터 다시 세면 돼요.`)
-          : `${n}${weekly ? '주' : '일'}째 비어 있어요. 지금 목표가 버거운 걸지도 몰라요.`;
-      return `<div class="rec-row">
-        <div class="rec-body">
-          <div class="rec-name">${esc(h.name)}</div>
-          <div class="rec-line">${line}</div>
-          ${h.min ? `<div class="rec-min">바쁜 날엔 — ${esc(h.min)}</div>` : ''}
-        </div>
-        <div class="rec-acts">
-          <button class="btn btn-sm" onclick="toggle(${i})">했어요</button>
-          ${h.min ? `<button class="btn btn-sm btn-outline" onclick="toggleMin(${i})">최소만</button>` : ''}
-          ${rec.missed > 3 ? `<button class="btn btn-sm btn-outline" onclick="editHabit(${i})">빈도 낮추기</button>` : ''}
-        </div>
-      </div>`;
-    }).join('')}
-  </div>`;
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+// 지금 시각이 습관 시간대 중 어디인지 (습관 추가 창의 시간대 구간과 같아요)
+function slotNow() {
+  const hr = new Date().getHours();
+  return hr >= 6 && hr < 10 ? '아침' : hr < 12 && hr >= 10 ? '오전' : hr >= 12 && hr < 14 ? '점심'
+       : hr >= 14 && hr < 18 ? '오후' : hr >= 18 && hr < 22 ? '저녁' : '';
 }
 
 // ── 기능 찾기 ─────────────────────────────────────────────
@@ -3170,7 +3151,7 @@ const FEATURES = [
   { n:'습관 추가', w:'오늘', d:'이름·카테고리·빈도·시간대를 정해서 새 습관을 만들어요', k:'새습관 만들기 등록', go:tabOpen('today', openAddModal) },
   { n:'빈도 (매일 / 주 N회 / 특정 요일)', w:'오늘 › 습관 추가·수정', d:'주 3회처럼 정하면 성공률도 그 기준으로 계산돼요', k:'주3회 요일 반복 얼마나자주', go:tabOpen('today', openAddModal) },
   { n:'최소 버전 (바쁜 날엔 이거라도)', w:'오늘 › 습관 추가·수정', d:'도저히 못 할 날 이것만 해도 연속 기록이 안 끊겨요', k:'이거라도 최소 스쿼트 문턱 낮추기 min', go:tabOpen('today', openAddModal) },
-  { n:'회복 카드 (두 번은 안 빠진다)', w:'오늘 맨 위', d:'한 번 놓친 습관을 끌어올려서 오늘 되살릴 수 있게 해줘요', k:'놓침 빠짐 복구 다시 스트릭', go:tabThen('today', '#recovery-box') },
+  { n:'회복 알림 (두 번은 안 빠진다)', w:'오늘 습관 목록 맨 위', d:'한 번 놓친 습관을 목록 맨 위로 끌어올려서 오늘 되살릴 수 있게 해줘요', k:'놓침 빠짐 복구 다시 스트릭', go:tabThen('today', '#habit-list') },
   { n:'주간 회고', w:'오늘 맨 위 (금·토에만)', d:'이번 주 성적을 보고 다음 주에 붙잡을 습관 하나를 정해요', k:'돌아보기 회고 리뷰 주간 금요일', go:tabOpen('today', openWeekReview) },
   { n:'오늘의 기분', w:'오늘', d:'최악~최고 다섯 단계. 통계에서 성공률과 겹쳐 볼 수 있어요', k:'무드 기분 감정 mood', go:tabThen('today', '#mood-seg') },
   { n:'아이디어 메모', w:'오늘 아래쪽', d:'떠오른 걸 적어두는 곳', k:'메모 아이디어 노트', go:tabOpen('today', openMemoModal) },

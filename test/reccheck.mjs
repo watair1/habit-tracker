@@ -83,25 +83,32 @@ async function run(tz, label) {
     toggle(0); toggle(0); toggle(0);
     ok('껐다 켰다 해도 XP 그대로', loadUser().xp, xpAfterCancel);
 
-    // ── 회복 카드 렌더 ──
+    // ── 놓친 습관은 목록 맨 위로, 줄 안에 알림 ──
     localStorage.setItem('ht_habits_v2', JSON.stringify([
-      mk('독서', [2, 3, 4], { min: '한 페이지' }),          // 어제 놓침 → risk
+      mk('물마시기', [0, 1, 2]),                             // 오늘 함 → 맨 아래, 알림 없음
       mk('명상', [6, 7]),                                    // 5일 비었음 → broken(빈도 낮추기 제안)
-      mk('물마시기', [0, 1, 2]),                             // 오늘 함 → 안 나와야
+      mk('독서', [2, 3, 4], { min: '한 페이지' }),          // 어제 놓침 → risk
     ]));
-    renderRecovery();
-    const html = document.getElementById('recovery-box').innerHTML;
-    R.push({ n: '회복 카드에 risk 습관', pass: html.includes('독서'), got: html.slice(0, 60) });
+    render();
+    const names = [...document.querySelectorAll('#habit-list .habit-name')].map(e => e.textContent);
+    ok('순서: 어제 놓친 것 → 오래 빈 것 → 끝낸 것', names, ['독서', '명상', '물마시기']);
+    const html = document.getElementById('habit-list').innerHTML;
     R.push({ n: 'risk 문구', pass: html.includes('어제 놓쳤어요'), got: '' });
-    R.push({ n: 'broken 습관도 표시', pass: html.includes('명상'), got: '' });
     R.push({ n: '빈도 낮추기 버튼', pass: html.includes('빈도 낮추기'), got: '' });
-    R.push({ n: '오늘 한 습관은 빠짐', pass: !html.includes('물마시기'), got: '' });
     R.push({ n: '최소 버전 안내 노출', pass: html.includes('한 페이지'), got: '' });
+    R.push({ n: '끝낸 습관 구분선', pass: html.includes('끝낸 습관 1'), got: '' });
+    const cards = [...document.querySelectorAll('#habit-list .habit-card')];
+    R.push({ n: '오늘 한 습관엔 알림 없음', pass: !cards[2].querySelector('.rec-line'), got: '' });
+    // 목록 순서가 바뀌어도 누르면 그 습관이 체크돼요 (원래 자리 번호를 들고 있어서)
+    cards[0].querySelector('.check-btn').click();
+    ok('맨 위(독서)를 누르면 독서가 체크됨', !!loadHabits()[2].checked[todayStr()], true);
+    ok('다른 습관은 그대로', !!loadHabits()[1].checked[todayStr()], false);
 
-    // 다 해치우면 카드가 사라지는가
+    // 다 해치우면 알림이 사라지는가
     localStorage.setItem('ht_habits_v2', JSON.stringify([mk('독서', [0, 1, 2])]));
-    renderRecovery();
-    ok('할 게 없으면 카드 없음', document.getElementById('recovery-box').innerHTML, '');
+    render();
+    ok('할 게 없으면 알림 없음', document.querySelectorAll('#habit-list .rec-line').length, 0);
+    ok('전부 끝내면 구분선 없음', document.querySelectorAll('#habit-list .habit-sep').length, 0);
 
     // ── 모달이 최소 버전을 싣고 내리는가 ──
     localStorage.setItem('ht_habits_v2', JSON.stringify([mk('독서', [1], { min: '한 페이지' })]));
