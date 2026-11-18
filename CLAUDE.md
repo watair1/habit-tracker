@@ -132,6 +132,15 @@ Five tabs rendered on demand via `switchTab(name)`:
 | `goals` | `renderGoals()` + `renderFinalGoal()` + `renderTodos()` | life goal, todos, goal cards, growth prediction |
 | `analysis` | `renderAnalysis()` | Claude AI feedback, day/time/fail analysis, notifications |
 
+## Bottom Tab Bar
+
+Six animated styles in `NAV_STYLES` (expand → pill → fill → notch → bubble → bulge), each
+unlocked at the matching level (Lv.1–6). `user.navStyle` holds the pick (synced with `K.u`);
+`navStyleNow()` falls back to the highest unlocked style if the pick is locked. The picker
+lives in the 성장 tab (`renderNavPicker()`); on level-up `navOnLevelUp()` switches to the
+newly opened style and the toast says so. `switchTab()` drives the animation through
+`navSelect(i)` — don't move the `.active` class on nav buttons by hand. Test: `test/navcheck.mjs`.
+
 ## XP & Level System
 
 Levels (XP thresholds): 새싹(0) → 도전자(100) → 습관인(250) → 마스터(500) → 레전드(900) → 신화(1500)

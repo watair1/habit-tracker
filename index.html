@@ -51,11 +51,107 @@
     .xp-fill { background: var(--primary); height: 100%; border-radius: 10px; transition: width .5s; }
 
     /* BOTTOM NAV */
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 500px; margin: 0 auto; background: rgba(10,10,10,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); border-bottom: none; border-radius: 16px 16px 0 0; display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
-    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; background: none; border: none; cursor: pointer; gap: 4px; color: #444; font-size: 0.72rem; font-weight: 700; transition: color .2s; letter-spacing: .3px; }
-    .nav-btn svg { width: 22px; height: 22px; stroke-width: 2px; transition: transform .3s cubic-bezier(0.34,1.56,0.64,1); }
-    .nav-btn.active { color: var(--primary); }
-    .nav-btn.active svg { transform: scale(1.15); }
+    /* ── 하단 탭바 ──────────────────────────────────────────
+       화면 바닥에 떠 있는 둥근 바. 움직이는 모양이 6가지이고(ns-expand … ns-bulge),
+       레벨이 오를 때마다 하나씩 열려요. 움직임은 스크립트의 navSelect() 가 맡아요.
+       모양마다 덧붙는 조각: pill(알약) · shape(언덕 그림) · rim/disc(홈과 동그라미) · ring/bub(퍼지는 원·거품) */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 500px; margin: 0 auto; z-index: 100;
+      padding: 0 12px calc(10px + env(safe-area-inset-bottom)); pointer-events: none;
+      --nav-bar:#171717; --nav-edge:#262626; --nav-ink:#5f5f59; --nav-text:#f0f0f0; --nav-sub:#7a7a72;
+      --nav-act:var(--primary); --nav-act-ink:#0b1000; --nav-shadow:rgba(0,0,0,.6); --nav-glow:rgba(179,240,0,.22);
+      --nav-ring:rgba(255,255,255,.26); --nav-rim:rgba(179,240,0,.45); }
+    .nav-holder { position: relative; pointer-events: auto; }
+    .navbar { position: relative; display: flex; align-items: center; height: 62px; padding: 0 6px; border-radius: 20px;
+      background: var(--nav-bar); box-shadow: 0 8px 22px var(--nav-shadow), 0 1px 0 var(--nav-edge) inset; user-select: none; -webkit-user-select: none; }
+    .nav-btn { position: relative; z-index: 2; flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; color: var(--nav-ink);
+      font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0;
+      -webkit-tap-highlight-color: transparent; transition: color .3s; }
+    .nav-btn svg { width: 22px; height: 22px; stroke-width: 1.9; flex-shrink: 0; overflow: visible;
+      transition: transform .45s cubic-bezier(.34,1.56,.64,1), fill .3s, stroke-width .3s, filter .3s; }
+    .nav-btn .lbl { font-size: .66rem; font-weight: 700; white-space: nowrap; }
+    .nav-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: -4px; border-radius: 12px; }
+
+    /* Lv.1 펼쳐지는 라벨 — 알약이 가운데에서 양쪽으로 펼쳐지며 이름이 나와요 */
+    .ns-expand { justify-content: space-around; }
+    .ns-expand .nav-btn { flex: 0 0 auto; flex-direction: row; height: 42px; padding: 0 11px; border-radius: 15px; gap: 0; isolation: isolate;
+      transition: color .3s, padding .45s cubic-bezier(.3,1.25,.5,1); }
+    .ns-expand .nav-btn::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 15px; background: var(--nav-act);
+      box-shadow: 0 5px 10px var(--nav-shadow), 0 0 14px var(--nav-glow); transform: scaleX(0); opacity: 0;
+      transition: transform .45s cubic-bezier(.3,1.3,.5,1), opacity .2s; }
+    .ns-expand .nav-btn.active::before { transform: scaleX(1); opacity: 1; }
+    .ns-expand .nav-btn .lbl { font-size: .8rem; max-width: 0; opacity: 0; overflow: hidden;
+      transition: max-width .45s cubic-bezier(.3,1.25,.5,1), opacity .3s, margin .45s; }
+    .ns-expand .nav-btn.active { color: var(--nav-act-ink); padding: 0 15px; }
+    .ns-expand .nav-btn.active .lbl { max-width: 64px; opacity: 1; margin-left: 7px; transition-delay: 0s, .12s, 0s; }
+
+    /* Lv.2 미끄러지는 알약 */
+    .ns-pill .nav-btn .lbl, .ns-fill .nav-btn .lbl { display: none; }
+    .nav-pill { position: absolute; z-index: 1; top: 11px; bottom: 11px; border-radius: 14px; background: var(--nav-act);
+      box-shadow: 0 5px 10px var(--nav-shadow), 0 0 14px var(--nav-glow); }
+    .ns-pill .nav-btn.active { color: var(--nav-act-ink); }
+
+    /* Lv.3 채워지는 아이콘 — 얇은 원이 크게 퍼지고, 아이콘이 꽉 차며 이름이 떠요 */
+    .ns-fill { overflow: visible; }
+    .ns-fill .nav-btn .lbl { display: block; position: absolute; bottom: 6px; opacity: 0; transform: translateY(5px);
+      transition: opacity .25s, transform .35s cubic-bezier(.3,1.5,.5,1); }
+    .ns-fill .nav-btn.active .lbl { opacity: 1; transform: none; color: var(--nav-text); transition-delay: .15s; }
+    .ns-fill .nav-btn.active { color: var(--nav-act-ink); }
+    .ns-fill .nav-btn.active svg { fill: var(--nav-act); stroke-width: 1.6; transform: translateY(-7px);
+      filter: drop-shadow(0 5px 2px var(--nav-shadow)); animation: navFillPop .55s cubic-bezier(.3,1.5,.5,1); }
+    @keyframes navFillPop { 0%{transform:translateY(0) scale(1)} 25%{transform:translateY(1px) scale(.78)} 60%{transform:translateY(-9px) scale(1.16)} 100%{transform:translateY(-7px) scale(1)} }
+    .nav-ring { position: absolute; z-index: 1; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%;
+      border: 1px solid var(--nav-ring); pointer-events: none; animation: navRing 1.25s cubic-bezier(.15,.75,.3,1) forwards; }
+    @keyframes navRing { 0%{opacity:0;transform:scale(.5)} 12%{opacity:1} 100%{opacity:0;transform:scale(3.9)} }
+
+    /* Lv.4 떠오르는 동그라미 — 바에 홈이 파이고, 동그라미가 움찔했다 날아가 내려앉아요 */
+    @property --nx { syntax: '<length>'; inherits: true; initial-value: 0px; }
+    .nav-holder { --nx: 0px; transition: --nx .46s cubic-bezier(.55,0,.25,1.2) .1s; }
+    .ns-notch { -webkit-mask: radial-gradient(circle 32px at var(--nx) -4px, transparent 96%, #000 100%);
+      mask: radial-gradient(circle 32px at var(--nx) -4px, transparent 96%, #000 100%); }
+    .nav-rim { position: absolute; z-index: 2; left: var(--nx); top: -36px; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
+      border: 1.5px solid var(--nav-rim); clip-path: inset(36px 0 0 0); pointer-events: none; }
+    .nav-disc { position: absolute; z-index: 3; top: -23px; left: 0; width: 48px; height: 48px; margin-left: -24px; border-radius: 50%;
+      background: var(--nav-act); color: var(--nav-act-ink); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .nav-disc svg { width: 21px; height: 21px; stroke-width: 2.1; }
+    .ns-notch .nav-btn svg { transition: opacity .25s, transform .4s; }
+    .ns-notch .nav-btn.active svg { opacity: 0; transform: translateY(-6px); }
+    .ns-notch .nav-btn .lbl { transform: translateY(13px); opacity: 0; letter-spacing: .08em; transition: opacity .3s .35s; }
+    .ns-notch .nav-btn.active .lbl { opacity: 1; color: var(--nav-sub); }
+
+    /* Lv.5 떠오르는 거품 — 움직임은 스크립트가 거품마다 따로 계산해요(navBubblePlan) */
+    .ns-bubble { overflow: visible; }
+    .ns-bubble .nav-btn .lbl, .ns-bulge .nav-btn .lbl { display: none; }
+    .nav-bub { position: absolute; left: 0; top: 0; z-index: 3; border-radius: 50%; pointer-events: none; background: var(--nav-act); opacity: 0; }
+    .ns-bubble .nav-btn.active { color: var(--nav-act-ink); }
+    .ns-bubble .nav-btn.active svg { fill: var(--nav-act); stroke-width: 2.4; filter: drop-shadow(0 3px 2px var(--nav-shadow)); animation: navPop .5s cubic-bezier(.3,1.6,.5,1); }
+    @keyframes navPop { 0%{transform:scale(1)} 30%{transform:scale(.8)} 65%{transform:scale(1.14)} 100%{transform:scale(1)} }
+    .ns-bubble .nav-btn::before { content: ""; position: absolute; bottom: 9px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%;
+      background: var(--nav-ink); opacity: 0; transform: scale(0); transition: .3s; }
+    .ns-bubble .nav-btn.active::before { opacity: .7; transform: scale(1); }
+
+    /* Lv.6 솟아오르는 언덕 — 바 자체가 언덕처럼 솟아요(그림은 SVG) */
+    .ns-bulge { background: transparent; box-shadow: none; overflow: visible; }
+    .nav-shape { position: absolute; left: 0; top: -30px; width: 100%; height: 92px; z-index: 0; overflow: visible; pointer-events: none;
+      filter: drop-shadow(0 8px 10px var(--nav-shadow)); }
+    .nav-shape path { fill: var(--nav-bar); }
+    .ns-bulge .nav-btn svg { transition: transform .3s cubic-bezier(.5,0,.6,1), fill .25s; }
+    .ns-bulge .nav-btn.active { color: var(--nav-act-ink); }
+    .ns-bulge .nav-btn.active svg { transform: translateY(-15px) scale(1.12); fill: var(--nav-act); stroke-width: 2.1;
+      filter: drop-shadow(0 3px 2px var(--nav-shadow)); transition: transform .5s cubic-bezier(.3,1.7,.5,1) .38s, fill .3s .38s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bottom-nav *, .bottom-nav *::before { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    /* 성장 탭: 탭바 모양 고르기 */
+    .ns-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .ns-opt { text-align: left; border: 1px solid var(--border); background: var(--card2); color: var(--text); border-radius: 12px;
+      padding: 11px 12px; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
+    .ns-opt b { font-size: .84rem; }
+    .ns-opt span { font-size: .7rem; color: var(--muted); }
+    .ns-opt.on { border-color: var(--primary); background: rgba(179,240,0,.08); }
+    .ns-opt.on span { color: var(--primary); }
+    .ns-opt[disabled] { opacity: .45; cursor: default; }
 
     /* TABS */
     .tab { display: none; padding: 16px 16px 10px; max-width: 500px; margin: 0 auto; }
@@ -458,8 +554,6 @@
     .wk-sleep { font-size: .68rem; color: var(--muted); text-align: right; }
 
     /* ── 하루 관리 탭 ── */
-    .nav-btn { font-size: .68rem; }            /* 탭 6개라 살짝 축소 */
-    .nav-btn svg { width: 20px; height: 20px; }
     .day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 13px; }
     .day-nav-btn { background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .day-nav-btn svg { width: 20px; height: 20px; }
@@ -965,6 +1059,11 @@
     <div class="xp-bar-lg"><div class="xp-fill-lg" id="g-xp-bar" style="width:0%"></div></div>
     <div class="xp-info"><span id="g-xp-cur">0 XP</span><span id="g-xp-next">다음 레벨까지 100 XP</span></div>
   </div>
+  <div class="card" id="ns-card">
+    <div class="card-title">탭바 모양</div>
+    <p class="fg-hint" style="margin:-4px 0 11px;">레벨이 오를 때마다 하나씩 열려요. 누르면 바로 바뀌어요.</p>
+    <div class="ns-picker" id="ns-picker"></div>
+  </div>
   <div class="card">
     <div class="card-title">업적</div>
     <div class="ach-grid" id="ach-grid"></div>
@@ -1365,13 +1464,17 @@
 </div>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <button class="nav-btn active" onclick="switchTab('today',this)"><i data-lucide="check-circle"></i>오늘</button>
-  <button class="nav-btn" onclick="switchTab('day',this)"><i data-lucide="calendar"></i>하루</button>
-  <button class="nav-btn" onclick="switchTab('stats',this)"><i data-lucide="bar-chart-3"></i>통계</button>
-  <button class="nav-btn" onclick="switchTab('growth',this)"><i data-lucide="trending-up"></i>성장</button>
-  <button class="nav-btn" onclick="switchTab('goals',this)"><i data-lucide="target"></i>목표</button>
-  <button class="nav-btn" onclick="switchTab('analysis',this)"><i data-lucide="activity"></i>분석</button>
+<nav class="bottom-nav" aria-label="탭">
+  <div class="nav-holder" id="nav-holder">
+    <div class="navbar ns-expand" id="navbar">
+      <button class="nav-btn active" onclick="switchTab('today',this)"><i data-lucide="check-circle"></i><span class="lbl">오늘</span></button>
+      <button class="nav-btn" onclick="switchTab('day',this)"><i data-lucide="calendar"></i><span class="lbl">하루</span></button>
+      <button class="nav-btn" onclick="switchTab('stats',this)"><i data-lucide="bar-chart-3"></i><span class="lbl">통계</span></button>
+      <button class="nav-btn" onclick="switchTab('growth',this)"><i data-lucide="trending-up"></i><span class="lbl">성장</span></button>
+      <button class="nav-btn" onclick="switchTab('goals',this)"><i data-lucide="target"></i><span class="lbl">목표</span></button>
+      <button class="nav-btn" onclick="switchTab('analysis',this)"><i data-lucide="activity"></i><span class="lbl">분석</span></button>
+    </div>
+  </div>
 </nav>
 
 <!-- ADD HABIT MODAL -->
@@ -1683,6 +1786,7 @@ async function onFbAuthChange(user) {
     $('user-name').textContent = (user.displayName || '사용자').split(' ')[0];
     await loadFromCloud();
     render(); updateHdrXP();
+    navApply(navStyleNow());
     showToast((user.displayName || '사용자').split(' ')[0] + '님 환영해요.');
   } else {
     $('login-btn').style.display = '';
@@ -2358,7 +2462,10 @@ function addXP(amt) {
   const after = lvInfo(u.xp).lv;
   saveUser(u);
   updateHdrXP();
-  if (after > before) showToast(`레벨 업 — ${lvInfo(u.xp).name} (Lv.${after})`);
+  if (after > before) {
+    const opened = navOnLevelUp(after);
+    showToast(`레벨 업 — ${lvInfo(u.xp).name} (Lv.${after})` + (opened ? ` · 새 탭바 '${opened.name}'가 열렸어요` : ''));
+  }
   showXPFloat(amt);
 }
 
@@ -2646,6 +2753,217 @@ function restoreLastTab() {
   switchTab(v.tab);
 }
 
+// ── 하단 탭바 모양 (레벨 해금) ───────────────────────────
+// 탭을 옮길 때 움직이는 모양이 6가지예요. 레벨이 하나 오를 때마다 하나씩 열리고,
+// 열린 것 중에서 성장 탭에서 고를 수 있어요. 고른 건 user.navStyle 에 저장돼서
+// 로그인하면 폰과 패드가 같은 모양을 써요. 고른 적이 없으면 열린 것 중 가장 높은 단계.
+const NAV_STYLES = [
+  { id:'expand', lv:1, name:'펼쳐지는 라벨',   desc:'알약이 가운데서 펼쳐지며 이름이 나와요' },
+  { id:'pill',   lv:2, name:'미끄러지는 알약', desc:'알약이 늘어나며 옮겨가요' },
+  { id:'fill',   lv:3, name:'채워지는 아이콘', desc:'원이 퍼지고 아이콘이 꽉 차요' },
+  { id:'notch',  lv:4, name:'떠오르는 동그라미', desc:'동그라미가 날아가 내려앉아요' },
+  { id:'bubble', lv:5, name:'떠오르는 거품',   desc:'거품이 흩어지며 떠올라요' },
+  { id:'bulge',  lv:6, name:'솟아오르는 언덕', desc:'바가 언덕처럼 솟아 옮겨가요' },
+];
+const NAV_REDUCE = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const nav = { style:null, cur:-1, x:0, bumps:[], raf:0, anim:null, t:0 };
+
+function navStyleNow() {
+  const u = loadUser(), lv = lvInfo(u.xp || 0).lv;
+  const open = NAV_STYLES.filter(s => s.lv <= lv);
+  const picked = open.find(s => s.id === u.navStyle);
+  return (picked || open[open.length - 1]).id;
+}
+
+const navBtns = () => [...document.querySelectorAll('#navbar .nav-btn')];
+function navGeo(i) {
+  const b = $('navbar').getBoundingClientRect(), t = navBtns()[i].getBoundingClientRect();
+  return { x: t.left - b.left + t.width / 2, l: t.left - b.left, w: t.width };
+}
+
+// 모양을 바꿔 끼워요. 모양마다 필요한 조각(알약·언덕 그림·동그라미)을 새로 만들어요.
+function navApply(id, force) {
+  if (!$('navbar') || (nav.style === id && !force)) return;
+  const bar = $('navbar'), holder = $('nav-holder');
+  cancelAnimationFrame(nav.raf); if (nav.anim) nav.anim.cancel();
+  bar.querySelectorAll('.nav-pill,.nav-shape,.nav-ring,.nav-bub').forEach(e => e.remove());
+  holder.querySelectorAll('.nav-rim,.nav-disc').forEach(e => e.remove());
+  bar.className = 'navbar ns-' + id;
+  nav.style = id; nav.bumps = [];
+  if (id === 'pill')  bar.insertAdjacentHTML('beforeend', '<div class="nav-pill"></div>');
+  if (id === 'bulge') bar.insertAdjacentHTML('afterbegin', '<svg class="nav-shape" aria-hidden="true"><path/></svg>');
+  if (id === 'notch') holder.insertAdjacentHTML('beforeend', '<div class="nav-rim"></div><div class="nav-disc"></div>');
+  nav.cur = -1;
+  // 자리 잡는 순간의 탭을 읽어요(그 사이 '보던 탭 되돌리기'가 탭을 바꿨을 수 있어서)
+  requestAnimationFrame(() => navSelect(Math.max(0, navBtns().findIndex(b => b.classList.contains('active'))), true));
+}
+
+// 언덕: 바 윗선을 점으로 찍어 그려요
+function navDrawBulge() {
+  const bar = $('navbar'), svg = bar.querySelector('.nav-shape'); if (!svg) return;
+  const w = bar.clientWidth, top = 30, bottom = 92, r = 20, H = 25;
+  svg.setAttribute('viewBox', `0 0 ${w} ${bottom}`);
+  const lift = x => nav.bumps.reduce((s, b) => { const d = (x - b.c) / (b.w || 27); return s + b.h * Math.exp(-(d*d*d*d)); }, 0);
+  let d = `M0 ${top+r} Q0 ${top} ${r} ${top}`;
+  for (let x = r; x <= w - r; x += 3) d += ` L${x.toFixed(1)} ${(top - lift(x) * H).toFixed(2)}`;
+  d += ` L${w-r} ${top} Q${w} ${top} ${w} ${top+r} L${w} ${bottom-r} Q${w} ${bottom} ${w-r} ${bottom} L${r} ${bottom} Q0 ${bottom} 0 ${bottom-r} Z`;
+  svg.querySelector('path').setAttribute('d', d);
+}
+// 언덕이 낮고 넓게 퍼지며 미끄러져 가고, 도착하면 다시 솟아 한 번 출렁여요
+function navMoveBulge(to) {
+  cancelAnimationFrame(nav.raf);
+  const from = nav.bumps[0] ? nav.bumps[0].c : to, t0 = performance.now(), D = 640;
+  const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / D), m = Math.min(t / .72, 1), sink = Math.sin(Math.PI * m);
+    let h = 1 - .68 * sink, w = 27 * (1 + .55 * sink);
+    if (t > .72) { const k = (t - .72) / .28; h += .16 * Math.sin(Math.PI * k) * (1 - k * .4); w -= 4 * Math.sin(Math.PI * k); }
+    nav.bumps = [{ c: from + (to - from) * ease(m), h, w }];
+    navDrawBulge();
+    if (t < 1) nav.raf = requestAnimationFrame(step);
+  };
+  nav.raf = requestAnimationFrame(step);
+}
+
+// 거품: y 는 거품의 '아래 끝'. 작게 태어나서 올라가며 커져요.
+function navBubblePos(b, u) { return { x: b.x0 + b.dx*u + b.amp*Math.sin(2*Math.PI*u*b.f + b.ph), y: b.y0 + b.dy*u }; }
+function navBubbleScale(u) { return u < .32 ? .25 + .75*(u/.32) : u > .6 ? 1 - .1*((u-.6)/.4) : 1; }
+// 거품마다 위치·시간·속도·흔들림을 다르게 뽑고, 끝까지 미리 돌려봐서 겹치면 버려요
+function navBubblePlan(cx) {
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const sizes = [22,17,15,13,11,9,8];
+  let best = null, bestGap = -1e9;
+  for (let attempt = 0; attempt < 300; attempt++) {
+    let t = 0, side = Math.random() < .5 ? -1 : 1;
+    const plan = sizes.map((sz, k) => {
+      t += k ? rnd(220, 350) : 0;
+      if (Math.random() < .75) side = -side;          // 대체로 좌우를 번갈아, 가끔은 같은 쪽으로
+      return { r: sz/2, x0: cx + side*rnd(0,6), y0: 16, dx: side*rnd(6,24), dy: -rnd(85,105),
+               amp: rnd(1.5,4), f: rnd(.8,1.5), ph: rnd(0,Math.PI*2), T: rnd(2.1,2.5), delay: t };
+    });
+    const end = Math.max(...plan.map(b => b.delay + b.T*1000));
+    let gap = 1e9;
+    for (let ms = 0; ms <= end && gap > bestGap; ms += 16) {
+      const live = [];
+      for (const b of plan) {
+        const u = (ms - b.delay) / (b.T*1000);
+        if (u < .02 || u > .98) continue;
+        const q = navBubblePos(b, u), rr = b.r * navBubbleScale(u);
+        live.push({ x: q.x, y: q.y - rr, r: rr });
+      }
+      for (let i = 0; i < live.length; i++) for (let j = i+1; j < live.length; j++) {
+        const d = Math.hypot(live[i].x-live[j].x, live[i].y-live[j].y) - live[i].r - live[j].r;
+        if (d < gap) gap = d;
+      }
+    }
+    if (gap > bestGap) { bestGap = gap; best = plan; }
+    if (gap >= 4) break;
+  }
+  return best;
+}
+
+// 탭 i 로 옮겨가는 움직임. instant 면 움직임 없이 바로 그 자리에.
+function navSelect(i, instant) {
+  const bar = $('navbar'); if (!bar || !nav.style) return;
+  const prev = nav.cur; if (prev === i && !instant) return;
+  nav.cur = i;
+  const c = navGeo(i), quiet = instant || prev < 0 || NAV_REDUCE;
+
+  if (nav.style === 'pill') {
+    const p = bar.querySelector('.nav-pill'), pad = 6;
+    const target = () => { p.style.left = (c.l + pad) + 'px'; p.style.width = (c.w - pad*2) + 'px'; };
+    if (nav.anim) nav.anim.cancel();
+    if (quiet) { target(); return; }
+    // 앞쪽 끝이 먼저 뻗고 뒤쪽이 따라와서 길어졌다가, 목표를 살짝 지나쳐 자리잡아요
+    const o = navGeo(prev), dir = c.l > o.l ? 1 : -1, W = c.w - pad*2, T = c.l + pad, O = o.l + pad;
+    const lead = (a, b, k) => a + (b - a) * k, box = (l, r) => ({ left: l + 'px', width: (r - l) + 'px' });
+    const oR = O + W, tR = T + W;
+    nav.anim = p.animate([
+      box(O, oR),
+      { ...(dir > 0 ? box(lead(O,T,.05), lead(oR,tR,.82)) : box(lead(O,T,.82), lead(oR,tR,.05))), offset: .38 },
+      { ...(dir > 0 ? box(lead(O,T,.52), tR + 11) : box(T - 11, lead(oR,tR,.52))), offset: .68 },
+      { ...box(T + dir*7, tR + dir*7), offset: .86 },
+      box(T, tR)
+    ], { duration: 460, easing: 'cubic-bezier(.4,0,.2,1)' });
+    target();
+  }
+
+  if (nav.style === 'bulge') {
+    if (quiet) { cancelAnimationFrame(nav.raf); nav.bumps = [{ c: c.x, h: 1, w: 27 }]; navDrawBulge(); }
+    else navMoveBulge(c.x);
+  }
+
+  if (nav.style === 'notch') {
+    const holder = $('nav-holder'), d = holder.querySelector('.nav-disc');
+    const icon = () => { const src = navBtns()[i].querySelector('svg, i'); d.innerHTML = src ? src.outerHTML : ''; drawIcons(); };
+    holder.style.setProperty('--nx', c.x + 'px');
+    if (nav.anim) nav.anim.cancel();
+    clearTimeout(nav.t);
+    if (quiet) { d.style.transform = `translate(${c.x}px,0)`; icon(); nav.x = c.x; return; }
+    const from = nav.x, to = c.x; nav.x = to;
+    // 날아가는 구간을 장면 여러 개로 쪼개요. 가로는 계속 흐르고 위아래만 포물선이라 꼭대기에서 멈칫하지 않아요
+    const frames = [{ transform: `translate(${from}px,0) scale(1,1)` },
+                    { transform: `translate(${from}px,4px) scale(1.12,.86)`, offset: .12 }];
+    for (let k = 1; k <= 14; k++) {
+      const q = k/14, e = q < .5 ? 2*q*q : 1 - Math.pow(-2*q + 2, 2) / 2, arc = Math.sin(Math.PI*q);
+      const x = from + (to - from)*e, y = 4 + q - 34*arc;
+      const sx = 1.12 + .04*q - .24*arc, sy = .86 - .06*q + .3*arc;
+      frames.push({ transform: `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${sx.toFixed(3)},${sy.toFixed(3)})`, offset: +(.12 + .66*q).toFixed(4) });
+    }
+    frames.push({ transform: `translate(${to}px,-3px) scale(.96,1.05)`, offset: .9 }, { transform: `translate(${to}px,0) scale(1,1)` });
+    nav.anim = d.animate(frames, { duration: 680, fill: 'forwards' });
+    nav.t = setTimeout(icon, 300);
+    nav.anim.onfinish = () => { d.style.transform = `translate(${to}px,0)`; nav.anim.cancel(); };
+  }
+
+  if (nav.style === 'fill' && !quiet) {
+    const ring = document.createElement('span'); ring.className = 'nav-ring';
+    ring.style.left = c.x + 'px';
+    bar.appendChild(ring); setTimeout(() => ring.remove(), 1300);
+  }
+
+  if (nav.style === 'bubble' && !quiet) {
+    navBubblePlan(c.x).forEach(b => {
+      const el = document.createElement('span'); el.className = 'nav-bub';
+      el.style.width = el.style.height = (b.r*2) + 'px';
+      bar.appendChild(el);
+      const frames = [];
+      for (let k = 0; k <= 20; k++) {
+        const u = k/20, q = navBubblePos(b, u), sc = navBubbleScale(u), cy = q.y - b.r*sc;
+        const op = u < .06 ? u/.06 : u < .75 ? 1 - .1*((u-.06)/.69) : .9*(1 - (u-.75)/.25);
+        frames.push({ transform: `translate(${(q.x-b.r).toFixed(1)}px,${(cy-b.r).toFixed(1)}px) scale(${sc.toFixed(3)})`, opacity: +op.toFixed(3), offset: u });
+      }
+      el.animate(frames, { duration: b.T*1000, delay: b.delay, easing: 'linear', fill: 'both' }).onfinish = () => el.remove();
+    });
+  }
+}
+
+// 성장 탭에서 고르기
+function setNavStyle(id) {
+  const s = NAV_STYLES.find(x => x.id === id), u = loadUser();
+  if (!s || lvInfo(u.xp || 0).lv < s.lv) return;
+  u.navStyle = id; saveUser(u);
+  navApply(id);
+  renderNavPicker();
+}
+function renderNavPicker() {
+  const el = $('ns-picker'); if (!el) return;
+  const lv = lvInfo(loadUser().xp || 0).lv, cur = navStyleNow();
+  el.innerHTML = NAV_STYLES.map(s => {
+    const open = s.lv <= lv;
+    return `<button type="button" class="ns-opt${s.id === cur ? ' on' : ''}" ${open ? `onclick="setNavStyle('${s.id}')"` : 'disabled'}>
+      <b>${s.name}</b><span>${open ? (s.id === cur ? '쓰는 중' : s.desc) : `Lv.${s.lv} ${LVS[s.lv-1].name}에서 열려요`}</span></button>`;
+  }).join('');
+}
+
+// 레벨이 올라 새 모양이 열리면 바로 바꿔 끼우고 알려줘요
+function navOnLevelUp(newLv) {
+  const s = NAV_STYLES.find(x => x.lv === newLv); if (!s) return null;
+  const u = loadUser(); u.navStyle = s.id; saveUser(u);
+  navApply(s.id);
+  return s;
+}
+
 // btn 을 안 넘기면 아래 탭 버튼 중에서 알아서 찾아요.
 function switchTab(name, btn) {
   if (!btn) btn = [...document.querySelectorAll('.nav-btn')]
@@ -2654,6 +2972,7 @@ function switchTab(name, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   $('tab-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
+  if (btn) navSelect(navBtns().indexOf(btn));   // 탭바 움직임
   saveLastTab(name);
   if (name === 'today')    render();        // render() 안에 renderMemos() 가 들어있어요
   if (name === 'day')      renderDay();
@@ -3662,6 +3981,7 @@ function renderHeatmap(habits) {
 
 // ── GROWTH ────────────────────────────────────────────────
 function renderGrowth() {
+  renderNavPicker();
   const u=loadUser(), info=lvInfo(u.xp);
   $('g-level').textContent   = `Lv. ${info.lv}`;
   $('g-lname').textContent   = `${info.name} ${info.e}`;
@@ -4536,11 +4856,7 @@ function addRoutine(ri) {
   saveHabits(habits);
   render();
   showToast(`${toAdd.length}개 습관이 추가되었어요.`);
-  // Switch to today tab
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  $('tab-today').classList.add('active');
-  document.querySelector('.nav-btn').classList.add('active');
+  gotoTab('today');      // 탭바 움직임도 같이 따라오게 버튼을 눌러준 것처럼
 }
 
 // ── ANALYSIS ─────────────────────────────────────────────
@@ -6686,6 +7002,7 @@ function initPWA() {
   const d=new Date(), days=['일','월','화','수','목','금','토'];
   $('hdr-date').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
   updateHdrXP();
+  navApply(navStyleNow(), true);   // 탭바 모양 (레벨에 따라 열린 것)
   render();
   restoreLastTab();      // 잠깐 나갔다 온 거면 보던 탭으로 되돌려놔요
   scheduleNotifs();
@@ -6699,6 +7016,8 @@ function initPWA() {
 
 // lucide 는 defer 로 부르고 있어서 이 코드보다 늦게 도착할 수 있어요.
 // 도착했으면 바로 그리고, 아직이면 도착했을 때 그립니다.
+addEventListener('resize', () => { if (nav.cur >= 0) navSelect(nav.cur, true); });
+
 function drawIcons() {
   if (typeof lucide !== 'undefined') { lucide.createIcons(); return; }
   const tag = document.querySelector('script[src*="lucide"]');
