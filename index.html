@@ -257,10 +257,17 @@
     .wr-pick.on { border-color: var(--primary); color: var(--primary); background: rgba(179,240,0,.08); font-weight: 700; }
 
     /* 회복 카드 — 한 번 놓친 습관을 오늘 탭 위로 끌어올리는 자리 */
-    /* 한 번 놓친 습관 — 따로 카드 대신 그 습관 줄 안에서 알려줘요 */
-    .rec-line { font-size: .74rem; line-height: 1.5; color: #fb923c; margin-top: 3px; }
-    .rec-line b { font-weight: 700; }
-    .rec-fix { background: none; border: none; padding: 0; margin-left: 4px; color: var(--muted); font-size: .72rem; text-decoration: underline; cursor: pointer; }
+    .rec-card { background: var(--card); border: 1px solid rgba(251,146,60,.35); border-radius: var(--r); padding: 13px 15px; margin-bottom: 13px; }
+    .rec-head { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; color: #fb923c; margin-bottom: 10px; }
+    .rec-head svg { width: 15px; height: 15px; }
+    .rec-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .rec-row:first-of-type { border-top: none; padding-top: 0; }
+    .rec-body { flex: 1; min-width: 150px; }
+    .rec-name { font-size: .86rem; font-weight: 700; color: var(--text); }
+    .rec-line { font-size: .74rem; line-height: 1.55; color: var(--muted); margin-top: 2px; }
+    .rec-line b { color: var(--text); font-weight: 700; }
+    .rec-min { font-size: .71rem; color: var(--primary); margin-top: 3px; }
+    .rec-acts { display: flex; gap: 5px; flex-shrink: 0; }
     .habit-sep { font-size: .72rem; font-weight: 700; color: var(--muted); margin: 14px 4px 7px; }
     @keyframes checkPop { 0%{transform:scale(0.7)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
     .habit-info { flex: 1; min-width: 0; }
@@ -826,6 +833,7 @@
       <p id="motiv-msg"></p>
     </div>
   </div>
+  <div id="recovery-box"></div>
   <div id="habit-list"></div>
   <div class="add-bar">
     <input id="new-habit" type="text" placeholder="새 습관 이름..." maxlength="30"/>
@@ -3039,6 +3047,7 @@ function render() {
   const habits = loadHabits(), today = todayStr();
   $('motiv-msg').textContent = motivMsg(habits);
   renderWeekReviewCard();
+  renderRecovery();
   renderMoodPicker();
 
   const done = habits.filter(h => h.checked[today]).length, tot = habits.length;
@@ -3082,7 +3091,6 @@ function render() {
             <span class="badge bf">${esc(freqLabel(h))}</span>
             <span class="badge bt">${esc(h.timeSlot||'자유')}</span>
           </div>
-          ${warn ? recLine(h, rec, i) : ''}
         </div>
         ${(!isDone && h.min) ? `<button class="min-btn" onclick="toggleMin(${i})" title="${esc(h.min)}">최소</button>` : ''}
         <button class="icon-btn" onclick="editHabit(${i})"><i data-lucide="pencil"></i></button>
@@ -3093,22 +3101,47 @@ function render() {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-// ── 한 번 놓친 습관 ───────────────────────────────────────
-// 예전엔 오늘 탭 맨 위에 '회복 카드'를 따로 띄웠어요. 지금은 그 습관 줄을 목록 맨 위로
-// 올리고, 줄 안에 한 줄로 알려줘요. 혼내려는 게 아니라 "아직 안 늦었다"를 보여주는 자리.
-function recLine(h, rec, i) {
-  // 주 N회 습관은 '며칠'이 아니라 '몇 주'로 말해야 뜻이 맞아요.
-  const weekly = streakUnit(h) === '주', n = rec.missed;
-  const line = n === 1
-    ? (weekly ? `지난주를 놓쳤어요. <b>이번 주에 채우면 안 끊겨요.</b>`
-              : `어제 놓쳤어요. <b>오늘 하면 안 끊겨요.</b>`)
-    : n <= 3
-      ? (weekly ? `${n}주째 비었어요. 이번 주에 채우면 다시 이어져요.`
-                : `${n}일째 쉬는 중이에요. 오늘부터 다시 세면 돼요.`)
-      : `${n}${weekly ? '주' : '일'}째 비어 있어요. 지금 목표가 버거운 걸지도 몰라요.`
-        + `<button class="rec-fix" onclick="editHabit(${i})">빈도 낮추기</button>`;
-  const min = h.min ? ` 바쁘면 — ${esc(h.min)}` : '';
-  return `<div class="rec-line">${line}${min}</div>`;
+// ── 회복 카드 ─────────────────────────────────────────────
+// 오늘 탭 맨 위. 한 번 놓친 습관을 여기로 끌어올려요.
+// 혼내려는 게 아니라 "아직 안 늦었다"를 보여주는 자리입니다.
+function renderRecovery() {
+  const box = $('recovery-box');
+  if (!box) return;
+  const habits = loadHabits(), today = todayStr();
+  const rows = habits
+    .map((h, i) => ({ h, i, rec: habitRecovery(h) }))
+    .filter(x => !x.h.checked[today] && dueToday(x.h) && x.rec.state !== 'ok')
+    .sort((a, b) => a.rec.missed - b.rec.missed)     // 되살릴 수 있는 것부터
+    .slice(0, 3);
+  if (!rows.length) { box.innerHTML = ''; return; }
+
+  box.innerHTML = `<div class="rec-card">
+    <div class="rec-head"><i data-lucide="life-buoy"></i><span>다시 붙잡을 수 있어요</span></div>
+    ${rows.map(({ h, i, rec }) => {
+      // 주 N회 습관은 '며칠'이 아니라 '몇 주'로 말해야 뜻이 맞아요.
+      const weekly = streakUnit(h) === '주', n = rec.missed;
+      const line = n === 1
+        ? (weekly ? `지난주를 놓쳤어요. <b>이번 주에 채우면 안 끊겨요.</b>`
+                  : `어제 놓쳤어요. <b>오늘 하면 안 끊겨요.</b>`)
+        : n <= 3
+          ? (weekly ? `${n}주째 비었어요. 이번 주에 채우면 다시 이어져요.`
+                    : `${n}일째 쉬는 중이에요. 오늘부터 다시 세면 돼요.`)
+          : `${n}${weekly ? '주' : '일'}째 비어 있어요. 지금 목표가 버거운 걸지도 몰라요.`;
+      return `<div class="rec-row">
+        <div class="rec-body">
+          <div class="rec-name">${esc(h.name)}</div>
+          <div class="rec-line">${line}</div>
+          ${h.min ? `<div class="rec-min">바쁜 날엔 — ${esc(h.min)}</div>` : ''}
+        </div>
+        <div class="rec-acts">
+          <button class="btn btn-sm" onclick="toggle(${i})">했어요</button>
+          ${h.min ? `<button class="btn btn-sm btn-outline" onclick="toggleMin(${i})">최소만</button>` : ''}
+          ${rec.missed > 3 ? `<button class="btn btn-sm btn-outline" onclick="editHabit(${i})">빈도 낮추기</button>` : ''}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // 지금 시각이 습관 시간대 중 어디인지 (습관 추가 창의 시간대 구간과 같아요)
@@ -3151,7 +3184,7 @@ const FEATURES = [
   { n:'습관 추가', w:'오늘', d:'이름·카테고리·빈도·시간대를 정해서 새 습관을 만들어요', k:'새습관 만들기 등록', go:tabOpen('today', openAddModal) },
   { n:'빈도 (매일 / 주 N회 / 특정 요일)', w:'오늘 › 습관 추가·수정', d:'주 3회처럼 정하면 성공률도 그 기준으로 계산돼요', k:'주3회 요일 반복 얼마나자주', go:tabOpen('today', openAddModal) },
   { n:'최소 버전 (바쁜 날엔 이거라도)', w:'오늘 › 습관 추가·수정', d:'도저히 못 할 날 이것만 해도 연속 기록이 안 끊겨요', k:'이거라도 최소 스쿼트 문턱 낮추기 min', go:tabOpen('today', openAddModal) },
-  { n:'회복 알림 (두 번은 안 빠진다)', w:'오늘 습관 목록 맨 위', d:'한 번 놓친 습관을 목록 맨 위로 끌어올려서 오늘 되살릴 수 있게 해줘요', k:'놓침 빠짐 복구 다시 스트릭', go:tabThen('today', '#habit-list') },
+  { n:'회복 카드 (두 번은 안 빠진다)', w:'오늘 습관 목록 위', d:'한 번 놓친 습관을 끌어올려서 오늘 되살릴 수 있게 해줘요', k:'놓침 빠짐 복구 다시 스트릭', go:tabThen('today', '#recovery-box') },
   { n:'주간 회고', w:'오늘 맨 위 (금·토에만)', d:'이번 주 성적을 보고 다음 주에 붙잡을 습관 하나를 정해요', k:'돌아보기 회고 리뷰 주간 금요일', go:tabOpen('today', openWeekReview) },
   { n:'오늘의 기분', w:'오늘', d:'최악~최고 다섯 단계. 통계에서 성공률과 겹쳐 볼 수 있어요', k:'무드 기분 감정 mood', go:tabThen('today', '#mood-seg') },
   { n:'아이디어 메모', w:'오늘 아래쪽', d:'떠오른 걸 적어두는 곳', k:'메모 아이디어 노트', go:tabOpen('today', openMemoModal) },
