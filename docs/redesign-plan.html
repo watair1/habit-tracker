@@ -1,0 +1,595 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>해빗 트래커 개편안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<style>
+/* 레이아웃: 앱과 같은 검정+라임 한 가지 테마. 위에 직접 눌러보는 탭바 6종(앱 색/영상 색 전환), 아래로 진단 → 원칙 → 화면별 계획 → 순서. */
+:root{
+  --bg:#000; --surface:#0e0e0e; --surface2:#161616; --line:#222;
+  --fg:#f0f0f0; --muted:#7a7a72; --dim:#4a4a44;
+  --accent:#b3f000; --accent-dim:rgba(179,240,0,.14); --accent-ink:#0b1000;
+  --warn:#fb923c;
+  --font:'Pretendard',-apple-system,'Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif;
+  --r:16px;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;}
+.wrap{max-width:880px;margin:0 auto;padding-block:28px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:56px;}
+h1{font-size:clamp(1.6rem,4vw,2.1rem);font-weight:800;letter-spacing:-.5px;line-height:1.25;text-wrap:balance;margin:0}
+h2{font-size:1.25rem;font-weight:800;letter-spacing:-.3px;margin:0 0 6px;text-wrap:balance}
+h3{font-size:1rem;font-weight:700;margin:0}
+p{margin:0}
+.lede{color:var(--muted);max-width:62ch;margin-top:10px}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:8px}
+.sub{color:var(--muted);font-size:.9rem;max-width:64ch}
+section{display:flex;flex-direction:column;gap:18px}
+
+/* ── 탭바 데모 ── */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.82rem;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn{border:1px solid var(--accent);background:transparent;color:var(--accent);font:inherit;font-size:.82rem;font-weight:700;padding:7px 14px;border-radius:10px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* 데모 무대. 스킨마다 색 토큰만 바꿔요 */
+.stage{
+  --s-bg:#0e0e0e; --s-bar:#181818; --s-edge:#262626; --s-ink:#64645e; --s-text:#f0f0f0; --s-sub:#7a7a72;
+  --s-act:#b3f000; --s-act-ink:#0b1000; --s-act-soft:rgba(179,240,0,.85);
+  --s-shadow:rgba(0,0,0,.55); --s-glow:rgba(179,240,0,.22); --s-ring:rgba(255,255,255,.26);
+  /* 어두운 화면에선 그림자가 안 보여요. 홈 가장자리에 빛 테두리를 둬서 파인 걸 보이게 해요 */
+  --s-rim:rgba(179,240,0,.45); --s-disc-shadow:none;
+  border-radius:20px; padding:18px; background:var(--s-bg); border:1px solid var(--line);
+  transition:background .3s;
+}
+.stage[data-skin="paper"]{
+  --s-bg:#e7e2d9; --s-bar:#fbf9f4; --s-edge:#efebe3; --s-ink:#77756c; --s-text:#3d3c36; --s-sub:#8d8a80;
+  --s-act:#d3e3c9; --s-act-ink:#4c6542; --s-act-soft:rgba(211,227,201,.95);
+  --s-shadow:rgba(90,78,55,.22); --s-glow:rgba(90,78,55,.12); --s-ring:rgba(110,105,90,.4);
+  --s-rim:rgba(90,78,55,.10); --s-disc-shadow:0 8px 14px rgba(90,78,55,.24);
+  border-color:#d6d0c4;
+}
+.demos{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:34px 22px}
+.demo{display:flex;flex-direction:column;gap:46px;min-width:0;padding-top:4px}
+.demo-name{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;color:var(--s-text)}
+.demo-name b{font-size:.95rem}
+.demo-name .lv{font-size:.68rem;font-weight:800;color:var(--s-act-ink);background:var(--s-act);border-radius:6px;padding:1px 7px}
+.demo-name span{color:var(--s-sub);font-size:.8rem}
+
+.bar{position:relative;display:flex;background:var(--s-bar);border-radius:20px;height:62px;padding:0 6px;align-items:center;user-select:none;-webkit-user-select:none;box-shadow:0 6px 14px var(--s-shadow),0 1px 0 var(--s-edge) inset}
+.tab{position:relative;z-index:2;flex:1;min-width:0;height:100%;border:0;background:transparent;color:var(--s-ink);font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0;-webkit-tap-highlight-color:transparent;transition:color .3s}
+.tab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;overflow:visible;transition:transform .45s cubic-bezier(.34,1.56,.64,1),fill .3s,stroke-width .3s,filter .3s}
+.tab .lbl{font-size:.66rem;font-weight:700;white-space:nowrap}
+
+/* 1 Sliding Pill — 꽉 찬 알약이 그림자를 달고 떠 있어요. 옮길 땐 늘어났다 지나쳐서 돌아와요 */
+.v-pill .tab .lbl{display:none}
+.v-pill .pill{position:absolute;z-index:1;top:11px;bottom:11px;border-radius:14px;background:var(--s-act);box-shadow:0 5px 10px var(--s-shadow),0 0 14px var(--s-glow);transform-origin:center}
+.v-pill .tab.on{color:var(--s-act-ink)}
+@keyframes pop{0%{transform:scale(1)}30%{transform:scale(.8)}65%{transform:scale(1.14)}100%{transform:scale(1)}}
+
+/* 2 Liquid Bulge — 바 자체가 언덕처럼 솟아요(그림은 SVG 로 그려요) */
+.v-bulge{background:transparent;box-shadow:none;overflow:visible}
+.v-bulge .shape{position:absolute;left:0;top:-30px;width:100%;height:92px;z-index:0;overflow:visible;filter:drop-shadow(0 6px 7px var(--s-shadow))}
+.v-bulge .shape path{fill:var(--s-bar)}
+.v-bulge .tab .lbl{display:none}
+.v-bulge .tab svg{transition:transform .3s cubic-bezier(.5,0,.6,1),fill .25s}
+.v-bulge .tab.on{color:var(--s-act-ink)}
+/* 언덕이 도착한 뒤에 아이콘이 올라타요 */
+.v-bulge .tab.on svg{transform:translateY(-15px) scale(1.12);fill:var(--s-act);stroke-width:2.1;filter:drop-shadow(0 3px 2px var(--s-shadow));transition:transform .5s cubic-bezier(.3,1.7,.5,1) .38s,fill .3s .38s}
+
+/* 3 Floating Notch — 바에 홈이 파이고, 동그라미가 높이 떠서 옮겨간 뒤 내려앉아요 */
+@property --nx{syntax:'<length>';inherits:true;initial-value:0px}
+.notch-wrap{position:relative;--nx:0px;transition:--nx .46s cubic-bezier(.55,0,.25,1.2) .1s}
+.v-notch{-webkit-mask:radial-gradient(circle 32px at var(--nx) -4px,transparent 96%,#000 100%);mask:radial-gradient(circle 32px at var(--nx) -4px,transparent 96%,#000 100%)}
+/* 홈 가장자리 빛 테두리. 바 안쪽(아래 반쪽)만 보이게 잘라요 */
+.rim{position:absolute;z-index:2;left:var(--nx);top:-36px;width:64px;height:64px;margin-left:-32px;border-radius:50%;border:1.5px solid var(--s-rim);clip-path:inset(36px 0 0 0);pointer-events:none}
+.disc{position:absolute;z-index:3;top:-23px;left:0;width:48px;height:48px;margin-left:-24px;border-radius:50%;background:var(--s-act);color:var(--s-act-ink);display:flex;align-items:center;justify-content:center;box-shadow:var(--s-disc-shadow)}
+.disc svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.v-notch .tab svg{transition:opacity .25s,transform .4s}
+.v-notch .tab.on svg{opacity:0;transform:translateY(-6px)}
+.v-notch .tab .lbl{transform:translateY(13px);opacity:0;letter-spacing:.08em;transition:opacity .3s .35s}
+.v-notch .tab.on .lbl{opacity:1;color:var(--s-sub)}
+
+/* 4 Icon Fill — 큰 테가 천천히 퍼지고, 아이콘이 꽉 차서 살짝 떠올라요 */
+.v-fill{overflow:visible}
+/* 원본처럼 얇고 중립적인 색의 원이, 바보다 훨씬 크게 천천히 퍼져요 */
+.v-fill .ring{position:absolute;z-index:1;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;border:1px solid var(--s-ring);pointer-events:none;animation:ring 1.25s cubic-bezier(.15,.75,.3,1) forwards}
+@keyframes ring{0%{opacity:0;transform:scale(.5)}12%{opacity:1}100%{opacity:0;transform:scale(3.9)}}
+.v-fill .tab .lbl{position:absolute;bottom:6px;opacity:0;transform:translateY(5px);transition:opacity .25s,transform .35s cubic-bezier(.3,1.5,.5,1)}
+.v-fill .tab.on .lbl{opacity:1;transform:none;color:var(--s-text);transition-delay:.15s}
+.v-fill .tab.on{color:var(--s-act-ink)}
+.v-fill .tab.on svg{fill:var(--s-act);stroke-width:1.6;transform:translateY(-7px);filter:drop-shadow(0 5px 2px var(--s-shadow));animation:fillpop .55s cubic-bezier(.3,1.5,.5,1)}
+@keyframes fillpop{0%{transform:translateY(0) scale(1)}25%{transform:translateY(1px) scale(.78)}60%{transform:translateY(-9px) scale(1.16)}100%{transform:translateY(-7px) scale(1)}}
+
+/* 5 Expanding Label — 도톰한 알약이 늘어나며 글자가 펼쳐지고, 옛 알약은 동시에 접혀요 */
+.v-expand{justify-content:space-around;padding:0 6px}
+.v-expand .tab{flex:0 0 auto;flex-direction:row;height:42px;padding:0 11px;border-radius:15px;gap:0;isolation:isolate;transition:color .3s,padding .45s cubic-bezier(.3,1.25,.5,1)}
+/* 알약 배경은 가운데에서 양쪽으로 펼쳐져요 */
+.v-expand .tab::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:15px;background:var(--s-act);box-shadow:0 5px 10px var(--s-shadow),0 0 14px var(--s-glow);transform:scaleX(0);opacity:0;transform-origin:center;transition:transform .45s cubic-bezier(.3,1.3,.5,1),opacity .2s}
+.v-expand .tab.on::before{transform:scaleX(1);opacity:1}
+.v-expand .tab .lbl{font-size:.8rem;max-width:0;opacity:0;overflow:hidden;transition:max-width .45s cubic-bezier(.3,1.25,.5,1),opacity .3s,margin .45s}
+.v-expand .tab.on{color:var(--s-act-ink);padding:0 15px}
+.v-expand .tab.on .lbl{max-width:64px;opacity:1;margin-left:7px;transition-delay:0s,.12s,0s}
+
+/* 6 Bubble Float — 크기가 다른 연한 거품들이 뭉쳐서 천천히 떠올라요. 아이콘은 도톰하게 부풀어요 */
+.v-bubble{overflow:visible}
+.v-bubble .tab .lbl{display:none}
+/* 장식 없는 단색 거품. 처음엔 톡 튀어나오고, 그다음 자기 자리(좌/우)로 살짝 벌어지며 천천히 떠올라요 */
+/* 움직임은 스크립트가 거품마다 따로 계산해요(아래 bubblePlan) */
+.bub{position:absolute;left:0;top:0;z-index:3;border-radius:50%;pointer-events:none;background:var(--s-act);opacity:0}
+.v-bubble .tab.on{color:var(--s-act-ink)}
+.v-bubble .tab.on svg{fill:var(--s-act);stroke-width:2.4;filter:drop-shadow(0 3px 2px var(--s-shadow));animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+.v-bubble .tab::before{content:"";position:absolute;bottom:9px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--s-ink);opacity:0;transform:scale(0);transition:.3s}
+.v-bubble .tab.on::before{opacity:.7;transform:scale(1)}
+
+/* ── 진단 ── */
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.fact b{font-size:1.6rem;font-weight:800;color:var(--accent);line-height:1.1;font-variant-numeric:tabular-nums}
+.fact b small{font-size:.85rem;font-weight:700;margin-left:2px}
+.fact span{font-size:.82rem;color:var(--muted);line-height:1.45}
+
+/* ── 원칙 ── */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}
+.rule{border-top:2px solid var(--accent);padding-top:12px;display:flex;flex-direction:column;gap:5px}
+.rule p{color:var(--muted);font-size:.88rem}
+
+/* ── 비교 목업 ── */
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.phone{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.phone-head{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:4px}
+.phone-head .state{font-size:.7rem;padding:2px 8px;border-radius:6px;background:var(--surface2)}
+.phone-head .state.new{background:var(--accent);color:var(--accent-ink)}
+.blk{display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:9px 11px;font-size:.82rem;min-width:0}
+.blk .n{font-size:.7rem;font-weight:800;color:var(--dim);width:16px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.blk.main{background:var(--accent-dim);outline:1px solid rgba(179,240,0,.4)}
+.blk.main .n{color:var(--accent)}
+.blk.fold{background:transparent;border:1px dashed #333;color:var(--muted)}
+.blk em{font-style:normal;color:var(--muted);font-size:.75rem;margin-left:auto;white-space:nowrap}
+.habit-row{display:flex;align-items:center;gap:9px;padding:7px 4px}
+.chk{width:22px;height:22px;border-radius:50%;border:1.5px solid #3a3a3a;flex-shrink:0}
+.chk.done{background:var(--accent);border-color:var(--accent)}
+.note{font-size:.82rem;color:var(--muted);border-left:2px solid var(--accent);padding-left:10px;max-width:64ch}
+
+/* 탭 구조 표 */
+.map{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.86rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;letter-spacing:.06em;color:var(--muted);font-weight:700}
+td:first-child{font-weight:700;white-space:nowrap}
+.chip{display:inline-block;font-size:.72rem;font-weight:700;border-radius:6px;padding:1px 7px;margin:0 4px 4px 0;background:var(--surface2);color:var(--fg)}
+.chip.move{background:rgba(251,146,60,.14);color:var(--warn)}
+.chip.gear{background:#1d1d1d;color:var(--muted);border:1px dashed #3a3a3a}
+
+/* 패드 목업 */
+.pad{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px;display:grid;grid-template-columns:1.2fr 1fr;gap:10px;max-width:640px}
+.pad .col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pad-cap{grid-column:1/-1;font-size:.78rem;color:var(--muted);font-weight:700}
+
+/* 순서 */
+.steps{display:flex;flex-direction:column;gap:2px;counter-reset:s}
+.step{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:start;padding:14px 0;border-bottom:1px solid var(--line)}
+.step::before{counter-increment:s;content:counter(s);font-weight:800;color:var(--accent);font-size:1.1rem;font-variant-numeric:tabular-nums}
+.step p{color:var(--muted);font-size:.86rem;margin-top:2px}
+.step .who{font-size:.7rem;font-weight:700;color:var(--muted);white-space:nowrap;padding-top:3px}
+.step .who.you{color:var(--accent)}
+.ask{background:var(--accent-dim);border:1px solid rgba(179,240,0,.35);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.ask ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">개편 계획 · 초안</div>
+  <h1>해빗 트래커 개편안</h1>
+  <p class="lede">앱이 복잡하다는 문제를 UI/UX 쪽에서 푸는 계획이에요. 맨 위 탭바 6종은 직접 눌러보면서 보시면 되고, 아래 계획은 아직 앱에 반영하지 않았어요. 확인받은 단계만 하나씩 바꿀게요.</p>
+</header>
+
+<!-- ── 탭바 ── -->
+<section aria-labelledby="h-tab">
+  <div>
+    <h2 id="h-tab">하단 탭바 6종</h2>
+    <p class="sub">보내주신 영상을 1초에 20장씩 잘라 보고 움직임을 맞췄어요. 탭을 눌러보세요. '영상 색'은 영상의 종이 질감, '앱 색'은 지금 앱의 검정+라임이에요.</p>
+  </div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="색">
+      <button type="button" id="skDark" aria-pressed="true">앱 색</button>
+      <button type="button" id="skPaper" aria-pressed="false">영상 색</button>
+    </div>
+    <div class="seg" role="group" aria-label="탭 개수">
+      <button type="button" id="n6" aria-pressed="true">탭 6개</button>
+      <button type="button" id="n4" aria-pressed="false">탭 4개</button>
+    </div>
+    <button type="button" class="btn" id="auto" aria-pressed="false">자동으로 돌려보기</button>
+  </div>
+  <div class="stage" id="stage" data-skin="dark">
+    <div class="demos" id="demos"></div>
+  </div>
+</section>
+
+<!-- ── 진단 ── -->
+<section aria-labelledby="h-diag">
+  <div>
+    <h2 id="h-diag">왜 복잡하게 느껴지나</h2>
+    <p class="sub">실제 습관 5개를 넣고 폰(412px)과 패드(1280px)로 탭마다 화면을 찍어서 센 숫자예요.</p>
+  </div>
+  <div class="facts">
+    <div class="fact"><b>42<small>개</small></b><span>기능 수. 기능 찾기 목록 기준</span></div>
+    <div class="fact"><b>6<small>개</small></b><span>하단 탭. 그중 '분석'은 설정과 분석이 섞여 있음</span></div>
+    <div class="fact"><b>18<small>개</small></b><span>팝업창 수</span></div>
+    <div class="fact"><b>5<small>번째</small></b><span>오늘 탭에서 습관 체크가 나오는 순서</span></div>
+    <div class="fact"><b>3.3<small>장</small></b><span>폰에서 통계 탭 길이 (화면 높이 기준)</span></div>
+    <div class="fact"><b>500<small>px</small></b><span>패드에서 쓰는 폭. 1280px 화면의 40%</span></div>
+  </div>
+  <p class="note">AI도 두 갈래예요. 비서·일정·총평은 서버 AI를 쓰고, 분석 탭 피드백만 따로 Claude 키를 넣어야 해요. 같은 일을 두 가지 방식으로 하고 있어서 헷갈려요.</p>
+</section>
+
+<!-- ── 원칙 ── -->
+<section aria-labelledby="h-rule">
+  <h2 id="h-rule">디자인 원칙 네 가지</h2>
+  <div class="rules">
+    <div class="rule"><h3>매일 하는 일은 맨 위에</h3><p>앱을 여는 이유의 대부분은 습관 체크예요. 열자마자 체크할 수 있어야 해요.</p></div>
+    <div class="rule"><h3>가끔 하는 일은 한 겹 안으로</h3><p>백업, 초기화, 알림, API 키는 한 달에 한 번 볼까 말까예요. 설정 한 곳으로 모아요.</p></div>
+    <div class="rule"><h3>한 화면에 한 가지 질문</h3><p>탭마다 "지금 뭐 하지?", "잘하고 있나?"처럼 답할 질문 하나만 둬요.</p></div>
+    <div class="rule"><h3>넓은 화면은 넓게</h3><p>패드에선 두 단으로 펼쳐서, 스크롤 대신 한눈에 보이게 해요.</p></div>
+  </div>
+</section>
+
+<!-- ── 오늘 탭 ── -->
+<section aria-labelledby="h-today">
+  <div>
+    <h2 id="h-today">오늘 탭: 체크가 먼저</h2>
+    <p class="sub">위에서부터 나오는 순서예요. 라임색이 앱을 여는 목적(습관 체크)이에요.</p>
+  </div>
+  <div class="compare">
+    <div class="phone">
+      <div class="phone-head">오늘 탭 <span class="state">지금</span></div>
+      <div class="blk"><span class="n">1</span>명언 한 줄</div>
+      <div class="blk"><span class="n">2</span>회복 카드 (어제 놓친 습관)</div>
+      <div class="blk"><span class="n">3</span>진행률 링 0/5</div>
+      <div class="blk"><span class="n">4</span>오늘의 기분 + 7일 기분</div>
+      <div class="blk"><span class="n">5</span>새 습관 이름 입력칸</div>
+      <div class="blk main"><span class="n">6</span>습관 목록 (여기서 체크)</div>
+      <div class="blk"><span class="n">7</span>아이디어 메모 + 필터 + 검색</div>
+    </div>
+    <div class="phone">
+      <div class="phone-head">오늘 탭 <span class="state new">개편 후</span></div>
+      <div class="blk"><span class="n">1</span>진행률 한 줄 (3/5 · 60%)<em>헤더에 붙임</em></div>
+      <div class="blk main" style="flex-direction:column;align-items:stretch;gap:0">
+        <div style="display:flex;gap:10px;align-items:center"><span class="n">2</span>습관 목록</div>
+        <div class="habit-row"><span class="chk done"></span>물 2L 마시기</div>
+        <div class="habit-row"><span class="chk"></span>영어 단어 30개 <em style="font-style:normal;color:var(--warn);font-size:.72rem;margin-left:auto">어제 놓침</em></div>
+        <div class="habit-row"><span class="chk"></span>스쿼트 50개</div>
+      </div>
+      <div class="blk"><span class="n">3</span>오늘 기분 (한 줄 버튼)</div>
+      <div class="blk fold"><span class="n">4</span>아이디어 메모<em>접어두기</em></div>
+      <div class="blk fold"><span class="n">+</span>습관 추가는 목록 끝 '+' 버튼</div>
+    </div>
+  </div>
+  <p class="note">회복 카드는 따로 두지 않고, 놓친 습관 줄에 주황 표시로 붙여요. 명언은 하루 한 번 처음 열 때만 잠깐 보여줘요.</p>
+</section>
+
+<!-- ── 탭 구조 ── -->
+<section aria-labelledby="h-map">
+  <div>
+    <h2 id="h-map">탭 6개를 4개로</h2>
+    <p class="sub">기능을 빼는 게 아니라 자리를 옮기는 거예요. 주황은 옮겨오는 것, 점선은 설정(⚙)으로 가는 것이에요.</p>
+  </div>
+  <div class="map">
+    <table>
+      <thead><tr><th>새 탭</th><th>답하는 질문</th><th>들어가는 것</th></tr></thead>
+      <tbody>
+        <tr><td>오늘</td><td>지금 뭘 체크하지?</td><td><span class="chip">습관 체크</span><span class="chip">기분</span><span class="chip">아이디어 메모</span><span class="chip">주간 회고 (금·토)</span></td></tr>
+        <tr><td>하루</td><td>오늘 일정은?</td><td><span class="chip">할 일</span><span class="chip">타임라인</span><span class="chip">집중 모드</span><span class="chip">하루 마무리·사진</span></td></tr>
+        <tr><td>기록</td><td>잘하고 있나?</td><td><span class="chip move">통계</span><span class="chip move">성장 (레벨·업적)</span><span class="chip move">시간대·실패 분석</span><span class="chip move">AI 피드백</span></td></tr>
+        <tr><td>목표</td><td>어디로 가고 있지?</td><td><span class="chip">최종 목표</span><span class="chip">목표·실천 항목</span><span class="chip">성장 예측</span></td></tr>
+        <tr><td>설정 ⚙</td><td>(헤더 오른쪽 위)</td><td><span class="chip gear">알림</span><span class="chip gear">백업·복원</span><span class="chip gear">초기화</span><span class="chip gear">로그인</span><span class="chip gear">AI 모드</span><span class="chip gear">탭바 모양</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">'기록' 탭 안에서는 맨 위에 요약 숫자 4개만 두고, 그래프는 '이번 주 / 이번 달 / 습관별' 세 갈래로 나눠서 한 번에 하나만 보여줘요. 지금처럼 3장 넘게 스크롤하지 않게요.</p>
+</section>
+
+<!-- ── 패드 ── -->
+<section aria-labelledby="h-pad">
+  <div>
+    <h2 id="h-pad">패드 화면: 두 단으로</h2>
+    <p class="sub">화면 폭이 900px을 넘으면 오늘 탭을 두 단으로 펼쳐요. 폰에서는 지금처럼 한 줄이에요.</p>
+  </div>
+  <div class="pad">
+    <div class="pad-cap">오늘 탭 · 패드 가로</div>
+    <div class="col">
+      <div class="blk main" style="flex-direction:column;align-items:stretch;gap:0;min-height:150px">
+        <div style="display:flex;gap:10px;align-items:center"><span class="n">←</span>습관 목록 (왼쪽 넓게)</div>
+        <div class="habit-row"><span class="chk done"></span>물 2L 마시기</div>
+        <div class="habit-row"><span class="chk"></span>영어 단어 30개</div>
+        <div class="habit-row"><span class="chk"></span>스쿼트 50개</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="blk"><span class="n">→</span>오늘 기분</div>
+      <div class="blk"><span class="n">→</span>오늘 할 일 3개 미리보기</div>
+      <div class="blk"><span class="n">→</span>아이디어 메모</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 순서 ── -->
+<section aria-labelledby="h-steps">
+  <h2 id="h-steps">진행 순서</h2>
+  <div class="steps">
+    <div class="step"><div><h3>탭바 애니메이션 6종 · 레벨 해금</h3><p>레벨이 오를 때마다 하나씩 열리고, 열린 것 중에서 설정에서 골라요. 레벨업 때 "새 탭바가 열렸어요"라고 알려줘요.</p></div><span class="who you">모양 확정 후 진행</span></div>
+    <div class="step"><div><h3>오늘 탭 정리</h3><p>습관 체크를 맨 위로, 회복 카드는 습관 줄에 합치기, 메모 접기.</p></div><span class="who">확인 후 진행</span></div>
+    <div class="step"><div><h3>탭 4개 + 설정(⚙)</h3><p>통계·성장·분석을 '기록'으로 합치고, 설정을 헤더로.</p></div><span class="who">확인 후 진행</span></div>
+    <div class="step"><div><h3>AI 하나로</h3><p>서버를 Claude로 바꾸는 작업(Render) 뒤에, 분석 탭의 별도 키 입력을 없애요.</p></div><span class="who">Render 작업 뒤</span></div>
+    <div class="step"><div><h3>패드 두 단</h3><p>넓은 화면에서 오늘·하루 탭을 두 단으로.</p></div><span class="who">확인 후 진행</span></div>
+    <div class="step"><div><h3>색·간격 다듬기</h3><p>카드 테두리·글자 크기·여백을 통일해서 덜 빽빽하게.</p></div><span class="who">확인 후 진행</span></div>
+  </div>
+  <p class="note">단계마다 기능 브랜치에만 올리고, 보여드린 뒤 괜찮다고 하시면 실제 사이트(main)에 반영해요.</p>
+</section>
+
+<section class="ask" aria-labelledby="h-ask">
+  <h2 id="h-ask" style="font-size:1.05rem">정해주실 것</h2>
+  <ol>
+    <li>탭바 6종 모양과 레벨 순서, 이대로 괜찮은지 (바뀌는 방식은 레벨 해금으로 정함)</li>
+    <li>탭 6개 → 4개 구조, 이대로 괜찮은지</li>
+    <li>오늘 탭 순서(체크 먼저), 이대로 괜찮은지</li>
+    <li>색은 앱 색(검정+라임)을 유지할지, 영상 색처럼 바꿔볼지</li>
+  </ol>
+</section>
+
+</div>
+
+<script>
+(() => {
+  const ICON = {
+    today:'<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+    day:'<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+    stats:'<rect x="4" y="11" width="4" height="9" rx="1.2"/><rect x="10" y="5" width="4" height="15" rx="1.2"/><rect x="16" y="14" width="4" height="6" rx="1.2"/>',
+    growth:'<path d="M12 21c4.5-1.5 7-5.5 7-10V5l-7-2-7 2v6c0 4.5 2.5 8.5 7 10z"/><path d="m9 12 2 2 4-4"/>',
+    goals:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3"/>',
+    analysis:'<path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>',
+    record:'<rect x="4" y="11" width="4" height="9" rx="1.2"/><rect x="10" y="5" width="4" height="15" rx="1.2"/><rect x="16" y="14" width="4" height="6" rx="1.2"/>'
+  };
+  const SETS = {
+    6:[['today','오늘'],['day','하루'],['stats','통계'],['growth','성장'],['goals','목표'],['analysis','분석']],
+    4:[['today','오늘'],['day','하루'],['record','기록'],['goals','목표']]
+  };
+  // 레벨 해금 안: 앱 레벨 6개에 하나씩. 깔끔한 것부터 시작해서 화려한 걸 나중에 열어요.
+  const KINDS = [
+    ['expand','Expanding Label','알약이 가운데에서 양쪽으로 펼쳐져요','Lv.1 새싹'],
+    ['pill','Sliding Pill','알약이 늘어나며 옮겨가 살짝 지나쳐 멈춰요','Lv.2 도전자'],
+    ['fill','Icon Fill','얇은 원이 크게 퍼지고 아이콘이 꽉 차요','Lv.3 습관인'],
+    ['notch','Floating Notch','움찔했다 떠올라 옮겨가 내려앉아요','Lv.4 마스터'],
+    ['bubble','Bubble Float','거품이 흩어지며 천천히 떠올라요','Lv.5 레전드'],
+    ['bulge','Liquid Bulge','언덕이 낮아져 미끄러진 뒤 다시 솟아요','Lv.6 신화']
+  ];
+  const svg = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+  const demos = document.getElementById('demos');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let n = 6, bars = [];
+
+  function build(){
+    demos.innerHTML = '';
+    bars.forEach(st => cancelAnimationFrame(st.raf));
+    bars = KINDS.map(([kind,name,desc,lv]) => {
+      const card = document.createElement('div');
+      card.className = 'demo';
+      card.innerHTML = `<div class="demo-name"><span class="lv">${lv}</span><b>${name}</b><span>${desc}</span></div>`;
+      const holder = document.createElement('div'); holder.className = 'notch-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'bar v-'+kind; bar.setAttribute('role','tablist'); bar.setAttribute('aria-label',name);
+      const st = { kind, bar, holder, cur:-1, bumps:[], raf:0 };
+      if (kind==='bulge'){
+        bar.insertAdjacentHTML('afterbegin','<svg class="shape" aria-hidden="true"><path/></svg>');
+        st.path = bar.querySelector('.shape path'); st.shape = bar.querySelector('.shape');
+      }
+      st.tabs = SETS[n].map(([k,l]) => {
+        const b = document.createElement('button');
+        b.type='button'; b.className='tab'; b.setAttribute('role','tab');
+        b.innerHTML = svg(k)+`<span class="lbl">${l}</span>`;
+        b.dataset.k = k; bar.appendChild(b); return b;
+      });
+      if (kind==='pill'){ st.extra=document.createElement('div'); st.extra.className='pill'; bar.appendChild(st.extra); }
+      holder.appendChild(bar);
+      if (kind==='notch'){
+        const rim=document.createElement('div'); rim.className='rim'; holder.appendChild(rim);
+        st.extra=document.createElement('div'); st.extra.className='disc'; holder.appendChild(st.extra);
+      }
+      card.appendChild(holder); demos.appendChild(card);
+      st.tabs.forEach((t,i)=>t.addEventListener('click',()=>{ stopAuto(); select(st,i); }));
+      return st;
+    });
+    requestAnimationFrame(()=>bars.forEach(st=>select(st,0,true)));
+  }
+
+  const geo = (st,i) => { const b=st.bar.getBoundingClientRect(), t=st.tabs[i].getBoundingClientRect(); return { x:t.left-b.left+t.width/2, l:t.left-b.left, w:t.width }; };
+
+  // ── 2번 언덕: 바 윗선을 점으로 찍어 그려요. 언덕마다 높이가 따로 있어서
+  //    옛 언덕은 낮아지고 새 언덕은 높아지는 걸 동시에 보여줄 수 있어요.
+  function drawBulge(st){
+    const w = st.bar.clientWidth, top = 30, bottom = 92, r = 20, H = 25;
+    st.shape.setAttribute('viewBox',`0 0 ${w} ${bottom}`);
+    const lift = x => st.bumps.reduce((s,b)=>{ const d=(x-b.c)/(b.w||27); return s + b.h*Math.exp(-(d*d*d*d)); },0);
+    let d = `M0 ${top+r} Q0 ${top} ${r} ${top}`;
+    for (let x=r; x<=w-r; x+=3) d += ` L${x.toFixed(1)} ${(top - lift(x)*H).toFixed(2)}`;
+    d += ` L${w-r} ${top} Q${w} ${top} ${w} ${top+r} L${w} ${bottom-r} Q${w} ${bottom} ${w-r} ${bottom} L${r} ${bottom} Q0 ${bottom} 0 ${bottom-r} Z`;
+    st.path.setAttribute('d', d);
+  }
+  // 언덕 하나가 낮고 넓게 퍼지며 미끄러져 가고, 도착하면 다시 솟아 한 번 출렁여요.
+  function moveBulge(st, to){
+    cancelAnimationFrame(st.raf);
+    const from = st.bumps[0] ? st.bumps[0].c : to, t0 = performance.now(), D = 640;
+    const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+    const step = now => {
+      const t = Math.min(1,(now-t0)/D), m = Math.min(t/.72,1);
+      const sink = Math.sin(Math.PI*m);                       // 가는 동안 낮아지고 넓어져요
+      let h = 1 - .68*sink, w = 27*(1 + .55*sink);
+      if (t > .72){ const k=(t-.72)/.28; h += .16*Math.sin(Math.PI*k)*(1-k*.4); w -= 4*Math.sin(Math.PI*k); } // 도착 후 출렁
+      st.bumps = [{ c: from + (to-from)*ease(m), h, w }];
+      drawBulge(st);
+      if (t < 1) st.raf = requestAnimationFrame(step);
+    };
+    st.raf = requestAnimationFrame(step);
+  }
+
+  function select(st,i,instant){
+    const prev = st.cur; if (prev===i && !instant) return;
+    st.cur = i;
+    st.tabs.forEach((t,j)=>{ t.classList.toggle('on',j===i); t.setAttribute('aria-selected',j===i); });
+    const c = geo(st,i);
+
+    if (st.kind==='pill'){
+      const p = st.extra, pad=6;
+      const target = ()=>{ p.style.left=(c.l+pad)+'px'; p.style.width=(c.w-pad*2)+'px'; };
+      if (instant || prev<0 || reduce){ p.style.transition='none'; target(); p.offsetWidth; p.style.transition=''; return; }
+      // 영상 그대로(20fps로 잰 값): 약 0.3초. 앞쪽 끝이 먼저 뻗고 뒤쪽이 따라와서 길어졌다가,
+      // 목표를 아주 조금 지나쳐서 바로 자리잡아요. 기울기·찌그러짐은 없어요.
+      const o = geo(st,prev), dir = c.l > o.l ? 1 : -1, W = c.w-pad*2, T = c.l+pad, O = o.l+pad;
+      const lead = (from, to, k) => from + (to-from)*k;
+      const box = (l, r) => ({ left:l+'px', width:(r-l)+'px' });
+      const oR = O+W, tR = T+W;
+      if (st.anim) st.anim.cancel();
+      st.anim = p.animate([
+        box(O, oR),
+        { ...(dir>0 ? box(lead(O,T,.05), lead(oR,tR,.82)) : box(lead(O,T,.82), lead(oR,tR,.05))), offset:.38 },
+        { ...(dir>0 ? box(lead(O,T,.52), tR+11) : box(T-11, lead(oR,tR,.52))), offset:.68 },
+        { ...box(T+dir*7, tR+dir*7), offset:.86 },
+        box(T, tR)
+      ], { duration:460, easing:'cubic-bezier(.4,0,.2,1)' });
+      target();
+    }
+
+    if (st.kind==='bulge'){
+      if (instant || reduce){ cancelAnimationFrame(st.raf); st.bumps=[{c:c.x,h:1,w:27}]; drawBulge(st); return; }
+      moveBulge(st, c.x);
+    }
+
+    if (st.kind==='notch'){
+      st.holder.style.setProperty('--nx', c.x+'px');
+      const d = st.extra, icon = () => { d.innerHTML = svg(st.tabs[i].dataset.k); };
+      if (instant || prev<0 || reduce){ d.style.transform=`translate(${c.x}px,0)`; icon(); st.x=c.x; return; }
+      const from = st.x, to = c.x; st.x = to;
+      // 날아가는 구간을 장면 여러 개로 쪼개서 그려요. 가로는 멈추지 않고 계속 흐르고,
+      // 위아래만 포물선을 그려서 꼭대기에서 멈칫하지 않아요.
+      const flight = (a, b) => {
+        const out = [{ transform:`translate(${a}px,4px) scale(1.12,.86)`, offset:.12 }];
+        const S = 14, t0 = .12, t1 = .78;
+        for (let k=1; k<=S; k++){
+          const q = k/S, e = q<.5 ? 2*q*q : 1-Math.pow(-2*q+2,2)/2, arc = Math.sin(Math.PI*q);
+          const x = a + (b-a)*e, y = 4 + (5-4)*q - 34*arc;
+          const sx = 1.12 + (1.16-1.12)*q - .24*arc, sy = .86 + (.8-.86)*q + .3*arc;
+          out.push({ transform:`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${sx.toFixed(3)},${sy.toFixed(3)})`, offset:+(t0+(t1-t0)*q).toFixed(4) });
+        }
+        return out;
+      };
+      if (st.anim) st.anim.cancel();
+      // 움찔(아래로 눌림) → 길쭉해지며 포물선으로 날아감 → 납작하게 착지 → 튀어오르며 제자리
+      st.anim = d.animate([
+        { transform:`translate(${from}px,0) scale(1,1)` },
+        ...flight(from, to),
+        { transform:`translate(${to}px,-3px) scale(.96,1.05)`, offset:.9 },
+        { transform:`translate(${to}px,0) scale(1,1)` }
+      ], { duration:680, fill:'forwards' });
+      clearTimeout(st.t); st.t = setTimeout(icon, 300);    // 날아가는 도중에 새 아이콘으로 바뀌어요
+      st.anim.onfinish = () => { d.style.transform=`translate(${to}px,0)`; st.anim.cancel(); };
+    }
+
+    if (st.kind==='fill' && !instant && !reduce){
+      const ring = document.createElement('span'); ring.className='ring';
+      ring.style.left = c.x+'px';
+      st.bar.appendChild(ring); setTimeout(()=>ring.remove(),1100);
+    }
+
+    if (st.kind==='bubble' && !instant && !reduce){
+      // 거품마다 출발 위치·시간·속도·방향·흔들림을 조금씩 다르게 줘요(자연스럽게).
+      // 그렇게 만든 배치를 미리 끝까지 돌려보고, 어느 순간이라도 겹치면 버리고 새로 뽑아요.
+      const plan = bubblePlan(c.x);
+      plan.forEach(b => {
+        const s = document.createElement('span'); s.className='bub';
+        s.style.width = s.style.height = (b.r*2)+'px';
+        st.bar.appendChild(s);
+        const frames = [];
+        for (let k=0; k<=20; k++){
+          const u = k/20, p = bubblePos(b,u), sc = bubbleScale(u);
+          const cy = p.y - b.r*sc;                            // 아래 끝을 기준으로, 커진 만큼 위로
+          const op = u<.06 ? u/.06 : u<.75 ? 1 - .1*((u-.06)/.69) : .9*(1-(u-.75)/.25);
+          frames.push({ transform:`translate(${(p.x-b.r).toFixed(1)}px,${(cy-b.r).toFixed(1)}px) scale(${sc.toFixed(3)})`, opacity:+op.toFixed(3), offset:u });
+        }
+        s.animate(frames, { duration:b.T*1000, delay:b.delay, easing:'linear', fill:'both' }).onfinish = () => s.remove();
+      });
+    }
+  }
+
+  // ── 거품 배치 ──
+  // u(0~1)는 거품 하나의 진행 정도. 위로 올라가면서 옆으로 살짝 흘러가고, 좌우로 살랑살랑 흔들려요.
+  // y 는 거품의 '아래 끝' 높이예요. 작게 태어나서 올라가며 커지기 때문에, 가운데에서 태어나도
+  // 앞서 간 거품과 부딪히지 않아요.
+  function bubblePos(b, u){
+    return { x: b.x0 + b.dx*u + b.amp*Math.sin(2*Math.PI*u*b.f + b.ph), y: b.y0 + b.dy*u };
+  }
+  function bubbleScale(u){
+    return u < .32 ? .25 + .75*(u/.32) : u > .6 ? 1 - .1*((u-.6)/.4) : 1;
+  }
+  function bubblePlan(cx){
+    const rnd = (a,b) => a + Math.random()*(b-a);
+    const sizes = [22,17,15,13,11,9,8];
+    let best = null, bestGap = -1e9;
+    for (let attempt=0; attempt<300; attempt++){
+      let t = 0, side = Math.random()<.5 ? -1 : 1;
+      const plan = sizes.map((s,k) => {
+        const r = s/2;
+        t += k ? rnd(220,350) : 0;                       // 출발 간격도 들쭉날쭉
+        if (Math.random() < .75) side = -side;           // 대체로 좌우를 번갈아, 가끔은 같은 쪽으로
+        return { r, x0: cx + side*rnd(0,6), y0: 16, dx: side*rnd(6,24), dy: -rnd(85,105),
+                 amp: rnd(1.5,4), f: rnd(.8,1.5), ph: rnd(0,Math.PI*2), T: rnd(2.1,2.5), delay: t };
+      });
+      // 끝날 때까지 30ms마다 위치를 찍어 보며, 보이는 거품끼리 가장 가까운 간격을 재요
+      const end = Math.max(...plan.map(b => b.delay + b.T*1000));
+      let gap = 1e9;
+      for (let ms=0; ms<=end && gap>bestGap; ms+=16){
+        const live = [];
+        for (const b of plan){
+          const u = (ms - b.delay)/(b.T*1000);
+          if (u < .02 || u > .98) continue;             // 막 생기거나 다 사라진 것만 빼고
+          const q = bubblePos(b,u), rr = b.r*bubbleScale(u);
+          live.push({ x:q.x, y:q.y - rr, r:rr });
+        }
+        for (let i=0;i<live.length;i++) for (let j=i+1;j<live.length;j++){
+          const d = Math.hypot(live[i].x-live[j].x, live[i].y-live[j].y) - live[i].r - live[j].r;
+          if (d < gap) gap = d;
+        }
+      }
+      if (gap > bestGap){ bestGap = gap; best = plan; }
+      if (gap >= 4) break;                               // 4px 넘게 떨어져 있으면 합격
+    }
+    return best;
+  }
+
+  let timer=null;
+  const autoBtn=document.getElementById('auto');
+  function stopAuto(){ if(timer){clearInterval(timer);timer=null;autoBtn.setAttribute('aria-pressed','false');autoBtn.textContent='자동으로 돌려보기';} }
+  autoBtn.addEventListener('click',()=>{
+    if (timer) return stopAuto();
+    autoBtn.setAttribute('aria-pressed','true'); autoBtn.textContent='멈추기';
+    timer=setInterval(()=>bars.forEach(st=>select(st,(st.cur+1)%st.tabs.length)),1400);
+  });
+  const pairs = (a,b,fn) => { a.addEventListener('click',()=>fn(a,b)); b.addEventListener('click',()=>fn(b,a)); };
+  pairs(document.getElementById('n6'), document.getElementById('n4'), (on,off)=>{
+    on.setAttribute('aria-pressed','true'); off.setAttribute('aria-pressed','false');
+    n = on.id==='n6' ? 6 : 4; stopAuto(); build();
+  });
+  const stage = document.getElementById('stage');
+  pairs(document.getElementById('skDark'), document.getElementById('skPaper'), (on,off)=>{
+    on.setAttribute('aria-pressed','true'); off.setAttribute('aria-pressed','false');
+    stage.dataset.skin = on.id==='skPaper' ? 'paper' : 'dark';
+  });
+  addEventListener('resize',()=>bars.forEach(st=>select(st,st.cur,true)));
+  build();
+})();
+</script>
+
+</body></html>
