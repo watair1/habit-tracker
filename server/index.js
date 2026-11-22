@@ -8,6 +8,7 @@ import express from 'express';
 import cors from 'cors';
 import aiRoutes from './routes/ai.js';
 import { requireUser, allowedEmails } from './auth.js';
+import { provider, modelLabel, hasKey } from './llm.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,16 +59,18 @@ function rateLimit(req, res, next) {
 
 // 상태 확인용
 app.get('/', (req, res) => {
-  res.json({ ok: true, service: 'habit-tracker-ai', hasKey: !!process.env.GEMINI_API_KEY });
+  res.json({ ok: true, service: 'habit-tracker-ai', provider: provider(), hasKey: hasKey() });
 });
 
 // 문지기를 횟수 제한보다 먼저 세워요. 허락 안 된 사람이 하루 한도를 깎지 못하게요.
 app.use('/api', requireUser, rateLimit, aiRoutes);
 
 // 키 없이 켰을 때 친절한 안내
-if (!process.env.GEMINI_API_KEY) {
-  console.log('\n⚠️  GEMINI_API_KEY가 비어 있어요.');
-  console.log('   server/.env 파일을 만들고 키를 넣어주세요. (README.md 참고)\n');
+if (!hasKey()) {
+  console.log(`\n⚠️  ${provider() === 'claude' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY'}가 비어 있어요. (README 참고)\n`);
+}
+if (provider() === 'claude' && !allowedEmails().length) {
+  console.log('⚠️  AI_PROVIDER=claude 인데 ALLOWED_EMAILS 가 비어 있어요. 돈이 새지 않게 Claude 를 부르지 않아요.');
 }
 
 if (!allowedEmails().length) {
@@ -78,5 +81,5 @@ if (!allowedEmails().length) {
 
 app.listen(PORT, () => {
   console.log(`✅ AI 서버 실행 중 → http://localhost:${PORT}`);
-  console.log(`   모델: ${process.env.GEMINI_MODEL || 'gemini-flash-latest'}`);
+  console.log(`   모델: ${modelLabel()}`);
 });

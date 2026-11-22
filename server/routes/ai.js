@@ -3,7 +3,7 @@
 //  goal-to-habits / auto-schedule 출력은 앱 데이터 모델에 바로 넣을 수 있는 형태
 // ────────────────────────────────────────────────────────────
 import express from 'express';
-import { callGemini } from '../gemini.js';
+import { callAI } from '../llm.js';
 
 const router = express.Router();
 
@@ -22,6 +22,8 @@ function need(res, cond, msg) {
 
 // 에러를 한국어 응답으로 변환
 function fail(res, err) {
+  if (err && err.locked) return res.status(503).json({ error: 'AI_LOCKED', message: 'AI 잠금 설정이 비어 있어서 쓸 수 없어요. 관리자에게 문의하세요.' });
+  if (err && err.refusal) return res.status(422).json({ error: 'REFUSED', message: 'AI 가 이 요청에는 답하지 않았어요. 다르게 말해볼래요?' });
   if (err && err.noKey) return res.status(500).json({ error: 'NO_KEY', message: '서버에 API 키가 설정되지 않았어요. 관리자에게 문의하세요.' });
   if (err && err.rateLimit) return res.status(429).json({ error: 'RATE_LIMIT', message: 'AI 사용 한도에 걸렸어요. 1분쯤 뒤에 다시 해보고, 계속 그러면 하루 한도일 수 있어요.' });
   if (err && err.overloaded) return res.status(503).json({ error: 'OVERLOADED', message: 'AI 서버가 잠시 붐벼요. 조금 뒤에 다시 시도해주세요.' });
@@ -49,7 +51,7 @@ router.post('/parse-habit', async (req, res) => {
 - habit은 짧고 실행 가능한 문장.
 - 시간이 명시 안 됐으면 time은 null.
 - 요일이 명시 안 됐으면 days는 빈 배열 [].`;
-    const out = await callGemini(sys, `문장: ${text}`, { json: true });
+    const out = await callAI(sys, `문장: ${text}`, { json: true });
     res.json(Array.isArray(out) ? out : (out.habits || []));
   } catch (e) { fail(res, e); }
 });
@@ -63,7 +65,7 @@ router.post('/weekly-report', async (req, res) => {
 반드시 JSON만 출력: {"analysis":"이번 주 패턴과 원인 분석 (2~3문장, 한국어)","encouragement":"짧은 격려 한 줄"}`;
     const user = `주 시작: ${weekStart || '이번 주'}\n습관별 체크한 날짜:\n` +
       habits.map(h => `- ${h.name}: ${(h.checkedDates || []).join(', ') || '기록 없음'}`).join('\n');
-    const out = await callGemini(sys, user, { json: true });
+    const out = await callAI(sys, user, { json: true });
     res.json({ analysis: out.analysis || '', encouragement: out.encouragement || '' });
   } catch (e) { fail(res, e); }
 });
@@ -75,7 +77,7 @@ router.post('/refine-habit', async (req, res) => {
   try {
     const sys = `너는 습관 설계 전문가다. 모호한 습관을 "언제/얼마나/어떻게"가 담긴 구체적 행동 문장으로 바꿔라.
 반드시 JSON만 출력: {"refined":"구체적인 습관 문장","reason":"왜 이렇게 바꿨는지 한 줄"}`;
-    const out = await callGemini(sys, `습관: ${habitName}`, { json: true });
+    const out = await callAI(sys, `습관: ${habitName}`, { json: true });
     res.json({ refined: out.refined || habitName, reason: out.reason || '' });
   } catch (e) { fail(res, e); }
 });
@@ -89,7 +91,7 @@ router.post('/goal-to-habits', async (req, res) => {
 반드시 JSON 배열만 출력: [{"habit":"습관 문장","category":"카테고리","timeSlot":"시간대"}]
 category는 정확히 이 중 하나: ${CATEGORIES.join(', ')}
 timeSlot은 정확히 이 중 하나: ${TIMESLOTS.join(', ')}`;
-    let out = await callGemini(sys, `목표: ${goal}`, { json: true });
+    let out = await callAI(sys, `목표: ${goal}`, { json: true });
     if (!Array.isArray(out)) out = out.habits || [];
     // enum 보정
     out = out.slice(0, 5).map(h => ({
@@ -111,7 +113,7 @@ router.post('/failure-analysis', async (req, res) => {
     const user = habits.map(h =>
       `- ${h.name} (${h.timeSlot || '자유'}): 체크한 날 ${(h.checkedDates || []).length}일 [${(h.checkedDates || []).join(', ')}]`
     ).join('\n');
-    const out = await callGemini(sys, user, { json: true });
+    const out = await callAI(sys, user, { json: true });
     res.json({ patterns: Array.isArray(out.patterns) ? out.patterns : [], advice: out.advice || '' });
   } catch (e) { fail(res, e); }
 });
@@ -125,7 +127,7 @@ router.post('/day-summary', async (req, res) => {
     const moodTxt = ['', '많이 힘듦', '조금 지침', '보통', '괜찮음', '아주 좋음'][mood] || '기록 없음';
     const sleepTxt = (sleepHours || sleepHours === 0) ? `${sleepHours}시간` : '기록 없음';
     const user = `날짜: ${date || ''}\n기분: ${moodTxt}\n수면: ${sleepTxt}\n실행률: ${doneRate ?? '-'}%\n메모: ${memo || '(없음)'}\n습관: ${(habits || []).map(h => `${h.name}(${h.done ? '완료' : '미완'})`).join(', ') || '없음'}`;
-    const out = await callGemini(sys, user, { json: true });
+    const out = await callAI(sys, user, { json: true });
     res.json({ summary: out.summary || '' });
   } catch (e) { fail(res, e); }
 });
@@ -142,7 +144,7 @@ router.post('/auto-schedule', async (req, res) => {
 - 현실적인 순서와 소요시간으로.`;
     const exist = (existingEvents || []).map(e => `${e.start}~${e.end} ${e.title}`).join(', ') || '없음';
     const user = `날짜: ${date || ''}\n이미 있는 일정: ${exist}\n요청: ${text}`;
-    let out = await callGemini(sys, user, { json: true });
+    let out = await callAI(sys, user, { json: true });
     if (!Array.isArray(out)) out = out.events || [];
     // 시간 스냅 + 검증
     out = out.map(e => {
@@ -266,7 +268,7 @@ ${goalText}
 지난 예측 채점:
 ${betText}` : ''}`;
 
-    const out = await callGemini(sys, user, { json: true });
+    const out = await callAI(sys, user, { json: true });
     res.json({
       outlook: String(out.outlook || '').slice(0, 600),
       risks: filterHabitNotes(out.risks, names),
@@ -420,7 +422,7 @@ ${isPlain ? '- 묻지 않은 제안이나 조언은 하지 마라. 요청한 것
 
 사용자 메시지: ${message}`;
 
-    const out = await callGemini(sys, ctx, { json: true });
+    const out = await callAI(sys, ctx, { json: true });
     const actions = sanitizeAgentActions(out.actions, { evIds, todoIds, habitIds, goalIds });
     res.json({ reply: out.reply || '', actions });
   } catch (e) { fail(res, e); }

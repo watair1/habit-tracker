@@ -155,6 +155,28 @@ Render → 서비스 → **Environment** 에 아래 두 개를 넣으면 허락�
 - `ALLOWED_EMAILS` 를 비워두면 잠금이 꺼져서 예전처럼 누구나 쓸 수 있어요.
 - 친구를 추가할 땐 `ALLOWED_EMAILS` 에 이메일만 붙이면 돼요. 코드는 안 고쳐도 돼요.
 
+## Claude(Sonnet 5.5)로 바꾸기
+
+Gemini 대신 Claude 를 쓰게 할 수 있어요. **코드는 그대로 두고 Render 환경변수만** 바꾸면 돼요.
+
+1. Anthropic 콘솔(platform.claude.com)에 가입 → 크레딧 충전 → **월 사용 한도 걸기** → API 키 만들기
+2. 먼저 위 "나랑 친구만 쓰게 잠그기"가 켜져 있는지 확인 (`ALLOWED_EMAILS`).
+   **잠금이 비어 있으면 서버가 Claude 를 아예 부르지 않아요.** 아무나 내 돈으로 쓰는 걸 막으려고요.
+3. Render → 서버 → Environment 에 추가하고 Save
+   - `AI_PROVIDER` = `claude`
+   - `ANTHROPIC_API_KEY` = 콘솔에서 만든 키 (채팅이나 코드에는 절대 붙여넣지 않기)
+4. 확인: 서버 주소를 브라우저로 열면 `"provider":"claude","hasKey":true` 가 보여요.
+
+바꿀 수 있는 것 (안 넣으면 기본값)
+- `AI_CLAUDE_MODEL` — 기본 `claude-sonnet-5-5`
+- `AI_CLAUDE_EFFORT` — 생각 깊이 `low` / `medium` / `high`. 기본 `low` (빠르고 쌈). 답이 얕다 싶으면 `medium`.
+
+되돌리기: `AI_PROVIDER` 를 지우면 다시 Gemini.
+
+참고
+- Claude 가 안전 문제로 답을 거절하면, Anthropic 서버가 자동으로 다른 모델로 대신 답하게 해뒀어요(폴백).
+- AI 를 부를 때마다 로그에 `[AI] claude 3.2초` 처럼 걸린 시간이 남아요. 느릴 때 원인 찾기용이에요.
+
 ## 자주 있는 문제
 
 | 증상 | 해결 |

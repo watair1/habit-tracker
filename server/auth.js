@@ -38,6 +38,7 @@ async function lookupEmail(idToken) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken }),
+    signal: AbortSignal.timeout(10_000),   // 구글이 대답을 안 하면 10초에서 끊어요 (안 그러면 앱이 90초 내내 기다려요)
   });
   if (!res.ok) return null;           // INVALID_ID_TOKEN, TOKEN_EXPIRED 등
   const data = await res.json().catch(() => ({}));
