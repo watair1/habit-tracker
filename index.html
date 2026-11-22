@@ -6382,7 +6382,7 @@ function openAgentHistory(){
       const preview = lastUser ? lastUser.text : (chat[chat.length-1].text || '');
       return `
         <div class="hist-row${ds===dayCursor?' cur':''}" onclick="jumpToChat('${ds}')">
-          <div class="hist-date">${esc(fmtDayHead(ds))}${ds===dayCursor?' · 지금':''}</div>
+          <div class="hist-date">${esc(fmtDayHead(ds))}${ds===dayCursor?' · 보는 중':''}</div>
           <div class="hist-preview">${esc(preview.slice(0,60))}${preview.length>60?'…':''}</div>
           <div class="hist-count">${chat.length}개</div>
         </div>`;
