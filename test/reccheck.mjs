@@ -126,7 +126,7 @@ async function run(tz, label) {
     const day = getDay(dayCursor);
     day.chat = [{ role: 'ai', text: '문턱을 낮춰볼게요', actions: [{ type: 'set_habit_min', id: 'h_산책', text: '신발 신고 나가기' }] }];
     setDay(dayCursor, day);
-    applyAgentActions(0, null);
+    runAgentActions(day.chat[0].actions);   // 반영 로직만 확인 (화면 찾아가는 장면은 agentplaycheck 에서)
     ok('코치가 최소 버전을 넣음', loadHabits()[0].min, '신발 신고 나가기');
     R.push({ n: '액션 설명 문구', pass: agentActionLabel({ type: 'set_habit_min', id: 'h_산책', text: '신발 신고 나가기' }).includes('최소 버전'), got: '' });
 
@@ -137,7 +137,7 @@ async function run(tz, label) {
     d2.chat = [{ role: 'ai', text: '이름을 구체적으로 바꿀게요', actions: [
       { type: 'edit_habit', id: 'h_달리기', name: '아침 달리기 20분', timeSlot: '아침' }] }];
     setDay(dayCursor, d2);
-    applyAgentActions(0, null);
+    runAgentActions(d2.chat[0].actions);
     const ed = loadHabits();
     ok('이름이 바뀜', ed[0].name, '아침 달리기 20분');
     ok('시간대도 바뀜', ed[0].timeSlot, '아침');

@@ -168,6 +168,20 @@ is empty (it costs money). The AI 비서 has an effort chip (`low/medium/high`) 
 the pick lives in `user.aiEffort` (synced) and goes out as `effort` on `/api/day-agent`. The
 server accepts only those three values. Env var names avoid `CLAUDE_*` because tooling sets those.
 
+## Visible AI Agent (보이는 AI 비서)
+
+The AI 비서 lists its actions in chat with an "이대로 적용" button — that is the user's
+confirmation step. Pressing it runs `applyAgentActions(idx)`, which plays each action on screen:
+`agReveal(a)` goes to the action's tab (the cursor presses the tab bar, then `gotoTab`), scrolls the
+target into view, then the cursor flies there, presses, and `runAgentActions([a])` applies just that
+one action. `agTarget(a)` maps all 20 action types to a tab + element (falling back to the section
+container). During play the screen edge glows (`.ag-glow`, opacity-only animation — animating
+box-shadow overheats devices), a comet trail follows the cursor (canvas), and tapping anywhere pauses.
+The done card offers 되돌리기, which restores a localStorage snapshot of `AG_STORES()` taken before
+the run. `prefers-reduced-motion` applies everything at once. All colors come from `--agent`
+(temporary until the theme is chosen). `runAgentActions(actions)` is the pure apply step — tests that
+only check logic should call it directly. Test: `test/agentplaycheck.mjs`.
+
 ## Modals
 
 `openModal(id)` / `closeModal(id)` toggle `.open` class on `.overlay` elements.

@@ -792,6 +792,38 @@
     .agent-act svg { width: 13px; height: 13px; color: var(--primary); flex-shrink: 0; }
     /* 보내는 칸은 여러 줄이 돼야 해요. 습관 목록처럼 줄줄이 붙여넣을 일이 있어서요.
        한 줄로 시작해서 내용만큼 늘어나고, 다섯 줄쯤에서 멈추고 스크롤됩니다. */
+
+    /* ── 보이는 AI 비서: AI 가 조작하는 동안의 커서·꼬리·빛 테두리 ── */
+    :root { --agent: 245,182,110; }   /* 조작할 때의 빛 색 (R,G,B). 테마가 정해지면 여기만 바꿔요 */
+    .ag-glow { position: fixed; inset: 0; z-index: 9990; pointer-events: none; opacity: 0; transition: opacity .5s;
+      box-shadow: inset 0 0 0 1.5px rgba(var(--agent),.8), inset 0 0 28px rgba(var(--agent),.38), inset 0 0 80px rgba(var(--agent),.14); }
+    .ag-glow.on { opacity: 1; animation: agBreathe 2.6s ease-in-out infinite; }   /* 그림자는 고정, 투명도만 움직여요 (기기 발열 방지) */
+    @keyframes agBreathe { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+    .ag-trail { position: fixed; inset: 0; z-index: 9991; pointer-events: none; width: 100vw; height: 100vh; }
+    .ag-cursor { position: fixed; left: 0; top: 0; z-index: 9992; width: 22px; height: 28px; margin: -2px 0 0 -3px; pointer-events: none; opacity: 0; transition: opacity .25s; transform-origin: 3px 2px; }
+    .ag-cursor.on { opacity: 1; }
+    .ag-cursor svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 3px rgba(var(--agent),.95)) drop-shadow(0 0 12px rgba(var(--agent),.55)); }
+    .ag-cursor path { stroke: rgb(var(--agent)); stroke-width: 1.5; stroke-linejoin: round; }
+    .ag-ripple { position: fixed; z-index: 9991; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 1.5px solid rgb(var(--agent)); pointer-events: none; animation: agRipple .55s ease-out forwards; }
+    @keyframes agRipple { from { opacity: .9; transform: scale(.4); } to { opacity: 0; transform: scale(2.2); } }
+    .ag-pill { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 9993; transform: translateY(20px); opacity: 0; pointer-events: none; display: flex; align-items: center; gap: 9px; max-width: calc(100vw - 32px);
+      background: rgba(20,20,22,.92); border: 1px solid rgba(var(--agent),.4); border-radius: 999px; padding: 7px 8px 7px 12px; font-size: .78rem; font-weight: 700; color: var(--text); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: opacity .3s, transform .35s cubic-bezier(.3,1.4,.5,1); }
+    .ag-pill.on { opacity: 1; transform: none; pointer-events: auto; }
+    #ag-pill-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .ag-step { color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+    .ag-pill button, .ag-row button { border: 1px solid var(--border); background: var(--card2); color: var(--text); font: inherit; font-size: .74rem; font-weight: 700; padding: 6px 11px; border-radius: 999px; cursor: pointer; flex-shrink: 0; }
+    .ag-row button.pri { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .ag-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(var(--agent),.2); border-top-color: rgb(var(--agent)); animation: agSpin .8s linear infinite; flex-shrink: 0; }
+    @keyframes agSpin { to { transform: rotate(360deg); } }
+    .ag-stopped { position: fixed; inset: 0; z-index: 9994; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.5); padding: 16px; }
+    .ag-stopped.on { display: flex; }
+    .ag-stopped > div, .ag-done { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; font-size: .86rem; color: var(--text); }
+    .ag-stopped > div { max-width: 300px; text-align: center; align-items: center; }
+    .ag-stopped span { color: var(--muted); font-size: .8rem; }
+    .ag-row { display: flex; gap: 6px; justify-content: flex-end; }
+    .ag-done { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: min(420px, calc(100vw - 32px)); z-index: 9993; transform: translate(-50%, 14px); opacity: 0; pointer-events: none; transition: opacity .3s, transform .4s cubic-bezier(.3,1.3,.5,1); }
+    .ag-done.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+    .ag-done ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: .8rem; display: flex; flex-direction: column; gap: 3px; }
     .agent-input-row { display: flex; gap: 6px; align-items: flex-end; }
     .agent-effort-wrap { position: relative; flex: 0 0 auto; }
     .agent-effort { height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card2); color: var(--text); font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -6634,11 +6666,232 @@ async function sendAgent(){
   renderAgentChips();
   btn.disabled=false;
 }
-function applyAgentActions(idx,btnEl){
+// ── 보이는 AI 비서 ─────────────────────────────────────────
+// "이대로 적용"을 누르면 결과만 바뀌지 않고, AI 커서가 일마다
+//   ① 그 탭으로 이동(탭바를 누름) → ② 화면 밖이면 스크롤 → ③ 눌러서 반영
+// 하는 모습을 보여줘요. 조작하는 동안 화면 가장자리가 빛나고, 화면을 누르면 멈춰요.
+// 끝나면 '되돌리기'로 적용 전으로 돌아갈 수 있어요.
+// 색은 CSS 의 --agent 하나로 정해요 (테마가 정해지면 거기만 바꾸면 돼요).
+const AG = { running:false, paused:false, resume:null, halt:false, raf:0, pts:[], cur:{x:0,y:0} };
+const AG_STORES = () => [K.h, K.d, K.g, K.md, K.m, K.f, K.u];   // 되돌리기용으로 적용 전 모습을 찍어둘 저장소
+
+function agEls(){
+  if ($('ag-cursor')) return;
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="ag-glow" id="ag-glow"></div>
+    <canvas class="ag-trail" id="ag-trail"></canvas>
+    <div class="ag-cursor" id="ag-cursor"><svg viewBox="0 0 22 28" aria-hidden="true"><defs><linearGradient id="ag-cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a2c1c"/><stop offset="1" stop-color="#0e0b08"/></linearGradient></defs><path d="M3 2 L3 22 L8.2 17.4 L11.6 25.2 L15 23.7 L11.7 16 L18.6 16 Z" fill="url(#ag-cg)"/></svg></div>
+    <div class="ag-pill" id="ag-pill"><span class="ag-spin"></span><span id="ag-pill-text">AI가 하는 중</span><span class="ag-step" id="ag-pill-step"></span><button type="button" onclick="agPause()">멈추기</button></div>
+    <div class="ag-stopped" id="ag-stopped"><div><b>멈췄어요</b><span id="ag-stop-sum"></span><div class="ag-row"><button type="button" class="pri" onclick="agResume()">이어서 하기</button><button type="button" onclick="agHalt()">여기까지만</button></div></div></div>
+    <div class="ag-done" id="ag-done"><b id="ag-done-title"></b><ul id="ag-done-list"></ul><div class="ag-row"><button type="button" onclick="agUndo()">되돌리기</button><button type="button" class="pri" onclick="agDoneClose()">확인</button></div></div>`);
+  // 조작 중에 화면을 누르면 멈춰요 (멈춤 창·요약 카드 안을 누른 건 빼고)
+  document.addEventListener('pointerdown', e => {
+    if (AG.running && !AG.paused && !e.target.closest('#ag-stopped, #ag-done, #ag-pill')) agPause();
+  }, true);
+  addEventListener('resize', agSizeTrail);
+  agSizeTrail();
+}
+function agSizeTrail(){
+  const c = $('ag-trail'); if (!c) return;
+  const d = devicePixelRatio || 1;
+  c.width = innerWidth * d; c.height = innerHeight * d;
+  c.getContext('2d').setTransform(d, 0, 0, d, 0, 0);
+}
+// 혜성 꼬리: 커서가 지나온 자리를 0.42초 동안 남겨요
+function agTick(now){
+  const cur = $('ag-cursor'), c = $('ag-trail'), ctx = c.getContext('2d'), TR = 420;
+  const on = cur.classList.contains('on');
+  const m = on ? new DOMMatrixReadOnly(getComputedStyle(cur).transform) : null;
+  if (on) { const l = AG.pts[AG.pts.length - 1]; if (!l || Math.hypot(m.m41 - l.x, m.m42 - l.y) > .5) AG.pts.push({ x:m.m41, y:m.m42, t:now }); }
+  while (AG.pts.length && now - AG.pts[0].t > TR) AG.pts.shift();
+  ctx.clearRect(0, 0, innerWidth, innerHeight);
+  const line = AG.pts.slice(); if (on && line.length) line.push({ x:m.m41, y:m.m42, t:now });
+  const rgb = getComputedStyle(document.documentElement).getPropertyValue('--agent').trim();
+  ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
+  for (const pass of [{ w:9, a:.16 }, { w:2.6, a:.9 }]) {
+    for (let i = 1; i < line.length; i++) {
+      const a = line[i-1], b = line[i], age = Math.max(0, 1 - (now - b.t) / TR);
+      if (!age) continue;
+      ctx.strokeStyle = `rgba(${rgb},${(pass.a * age * age).toFixed(3)})`;
+      ctx.lineWidth = pass.w * (.25 + .75 * age);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+  }
+  if (AG.running || AG.pts.length) AG.raf = requestAnimationFrame(agTick); else AG.raf = 0;
+}
+// 기다리기. 멈춤 중이면 '이어서 하기'까지 기다려요
+const agGate = () => new Promise(res => { if (!AG.paused) res(); else AG.resume = res; });
+const agWait = ms => agGate().then(() => new Promise(r => setTimeout(r, ms)));
+function agPlace(p){ $('ag-cursor').style.transform = `translate(${p.x}px,${p.y}px)`; AG.cur = p; }
+// 곧장 가지 않고 살짝 휘어서, 빠르게 날아가요 (순간이동은 아니게)
+async function agFly(p){
+  await agGate();
+  const a = AG.cur, dx = p.x - a.x, dy = p.y - a.y, len = Math.hypot(dx, dy);
+  const nx = -dy / (len || 1), ny = dx / (len || 1), bend = Math.min(60, len * .22);
+  const c = { x: a.x + dx*.5 + nx*bend, y: a.y + dy*.5 + ny*bend }, fr = [];
+  for (let k = 0; k <= 24; k++) {
+    const t = k/24, u = 1 - t;
+    fr.push({ transform: `translate(${(u*u*a.x + 2*u*t*c.x + t*t*p.x).toFixed(1)}px,${(u*u*a.y + 2*u*t*c.y + t*t*p.y).toFixed(1)}px) scale(${(1 - .18*Math.sin(Math.PI*t)).toFixed(3)})` });
+  }
+  await $('ag-cursor').animate(fr, { duration: Math.max(240, Math.min(520, len * 1.3)), easing:'cubic-bezier(.45,0,.2,1)', fill:'forwards' }).finished;
+  agPlace(p);
+}
+async function agPress(){
+  await agGate();
+  const r = document.createElement('span'); r.className = 'ag-ripple';
+  r.style.left = AG.cur.x + 'px'; r.style.top = AG.cur.y + 'px'; document.body.appendChild(r); setTimeout(() => r.remove(), 650);
+  const t = `translate(${AG.cur.x}px,${AG.cur.y}px)`;
+  await $('ag-cursor').animate([{ transform:t+' scale(1)' }, { transform:t+' scale(.72)', offset:.4 }, { transform:t+' scale(1)' }], { duration:220, fill:'forwards' }).finished;
+}
+// 스크롤이 멈출 때까지 기다려요 (요소 위치가 두 번 연속 같으면 멈춘 걸로)
+async function agSettle(el){
+  let last = null;
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => requestAnimationFrame(r));
+    const y = el.getBoundingClientRect().top;
+    if (last !== null && Math.abs(y - last) < .5) return;
+    last = y;
+  }
+}
+// 그 일이 어느 탭의 어느 칸에서 일어나는지. 못 찾으면 그 구역 전체로 가요.
+function agTarget(a){
+  const onc = (root, frag) => root ? [...root.querySelectorAll('[onclick]')].find(e => e.getAttribute('onclick').includes(frag)) : null;
+  const hi = id => loadHabits().findIndex(h => h.id === id);
+  const today = dayCursor === todayStr();
+  switch (a.type) {
+    case 'check_habit': case 'uncheck_habit':
+      return today ? { tab:'today', el: onc($('habit-list'), `toggle(${hi(a.id)})`) || $('habit-list') }
+                   : { tab:'day', el: onc($('tl-body'), `toggleHabitDate('${a.id}'`) || $('tl-body') };
+    case 'edit_habit': case 'set_habit_min': return { tab:'today', el: onc($('habit-list'), `editHabit(${hi(a.id)})`) || $('habit-list') };
+    case 'delete_habit': return { tab:'today', el: onc($('habit-list'), `delHabit(${hi(a.id)})`) || $('habit-list') };
+    case 'add_habit': return { tab:'today', el: $('new-habit') };
+    case 'add_memo': return { tab:'today', el: $('quick-memo-input') };
+    case 'set_mood': return { tab:'day', el: onc($('day-mood-row'), `'${a.mood}'`) || $('day-mood-row') };
+    case 'add_event': return { tab:'day', el: $('tl-events'), y: hmToMin(a.start) / 60 * HOUR_PX };
+    case 'edit_event': case 'delete_event': return { tab:'day', el: document.querySelector(`#tl-events .tl-ev[data-id="${a.id}"]`) || $('tl-events') };
+    case 'add_todo': return { tab:'day', el: $('day-todo-input') };
+    case 'set_todo_status': return { tab:'day', el: onc($('day-todo-list'), `toggleDayTodo('${a.id}')`) || $('day-todo-list') };
+    case 'delete_todo': return { tab:'day', el: onc($('day-todo-list'), `delDayTodo('${a.id}')`) || $('day-todo-list') };
+    case 'set_highlight': return { tab:'day', el: $('day-highlight') };
+    case 'set_sleep': return { tab:'day', el: $('sleep-bed') };
+    case 'set_day_memo': return { tab:'day', el: $('day-memo') };
+    case 'add_goal': return { tab:'goals', el: $('goals-list') };
+    case 'delete_goal': return { tab:'goals', el: onc($('goals-list'), `delGoal('${a.id}')`) || $('goals-list') };
+    case 'set_final_goal': return { tab:'goals', el: $('final-goal-card') };
+    default: return null;
+  }
+}
+// ★ 어떤 일이든 같은 순서: 그 탭이 아니면 탭바를 눌러 이동 → 화면 밖이면 가운데로 스크롤 → 누를 곳 좌표
+async function agReveal(a){
+  let t = agTarget(a); if (!t) return null;
+  const curTab = (document.querySelector('.tab.active') || {}).id;
+  if (curTab !== 'tab-' + t.tab) {
+    const btn = navBtns().find(b => (b.getAttribute('onclick') || '').includes(`'${t.tab}'`));
+    if (btn) { const r = btn.getBoundingClientRect(); await agFly({ x:r.left + r.width/2, y:r.top + r.height/2 }); await agPress(); }
+    gotoTab(t.tab);
+    await agWait(320);
+    t = agTarget(a) || t;            // 탭을 새로 그렸으니 다시 찾아요
+  }
+  let el = t.el, marker = null;
+  if (!el) return null;
+  if (t.y !== undefined) {           // 시간표의 몇 시 자리처럼, 요소 안의 특정 높이로 가야 할 때
+    marker = document.createElement('div');
+    marker.style.cssText = `position:absolute;left:0;top:${t.y}px;width:1px;height:1px;`;
+    el.appendChild(marker); el = marker;
+  }
+  el.scrollIntoView({ block:'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  await agSettle(el);
+  const r = el.getBoundingClientRect();
+  const p = marker ? { x: r.left + 60, y: r.top + 14 } : { x: r.left + Math.min(r.width/2, 40), y: r.top + Math.min(r.height/2, 22) };
+  if (marker) marker.remove();
+  return p;
+}
+const agLabel = a => { const d = document.createElement('div'); d.innerHTML = agentActionLabel(a); return d.textContent.trim(); };
+
+function agSnapshot(){ const o = {}; AG_STORES().forEach(k => o[k] = localStorage.getItem(k)); return o; }
+function agRestore(snap){
+  // 적용 전에 아예 없던 저장소(예: 그날 처음 기록한 기분)는 빈 상태로 돌려놔요
+  const EMPTY = { [K.h]: [], [K.d]: {}, [K.g]: [], [K.md]: {}, [K.m]: [], [K.f]: null, [K.u]: {} };
+  AG_STORES().forEach(k => lsSet(k, snap[k] == null ? EMPTY[k] : JSON.parse(snap[k])));
+  scheduleSync();
+}
+function agRefresh(){ render(); renderDay(); if (typeof renderGoals === 'function') { renderGoals(); renderFinalGoal(); } }
+
+async function applyAgentActions(idx, btnEl){
+  const actions = ((getDay(dayCursor).chat || [])[idx] || {}).actions || [];
+  if (!actions.length || AG.running) return;
+  agEls();
+  AG.snap = agSnapshot(); AG.idx = idx; AG.done = [];
+  const markApplied = () => { const d = getDay(dayCursor); if (d.chat && d.chat[idx]) { d.chat[idx].applied = true; setDay(dayCursor, d); } };
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '적용하는 중…'; }
+
+  // 움직임 줄이기를 켠 사람에겐 한 번에 처리해요
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    runAgentActions(actions); AG.done = actions.map(agLabel);
+    markApplied(); agRefresh(); renderAgentLog(); return agShowDone();
+  }
+
+  closeModal('agent-modal'); $('agent-fab').classList.add('hidden');
+  AG.running = true; AG.paused = false; AG.halt = false; AG.pts = [];
+  $('ag-glow').classList.add('on'); $('ag-pill').classList.add('on');
+  agPlace({ x: innerWidth / 2, y: innerHeight - 140 });
+  $('ag-cursor').classList.add('on');
+  if (!AG.raf) AG.raf = requestAnimationFrame(agTick);
+  await agWait(250);
+
+  for (let i = 0; i < actions.length; i++) {
+    if (AG.halt) break;
+    const a = actions[i];
+    $('ag-pill-text').textContent = agLabel(a) || 'AI가 하는 중';
+    $('ag-pill-step').textContent = `${i + 1}/${actions.length}`;
+    const p = await agReveal(a);
+    if (AG.halt) break;
+    if (p) { await agFly(p); await agPress(); }
+    if (AG.halt) break;
+    if (runAgentActions([a])) AG.done.push(agLabel(a));
+    agRefresh();
+    await agWait(300);
+  }
+  markApplied();
+  AG.running = false;
+  $('ag-cursor').classList.remove('on'); $('ag-glow').classList.remove('on'); $('ag-pill').classList.remove('on');
+  agShowDone();
+}
+function agShowDone(){
+  $('ag-done-title').textContent = AG.done.length ? `${AG.done.length}개 처리했어요` : '아무것도 안 바뀌었어요';
+  $('ag-done-list').innerHTML = AG.done.map(t => `<li>${esc(t)}</li>`).join('');
+  $('ag-done').classList.add('on');
+}
+function agPause(){
+  if (!AG.running || AG.paused) return;
+  AG.paused = true; $('ag-glow').classList.remove('on');
+  $('ag-stop-sum').textContent = AG.done.length ? `여기까지 한 것: ${AG.done.join(', ')}` : '아직 아무것도 안 했어요';
+  $('ag-stopped').classList.add('on');
+}
+function agResume(){
+  $('ag-stopped').classList.remove('on'); $('ag-glow').classList.add('on');
+  AG.paused = false; const f = AG.resume; AG.resume = null; if (f) f();
+}
+function agHalt(){
+  AG.halt = true; $('ag-stopped').classList.remove('on');
+  AG.paused = false; const f = AG.resume; AG.resume = null; if (f) f();
+}
+function agUndo(){
+  if (AG.snap) agRestore(AG.snap);
+  AG.snap = null; $('ag-done').classList.remove('on');
+  agRefresh(); renderAgentLog();
+  showToast('되돌렸어요');
+}
+function agDoneClose(){
+  $('ag-done').classList.remove('on'); AG.snap = null;
+  $('agent-fab').classList.remove('hidden');
+  renderAgentLog();
+}
+
+// AI 비서가 정한 일들을 실제로 반영해요. 몇 개를 반영했는지 돌려줘요.
+// '보여주며 처리'는 이걸 한 번에 하나씩 불러요 (applyAgentActions 참고).
+function runAgentActions(actions){
   const d=getDay(dayCursor);
-  const msg=(d.chat||[])[idx];
-  const actions=(msg && msg.actions) || [];
-  if(!actions.length) return;
   // 하루 데이터(d)는 위에서 이미 불러왔고, 습관/목표 같은 전역 데이터는 필요할 때만 불러옴
   let habits=null, goals=null;
   const H=()=>habits||(habits=loadHabits());
@@ -6753,15 +7006,11 @@ function applyAgentActions(idx,btnEl){
       }
     }
   });
-  msg.applied=true;
   setDay(dayCursor,d);
   if(habitsDirty) saveHabits(habits);
   if(goalsDirty) saveGoals(goals);
   if(checkedAny) checkAchs();
-  if(btnEl){ btnEl.textContent='✓ 적용됨'; btnEl.disabled=true; btnEl.style.opacity='.6'; }
-  showToast(`${n}개 적용했어요`);
-  render();        // '오늘' 탭(습관/메모) 동기화. 목표 탭은 탭 이동할 때 알아서 다시 그려짐
-  renderDay();
+  return n;
 }
 
 // HH:MM → 앱의 시간대(timeSlot) enum
