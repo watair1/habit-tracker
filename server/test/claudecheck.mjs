@@ -50,6 +50,10 @@ r = await tryCall('s', 'u'); ok('시간 초과 → overloaded', r.e && r.e.overl
 replies = [fakeErr(Anthropic.AuthenticationError)];
 r = await tryCall('s', 'u'); ok('키 틀림 → noKey', r.e && r.e.noKey, '');
 
+replies = [text('{}')];
+await tryCall('s', 'u', { json: true, effort: 'high' });
+ok('앱에서 고른 생각 깊이가 그대로 감', sent.at(-1).output_config.effort === 'high', JSON.stringify(sent.at(-1).output_config));
+
 replies = [text('평문 답')];
 r = await tryCall('s', 'u'); ok('json 아니면 글 그대로', r.v === '평문 답', JSON.stringify(r));
 

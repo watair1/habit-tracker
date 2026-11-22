@@ -787,6 +787,14 @@
     /* 보내는 칸은 여러 줄이 돼야 해요. 습관 목록처럼 줄줄이 붙여넣을 일이 있어서요.
        한 줄로 시작해서 내용만큼 늘어나고, 다섯 줄쯤에서 멈추고 스크롤됩니다. */
     .agent-input-row { display: flex; gap: 6px; align-items: flex-end; }
+    .agent-effort-wrap { position: relative; flex: 0 0 auto; }
+    .agent-effort { height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card2); color: var(--text); font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .agent-effort::after { content: ''; width: 5px; height: 5px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg) translateY(-2px); margin-left: 2px; }
+    .agent-effort-menu { display: none; position: absolute; left: 0; bottom: 46px; min-width: 190px; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 5px; z-index: 5; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+    .agent-effort-menu.open { display: block; }
+    .agent-effort-opt { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 10px; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; text-align: left; }
+    .agent-effort-opt span { font-size: .72rem; font-weight: 500; color: var(--muted); }
+    .agent-effort-opt.on { background: var(--primary-light); color: var(--primary); }
     .agent-input-row textarea { flex: 1; padding: 10px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: .85rem; outline: none; background: var(--card); color: var(--text); font-family: inherit; line-height: 1.5; resize: none; max-height: 116px; overflow-y: auto; }
     .agent-input-row textarea:focus { border-color: var(--primary); }
     .agent-input-row button { flex: 0 0 auto; display: inline-flex; align-items: center; height: 40px; }
@@ -1410,6 +1418,11 @@
     <div id="agent-log" class="agent-log"></div>
     <div class="agent-chips" id="agent-chips"></div>
     <div class="agent-input-row">
+      <!-- 생각 깊이(effort). Claude 앱의 모델 칩처럼 눌러서 고르는 방식 -->
+      <div class="agent-effort-wrap">
+        <button type="button" class="agent-effort" id="agent-effort" onclick="toggleEffortMenu(event)" title="생각 깊이"></button>
+        <div class="agent-effort-menu" id="agent-effort-menu"></div>
+      </div>
       <textarea id="agent-input" rows="1" placeholder="예: 오후에 공부 2시간 넣어줘" onkeydown="agentInputKey(event)" oninput="growAgentInput()"></textarea>
       <button class="btn btn-sm" id="agent-send" onclick="sendAgent()"><i data-lucide="send" style="width:14px;height:14px;"></i></button>
     </div>
@@ -6221,6 +6234,30 @@ function setAgentMode(m){
   paintAgentMode();
   showToast(m === 'coach' ? '코칭 모드 — 먼저 제안해드려요' : '일반 모드 — 시킨 것만 처리해요');
 }
+// 생각 깊이(effort) — low 빠르고 쌈 / medium 보통 / high 깊지만 느리고 비쌈.
+// 코칭·일반 모드처럼 사용자 정보(K.u)에 저장돼서 기기 간에도 따라와요.
+// 서버가 Claude 를 쓸 때만 의미가 있어요. (Gemini 일 땐 서버가 무시)
+const AI_EFFORTS = [['low', '빠르게'], ['medium', '보통'], ['high', '깊게 · 느림']];
+function agentEffort(){ const e = loadUser().aiEffort; return AI_EFFORTS.some(x => x[0] === e) ? e : 'low'; }
+function setAgentEffort(e){
+  const u = loadUser(); u.aiEffort = e; saveUser(u);
+  $('agent-effort-menu').classList.remove('open');
+  paintAgentEffort();
+}
+function paintAgentEffort(){
+  const cur = agentEffort();
+  $('agent-effort').textContent = cur;
+  $('agent-effort-menu').innerHTML = AI_EFFORTS.map(([k, d]) =>
+    `<button type="button" class="agent-effort-opt${k === cur ? ' on' : ''}" onclick="setAgentEffort('${k}')">${k}<span>${d}</span></button>`).join('');
+}
+function toggleEffortMenu(ev){
+  if (ev) ev.stopPropagation();
+  $('agent-effort-menu').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  const m = $('agent-effort-menu');
+  if (m && m.classList.contains('open') && !e.target.closest('.agent-effort-wrap')) m.classList.remove('open');
+});
 function paintAgentMode(){
   const cur = agentMode();
   document.querySelectorAll('.agent-mode-btn').forEach(b =>
@@ -6417,7 +6454,7 @@ function openAgent(){
   $('agent-scope').textContent = `${fmtDayHead(dayCursor)} 기준으로 도와드려요`;
   openModal('agent-modal');
   $('agent-fab').classList.add('hidden');
-  paintAgentMode();
+  paintAgentMode(); paintAgentEffort();
   renderAgentLog();
   renderAgentEmpty();
   renderAgentChips();
@@ -6559,7 +6596,7 @@ async function sendAgent(){
   const habits=loadHabits();
   try{
     const out=await aiCall('/api/day-agent',{
-      message:msg, date:dayCursor, mode:agentMode(),
+      message:msg, date:dayCursor, mode:agentMode(), effort:agentEffort(),
       // 앞선 대화를 같이 보내야 AI 가 "아까 그거" 를 알아들어요.
       // 방금 넣은 내 메시지는 빼고(message 로 따로 보냄), 최근 것만 추립니다.
       history: (d.chat||[]).slice(0,-1).slice(-HISTORY_SEND)

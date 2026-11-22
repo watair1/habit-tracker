@@ -51,7 +51,7 @@ export async function callClaude(systemPrompt, userContent, opts = {}) {
         max_tokens: 16000,
         system,
         messages: [{ role: 'user', content: userContent }],
-        output_config: { effort: EFFORT },
+        output_config: { effort: opts.effort || EFFORT },
         // 안전 문제로 답을 거절하면 Anthropic 서버가 알아서 다른 모델로 대신 답하게 해요.
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',

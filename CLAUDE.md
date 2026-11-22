@@ -160,6 +160,14 @@ The Analysis tab calls the Anthropic API directly from the browser:
 - API key stored only in `localStorage` (never synced to Firestore)
 - `buildAnalysisData()` → `buildPrompt()` → `callClaudeAPI()` → `parseAIResponse()` splits `## section` headings into cards
 
+## AI Server Provider
+
+`server/llm.js` picks the model: `AI_PROVIDER=claude` → `server/claude.js` (Sonnet 5.5 by default,
+`AI_CLAUDE_MODEL` / `AI_CLAUDE_EFFORT`), otherwise Gemini. Claude is refused when `ALLOWED_EMAILS`
+is empty (it costs money). The AI 비서 has an effort chip (`low/medium/high`) left of its input;
+the pick lives in `user.aiEffort` (synced) and goes out as `effort` on `/api/day-agent`. The
+server accepts only those three values. Env var names avoid `CLAUDE_*` because tooling sets those.
+
 ## Modals
 
 `openModal(id)` / `closeModal(id)` toggle `.open` class on `.overlay` elements.

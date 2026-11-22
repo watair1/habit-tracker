@@ -302,7 +302,7 @@ export function sanitizeBet(bet, names) {
 //  하루(일정/할일/하이라이트/기분/수면/메모)뿐 아니라
 //  습관·목표·아이디어 메모까지 앱 전체를 다룰 수 있음.
 router.post('/day-agent', async (req, res) => {
-  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo, history, highlight, mode } = req.body || {};
+  const { message, date, events, todos, habits, goals, finalGoal, mood, sleep, dayMemo, history, highlight, mode, effort } = req.body || {};
   if (!need(res, message && message.trim(), '무엇을 도와드릴까요? 메시지를 입력해주세요.')) return;
   try {
     // AI가 없는 항목을 지어내지 못하게, 실제로 보낸 id만 허용
@@ -422,7 +422,9 @@ ${isPlain ? '- 묻지 않은 제안이나 조언은 하지 마라. 요청한 것
 
 사용자 메시지: ${message}`;
 
-    const out = await callAI(sys, ctx, { json: true });
+    // 생각 깊이는 정해진 세 값만 받아요. 이상한 값이면 서버 기본값(AI_CLAUDE_EFFORT).
+    const eff = ['low', 'medium', 'high'].includes(effort) ? effort : undefined;
+    const out = await callAI(sys, ctx, { json: true, effort: eff });
     const actions = sanitizeAgentActions(out.actions, { evIds, todoIds, habitIds, goalIds });
     res.json({ reply: out.reply || '', actions });
   } catch (e) { fail(res, e); }
