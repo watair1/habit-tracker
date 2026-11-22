@@ -92,6 +92,11 @@
 
     /* Lv.3 채워지는 아이콘 — 얇은 원이 크게 퍼지고, 아이콘이 꽉 차며 이름이 떠요 */
     .ns-fill { overflow: visible; }
+    /* 선으로만 된 아이콘(꺾은선·맥박선 등)은 속을 채우면 덩어리로 깨져요.
+       '채워지는 아이콘' 모양일 때만, 채워도 모양이 사는 짝꿍 아이콘(.fi)으로 바꿔 보여줘요. */
+    .nav-btn .fi { display: none; }
+    .ns-fill .nav-btn:has(.fi) > :is(svg, i):not(.fi) { display: none; }
+    .ns-fill .nav-btn .fi { display: block; }
     .ns-fill .nav-btn .lbl { display: block; position: absolute; bottom: 6px; opacity: 0; transform: translateY(5px);
       transition: opacity .25s, transform .35s cubic-bezier(.3,1.5,.5,1); }
     .ns-fill .nav-btn.active .lbl { opacity: 1; transform: none; color: var(--nav-text); transition-delay: .15s; }
@@ -1479,11 +1484,11 @@
   <div class="nav-holder" id="nav-holder">
     <div class="navbar ns-expand" id="navbar">
       <button class="nav-btn active" onclick="switchTab('today',this)"><i data-lucide="check-circle"></i><span class="lbl">오늘</span></button>
-      <button class="nav-btn" onclick="switchTab('day',this)"><i data-lucide="calendar"></i><span class="lbl">하루</span></button>
-      <button class="nav-btn" onclick="switchTab('stats',this)"><i data-lucide="bar-chart-3"></i><span class="lbl">통계</span></button>
-      <button class="nav-btn" onclick="switchTab('growth',this)"><i data-lucide="trending-up"></i><span class="lbl">성장</span></button>
+      <button class="nav-btn" onclick="switchTab('day',this)"><i data-lucide="calendar"></i><i data-lucide="calendar-days" class="fi"></i><span class="lbl">하루</span></button>
+      <button class="nav-btn" onclick="switchTab('stats',this)"><i data-lucide="bar-chart-3"></i><i data-lucide="square-chart-gantt" class="fi"></i><span class="lbl">통계</span></button>
+      <button class="nav-btn" onclick="switchTab('growth',this)"><i data-lucide="trending-up"></i><i data-lucide="sprout" class="fi"></i><span class="lbl">성장</span></button>
       <button class="nav-btn" onclick="switchTab('goals',this)"><i data-lucide="target"></i><span class="lbl">목표</span></button>
-      <button class="nav-btn" onclick="switchTab('analysis',this)"><i data-lucide="activity"></i><span class="lbl">분석</span></button>
+      <button class="nav-btn" onclick="switchTab('analysis',this)"><i data-lucide="activity"></i><i data-lucide="square-activity" class="fi"></i><span class="lbl">분석</span></button>
     </div>
   </div>
 </nav>
