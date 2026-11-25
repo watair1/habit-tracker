@@ -144,8 +144,8 @@ newly opened style and the toast says so. `switchTab()` drives the animation thr
 Every AI spot (the AI button, the 비서 sheet title and avatar, "AI 분석 받기" and the like) uses
 `<i class="ai-ico">`, not a Lucide icon. `.ai-ico` paints `currentColor` through a CSS mask set to
 the `--ai-ico` custom property, so dynamic templates pick up the current icon with no extra call.
-`AI_ICONS` holds four hand-drawn 24-grid icons unlocked by level (talk Lv.1, net Lv.2, orbit Lv.4,
-cursor Lv.6). `user.aiIcon` holds the pick (synced with `K.u`); `aiIconNow()` falls back to the
+`AI_ICONS` holds four hand-drawn 24-grid icons unlocked by level (cursor Lv.1 — the default, talk Lv.2,
+net Lv.4, orbit Lv.6). `user.aiIcon` holds the pick (synced with `K.u`); `aiIconNow()` falls back to the
 newest unlocked one; `aiIconApply()` sets `--ai-ico` (called from `init()` and after login). The
 picker lives in the 성장 tab (`renderAiIconPicker()`), and `aiIconOnLevelUp()` switches to a newly
 opened icon and the level-up toast names it. The 핵심 (importance 3) marker on memos is not an AI

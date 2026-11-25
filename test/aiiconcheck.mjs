@@ -34,7 +34,7 @@ const var_ = p => p.evaluate(() => getComputedStyle(document.documentElement).ge
 
 { // Lv.1: 말하는 노드만
   const { page, ctx, errs } = await open(0);
-  ok('Lv.1 기본은 말하는 노드', await cur(page), 'talk');
+  ok('Lv.1 기본은 움직이는 커서', await cur(page), 'cursor');
   ok('화면에 그림이 들어감', (await var_(page)).includes('data:image/svg+xml'), true);
   ok('AI 버튼이 새 아이콘을 씀', await page.evaluate(() => !!document.querySelector('#agent-fab .ai-ico') && !document.querySelector('#agent-fab [data-lucide]')), true);
   ok('AI 자리에 반짝이가 안 남음', await page.evaluate(() => [...document.querySelectorAll('[data-lucide="sparkles"]')].filter(e => /AI/.test(e.parentElement.textContent)).length), 0);
@@ -46,16 +46,16 @@ const var_ = p => p.evaluate(() => getComputedStyle(document.documentElement).ge
 }
 { // Lv.4 (500XP): 3개 열림, 고르면 바뀜
   const { page, ctx, errs } = await open(500);
-  ok('Lv.4 고른 게 없으면 가장 최근에 열린 궤도', await cur(page), 'orbit');
+  ok('Lv.4 고른 게 없으면 가장 최근에 열린 작은 신경망', await cur(page), 'net');
   await page.evaluate(() => gotoTab('growth'));
   ok('열린 아이콘 3개', await page.evaluate(() => document.querySelectorAll('#ai-icon-picker .ai-opt:not([disabled])').length), 3);
   const before = await var_(page);
-  await page.evaluate(() => setAiIcon('net'));
-  ok('고르면 바뀜', await cur(page), 'net');
+  await page.evaluate(() => setAiIcon('talk'));
+  ok('고르면 바뀜', await cur(page), 'talk');
   ok('화면 그림도 바뀜', (await var_(page)) !== before, true);
-  ok('저장됨', await page.evaluate(() => JSON.parse(localStorage.getItem('ht_user_v2')).aiIcon), 'net');
-  await page.evaluate(() => setAiIcon('cursor'));
-  ok('잠긴 건 못 고름', await cur(page), 'net');
+  ok('저장됨', await page.evaluate(() => JSON.parse(localStorage.getItem('ht_user_v2')).aiIcon), 'talk');
+  await page.evaluate(() => setAiIcon('orbit'));
+  ok('잠긴 건 못 고름', await cur(page), 'talk');
   ok('에러 없음', errs.join(' | '), '');
   await ctx.close();
 }
@@ -63,8 +63,8 @@ const var_ = p => p.evaluate(() => getComputedStyle(document.documentElement).ge
   const { page, ctx, errs } = await open(1480, 'net');  // Lv.5, 1500 에서 Lv.6
   ok('레벨업 전', await cur(page), 'net');
   await page.evaluate(() => addXP(30));
-  ok('Lv.6 이 되면 커서로 바뀜', await cur(page), 'cursor');
-  ok('알림에 새 아이콘 이름', await page.evaluate(() => document.body.textContent.includes("새 AI 아이콘 '움직이는 커서'")), true);
+  ok('Lv.6 이 되면 궤도로 바뀜', await cur(page), 'orbit');
+  ok('알림에 새 아이콘 이름', await page.evaluate(() => document.body.textContent.includes("새 AI 아이콘 '궤도'")), true);
   ok('에러 없음', errs.join(' | '), '');
   await ctx.close();
 }
