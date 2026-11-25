@@ -5,9 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 나에 대해 / 작업 규칙
 
 - 한국어로 답변
-- 나는 코딩 초보자. 어려운 용어는 풀어서 설명
 - 코드 짜기 전에 뭘 할지 먼저 알려주고 시작
-- 한 번에 너무 많이 바꾸지 말기 (작은 단위로)
 - 내가 이해 못 한 것 같으면 다시 설명해주기
 - 막힐 때는 검색이나 추측 말고 솔직히 모른다고 말하기
 
