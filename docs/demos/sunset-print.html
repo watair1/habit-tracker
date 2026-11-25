@@ -1,0 +1,194 @@
+<title>노을 판화</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* 레이아웃: 왼쪽 폰 한 대, 오른쪽 색판 고르기와 바뀐 점. 페이지 자체는 어두운 한 가지 모습 */
+:root {
+  --pg: #121010;
+  --pg-edge: #2c2724;
+  --pg-fg: #ebe3d7;
+  --pg-mute: #958a7f;
+  --pg-acc: #e2703a;
+  --font: 'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--pg); color: var(--pg-fg); font-family: var(--font); line-height: 1.5; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 26px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 34px; align-items: start; }
+@media (max-width: 780px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+.side { display: grid; gap: 14px; min-width: 0; }
+.side .k { font-size: 12px; letter-spacing: .1em; color: var(--pg-acc); }
+.side h1 { margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -.01em; }
+.side p { margin: 0; color: var(--pg-mute); font-size: 14px; }
+.side h2 { margin: 8px 0 0; font-size: 14px; font-weight: 600; }
+.side ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; color: var(--pg-mute); }
+.side b { color: var(--pg-fg); font-weight: 500; }
+.plates { display: flex; gap: 8px; flex-wrap: wrap; }
+.plates button { font: inherit; font-size: 13px; color: var(--pg-fg); background: none; border: 1px solid var(--pg-edge); border-radius: 6px; padding: 6px 12px 6px 8px; display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.plates button i { width: 18px; height: 18px; border-radius: 3px; border: 1px solid #0003; }
+.plates button[aria-pressed="true"] { border-color: var(--pg-fg); }
+button:focus-visible { outline: 2px solid var(--pg-acc); outline-offset: 2px; }
+
+/* ── 색판 (역할별 색을 직접 고름) ── */
+.phone[data-plate=paper] { --paper:#efe5d3; --paper2:#e6d9c3; --ink:#2a221d; --mute:#7d6f61; --line:#d6c8b1;
+  --red:#c4501d; --ochre:#d39c3c; --indigo:#45536c; --sky1:#45536c; --sky2:#d8693a; --sky3:#eab35b; --sun:#f6e1a6;
+  --ridge:#8a4f3d; --roof:#2a221d; --grain:.08; --blend:multiply; }
+.phone[data-plate=ink] { --paper:#1e1712; --paper2:#271e18; --ink:#efe2cc; --mute:#9d8c79; --line:#3a2e25;
+  --red:#e2703a; --ochre:#d9a441; --indigo:#8d9bb5; --sky1:#1f263a; --sky2:#a5422a; --sky3:#d68a3c; --sun:#f2cd84;
+  --ridge:#4a2a26; --roof:#0f0b08; --grain:.06; --blend:screen; }
+
+/* ── 폰 ── */
+.phone { position: relative; width: min(360px, 100%); height: 760px; border-radius: 34px; overflow: hidden;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--pg-edge); font-family: var(--font); }
+.grain { position: absolute; inset: 0; pointer-events: none; z-index: 8; opacity: var(--grain); mix-blend-mode: var(--blend); }
+.scroll { position: absolute; inset: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: 100px; }
+.scroll::-webkit-scrollbar { display: none; }
+.band { display: block; width: 100%; height: 150px; }
+.head { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; align-items: end; padding: 14px 20px 0; }
+.date { grid-column: 1 / -1; font-size: 12px; color: var(--mute); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.big { font-size: 54px; font-weight: 700; line-height: .95; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.big span { color: var(--mute); font-weight: 500; }
+.headnote { font-size: 12.5px; color: var(--mute); padding-bottom: 6px; line-height: 1.45; }
+.headnote b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sh { display: flex; justify-content: space-between; align-items: baseline; padding: 22px 20px 6px; border-bottom: 1.5px solid var(--ink); margin: 0 20px; padding-left: 0; padding-right: 0; }
+.sh h4 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+.sh span { font-size: 11.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.rows { margin: 0 20px; }
+.row { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; }
+.row .nm { font-size: 15.5px; font-weight: 500; }
+.row .meta { font-size: 11.5px; color: var(--mute); font-variant-numeric: tabular-nums; text-align: right; }
+.row.done .nm { color: var(--mute); }
+.stamp { width: 22px; height: 22px; border: 1.5px solid var(--ink); border-radius: 3px; display: grid; place-items: center; }
+.row.done .stamp { background: var(--red); border-color: var(--red); }
+.row.done .stamp::after { content: ''; width: 9px; height: 5px; border-left: 2px solid var(--paper); border-bottom: 2px solid var(--paper); transform: rotate(-45deg) translate(1px, -1px); }
+.row.tak .stamp { animation: tak .16s steps(2, end); }
+@keyframes tak { 0% { transform: scale(1.22) rotate(-6deg); } 100% { transform: none; } }
+.week { margin: 0 20px; display: grid; grid-template-columns: 74px repeat(7, 1fr); font-size: 12px; font-variant-numeric: tabular-nums; }
+.week div { padding: 7px 0; border-bottom: 1px solid var(--line); text-align: center; }
+.week .nm { text-align: left; color: var(--ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-right: 6px; }
+.week .hd { color: var(--mute); font-size: 11px; }
+.week .now { color: var(--red); font-weight: 700; }
+.week .o { color: var(--ink); }
+.week .x { color: var(--line); }
+.week .m { color: var(--mute); }
+.cmp { margin: 8px 20px 0; font-size: 12.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.cmp b { color: var(--ink); font-weight: 600; }
+.rec { margin: 0 20px; display: grid; grid-template-columns: 1fr 88px; gap: 14px; padding-top: 12px; }
+.rec .lab { font-size: 11px; color: var(--mute); letter-spacing: .04em; }
+.rec .mood { font-size: 20px; font-weight: 700; margin: 2px 0 8px; }
+.rec p { margin: 0; font-size: 14px; line-height: 1.6; }
+.rec .ph { width: 88px; height: 88px; border-radius: 2px; overflow: hidden; }
+.rec .ph svg { display: block; width: 100%; height: 100%; }
+/* 탭바: 사용자가 좋아하는 떠 있는 유리 알약 유지, 색만 판에 맞춤 */
+.tab { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9; display: flex; gap: 22px; padding: 12px 22px; border-radius: 999px;
+  background: color-mix(in srgb, var(--paper2) 72%, transparent); border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.tab i { width: 20px; height: 20px; border: 1.6px solid var(--mute); border-radius: 5px; }
+.tab i.cur { border-color: var(--red); background: var(--red); }
+</style>
+
+<div class="wrap">
+  <div class="phone" id="phone" data-plate="paper">
+    <div class="scroll">
+      <svg class="band" viewBox="0 0 360 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g transform="translate(0.8 -0.6)">
+          <rect width="360" height="52" fill="var(--sky1)"/>
+          <rect y="52" width="360" height="40" fill="var(--sky2)"/>
+          <rect y="92" width="360" height="58" fill="var(--sky3)"/>
+        </g>
+        <circle id="sun" cx="262" cy="96" r="17" fill="var(--sun)" transform="translate(-0.9 0.7)" style="transition: cy .5s steps(5, end)"/>
+        <path d="M0 112 L28 101 L44 106 L70 92 L92 103 L118 96 L140 108 L168 98 L196 104 L214 95 L240 106 L268 100 L300 110 L326 99 L360 105 V150 H0Z" fill="var(--ridge)" transform="translate(0.6 0.9)"/>
+        <path d="M0 150 V124 H22 V116 H58 V124 H70 V108 H112 V122 H126 V118 H150 V128 H176 V112 H182 V104 H186 V112 H214 V126 H240 V118 H286 V130 H306 V120 H332 V126 H360 V150Z" fill="var(--roof)"/>
+        <path d="M196 150 V80 M190 86 H202" stroke="var(--roof)" stroke-width="2.2" fill="none"/>
+        <path d="M0 96 Q100 108 196 86 M202 86 Q290 104 360 92 M196 90 Q260 112 360 106" stroke="var(--roof)" stroke-width=".9" fill="none"/>
+      </svg>
+      <div class="head">
+        <div class="date" id="date"></div>
+        <div class="big" id="big">2<span>/4</span></div>
+        <div class="headnote">해 높이 = 오늘 한 만큼<br>지난주 <b>9</b> → 이번 주 <b>11</b>번</div>
+      </div>
+
+      <div class="sh"><h4>습관</h4><span id="left">2개 남음</span></div>
+      <div class="rows" id="rows"></div>
+
+      <div class="sh"><h4>이번 주</h4><span>출석부</span></div>
+      <div class="week" id="week"></div>
+
+      <div class="sh"><h4>기록</h4><span>기분 · 메모</span></div>
+      <div class="rec">
+        <div>
+          <div class="lab">기분</div>
+          <div class="mood">괜찮음</div>
+          <p>퇴근길 노을이 진짜 예뻤다. 내일도 걸어서 가야지.</p>
+        </div>
+        <div class="ph" aria-label="오늘 찍은 사진">
+          <svg viewBox="0 0 88 88" preserveAspectRatio="none"><rect width="88" height="40" fill="var(--sky2)"/><rect y="40" width="88" height="20" fill="var(--sky3)"/><path d="M0 60 L18 54 L34 58 L52 50 L70 57 L88 53 V88 H0Z" fill="var(--ridge)"/><path d="M0 88 V70 H20 V64 H44 V72 H60 V66 H88 V88Z" fill="var(--roof)"/></svg>
+        </div>
+      </div>
+    </div>
+    <svg class="grain" aria-hidden="true"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 1.2 -.2"/></filter><rect width="100%" height="100%" filter="url(#g)"/></svg>
+    <nav class="tab" aria-label="탭"><i class="cur"></i><i></i><i></i><i></i><i></i></nav>
+  </div>
+
+  <div class="side">
+    <div class="k">노을 · 3안</div>
+    <h1>노을 판화</h1>
+    <p>목판화처럼 형태를 그린 판은 하나로 두고, 색판만 갈아 끼워. 아래 버튼으로 같은 판에 다른 색판을 찍어 봐. 습관 줄을 누르면 도장이 "탁" 찍히고 해가 그만큼 올라가.</p>
+    <div class="plates" id="plates">
+      <button type="button" data-p="paper" aria-pressed="true"><i style="background:#efe5d3"></i>종이판 (밝음)</button>
+      <button type="button" data-p="ink" aria-pressed="false"><i style="background:#1e1712"></i>먹판 (어두움)</button>
+    </div>
+    <h2>2안에서 바뀐 것</h2>
+    <ul>
+      <li><b>그라데이션 → 납작한 색면</b>: 하늘 3단 띠, 색 5개(감빛 · 황토 · 먹갈색 · 쪽빛 · 종이)</li>
+      <li><b>빛무리 · 별 · 매끈한 언덕 → 각진 능선 + 아파트 옥상 · 전봇대 · 전깃줄</b></li>
+      <li><b>판 어긋남</b>: 색판끼리 1px 안팎 어긋나게, 종이 결 아주 옅게</li>
+      <li><b>은유 하나만</b>: 해 높이 = 오늘 진행률. 숫자도 같이</li>
+      <li><b>점 7개 → 출석부 표</b>, <b>초록 ▲ → "지난주 9 → 이번 주 11"</b> 글자</li>
+      <li><b>명조 · 폴라로이드 · 인사 문구 빼기</b>. 글꼴 하나, 고정폭 숫자</li>
+      <li><b>유리 카드 빼기</b>: 굵은 선 한 줄로 섹션을 나누고, 섹션마다 생김새 다르게</li>
+      <li><b>탭바는 유지</b>(사용자 취향), 색만 판에 맞춤</li>
+      <li><b>움직임 하나</b>: 체크할 때 도장 "탁"</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const now = new Date(), W = ['일', '월', '화', '수', '목', '금', '토'];
+$('date').textContent = `${now.getFullYear()}. ${now.getMonth() + 1}. ${now.getDate()}. ${W[now.getDay()]}`;
+const habits = [
+  { nm: '스트레칭 5분', meta: '3일 연속', done: false, wk: [1, 1, 0, 1, 0, 0, 0] },
+  { nm: '영어 단어 20개', meta: '어제 빠짐', done: false, wk: [1, 0, 1, 0, 0, 0, 0] },
+  { nm: '물 한 컵 마시기', meta: '12일 연속', done: true, wk: [1, 1, 1, 1, 0, 0, 0] },
+  { nm: '책 10쪽 읽기', meta: '5일 연속', done: true, wk: [1, 1, 1, 1, 0, 0, 0] },
+];
+const todayIdx = (now.getDay() + 6) % 7; // 월요일 = 0
+function paint(tapped) {
+  const n = habits.filter(h => h.done).length, t = habits.length;
+  $('big').innerHTML = `${n}<span>/${t}</span>`;
+  $('left').textContent = t - n ? `${t - n}개 남음` : '다 했어';
+  $('sun').setAttribute('cy', 122 - 88 * (n / t));      // 지평선 아래(0) → 하늘 꼭대기(전부)
+  $('rows').innerHTML = habits.map((h, i) => `<div class="row${h.done ? ' done' : ''}${i === tapped ? ' tak' : ''}" data-i="${i}" role="checkbox" aria-checked="${h.done}" tabindex="0"><span class="stamp"></span><span class="nm">${h.nm}</span><span class="meta">${h.meta}</span></div>`).join('');
+  const head = ['', '월', '화', '수', '목', '금', '토', '일'].map((d, i) => `<div class="hd${i - 1 === todayIdx ? ' now' : ''}">${d}</div>`).join('');
+  const body = habits.map(h => `<div class="nm">${h.nm}</div>` + h.wk.map((v, i) => {
+    const on = i === todayIdx ? h.done : v;
+    return `<div class="${i > todayIdx ? 'x' : on ? 'o' : 'm'}">${i > todayIdx ? '·' : on ? '●' : '○'}</div>`;
+  }).join('')).join('');
+  $('week').innerHTML = head + body;
+}
+$('rows').addEventListener('click', e => { const r = e.target.closest('.row'); if (!r) return; const i = +r.dataset.i; habits[i].done = !habits[i].done; paint(habits[i].done ? i : -1); });
+$('rows').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); e.target.closest('.row')?.click(); } });
+$('plates').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $('phone').dataset.plate = b.dataset.p;
+  document.querySelectorAll('#plates button').forEach(x => x.setAttribute('aria-pressed', x === b));
+});
+paint(-1);
+})();
+</script>
