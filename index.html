@@ -156,6 +156,15 @@
     .ns-opt span { font-size: .7rem; color: var(--muted); }
     .ns-opt.on { border-color: var(--primary); background: rgba(179,240,0,.08); }
     .ns-opt.on span { color: var(--primary); }
+    /* AI 아이콘: 지금 고른 아이콘을 --ai-ico 에 그림으로 넣고, 글자색으로 칠해요(어디서든 class="ai-ico" 만 쓰면 됨) */
+    .ai-ico { display: inline-block; flex: none; width: 1em; height: 1em; background-color: currentColor;
+      -webkit-mask: var(--ai-ico) center / contain no-repeat; mask: var(--ai-ico) center / contain no-repeat; }
+    .agent-fab .ai-ico { width: 25px; height: 25px; }
+    .agent-avatar .ai-ico { width: 15px; height: 15px; }
+    .agent-empty-icon .ai-ico { width: 26px; height: 26px; }
+    .ai-opt { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; text-align: left; }
+    .ai-opt .ai-ico { width: 24px; height: 24px; color: var(--primary); }
+    .ai-opt:disabled .ai-ico { color: var(--muted); opacity: .5; }
     .ns-opt[disabled] { opacity: .45; cursor: default; }
 
     /* TABS */
@@ -994,7 +1003,7 @@
   <!-- AI 비서 (접이식) -->
   <!-- 하루 탭의 기존 입구. 대화 화면 자체는 어느 탭에서든 열리는 시트 하나로 합쳤어요. -->
   <div class="card ai-agent-card agent-open-row" onclick="openAgent()">
-    <div class="card-title" style="margin-bottom:0;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서에게 물어보기</div>
+    <div class="card-title" style="margin-bottom:0;display:inline-flex;align-items:center;gap:6px;"><i class="ai-ico" style="width:15px;height:15px;color:var(--primary);"></i>AI 비서에게 물어보기</div>
     <span class="agent-open-hint" id="agent-open-hint"></span>
     <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--muted);"></i>
   </div>
@@ -1006,7 +1015,7 @@
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         <button class="btn btn-sm btn-outline" onclick="openDayTools()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="copy" style="width:13px;height:13px;"></i>복사·템플릿</button>
         <button class="btn btn-sm btn-outline" onclick="toggleFreeGaps()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="search" style="width:13px;height:13px;"></i>빈 시간</button>
-        <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="sparkles" style="width:13px;height:13px;"></i>자동</button>
+        <button class="btn btn-sm" onclick="openAutoScheduleModal()" style="display:inline-flex;align-items:center;gap:4px;"><i class="ai-ico" style="width:13px;height:13px;"></i>자동</button>
       </div>
     </div>
     <div id="freegap-panel" class="freegap-panel" style="display:none;"></div>
@@ -1032,7 +1041,7 @@
     <textarea id="day-memo" placeholder="오늘 하루를 한 줄로 남겨보세요..." style="resize:none;height:80px;width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:.88rem;line-height:1.6;background:#1c1c1c;color:var(--text);font-family:inherit;" oninput="onDayMemoInput()"></textarea>
     <div class="day-sub-lbl" style="margin-top:12px;">사진</div>
     <div id="day-photos"></div>
-    <button class="btn btn-outline btn-sm" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="requestDaySummary()"><i data-lucide="sparkles" style="width:14px;height:14px;"></i>AI 하루 총평</button>
+    <button class="btn btn-outline btn-sm" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="requestDaySummary()"><i class="ai-ico" style="width:14px;height:14px;"></i>AI 하루 총평</button>
     <div id="day-summary-box"></div>
   </div>
 </div>
@@ -1114,6 +1123,11 @@
     <p class="fg-hint" style="margin:-4px 0 11px;">레벨이 오를 때마다 하나씩 열려요. 누르면 바로 바뀌어요.</p>
     <div class="ns-picker" id="ns-picker"></div>
   </div>
+  <div class="card" id="ai-icon-card">
+    <div class="card-title">AI 아이콘</div>
+    <p class="fg-hint" style="margin:-4px 0 11px;">레벨이 오르면 새 아이콘이 열려요. 고른 아이콘이 앱 안 AI 자리에 다 같이 바뀌어요.</p>
+    <div class="ns-picker" id="ai-icon-picker"></div>
+  </div>
   <div class="card">
     <div class="card-title">업적</div>
     <div class="ach-grid" id="ach-grid"></div>
@@ -1140,7 +1154,7 @@
   </div>
 
   <div class="card" style="background:rgba(179,240,0,0.04);border-color:rgba(179,240,0,0.15);">
-    <div class="card-title" style="color:var(--primary);display:inline-flex;align-items:center;gap:6px;"><i data-lucide="sparkles" style="width:15px;height:15px;vertical-align:-2px;"></i>AI 습관 추천</div>
+    <div class="card-title" style="color:var(--primary);display:inline-flex;align-items:center;gap:6px;"><i class="ai-ico" style="width:15px;height:15px;vertical-align:-2px;"></i>AI 습관 추천</div>
     <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px;line-height:1.5;">설정한 최종 목표를 이루는 데 필요한 습관을 AI가 추천해줘요.</p>
     <button class="btn btn-outline btn-sm" style="width:100%;" onclick="requestGoalHabits()">최종 목표로 습관 추천받기</button>
     <div id="goal-habits-box" style="margin-top:10px;"></div>
@@ -1160,7 +1174,7 @@
     <div class="chart-box sm"><canvas id="pred-chart"></canvas></div>
     <div id="pred-bets"></div>
     <button class="btn btn-outline" id="pred-ai-btn" style="width:100%;margin-top:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;" onclick="requestGrowthForecast()">
-      <i data-lucide="sparkles" style="width:15px;height:15px;"></i>AI로 자세히 읽어보기
+      <i class="ai-ico" style="width:15px;height:15px;"></i>AI로 자세히 읽어보기
     </button>
     <div id="pred-ai" style="margin-top:12px;"></div>
   </div>
@@ -1197,7 +1211,7 @@
       </div>
       <button class="btn btn-sm btn-outline" onclick="clearApiKey()">키 삭제</button>
     </div>
-    <button class="btn" id="ai-analyze-btn" style="width:100%;" onclick="requestAIAnalysis()" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;"><i data-lucide="sparkles" style="width:16px;height:16px;vertical-align:-2px;"></i>AI 분석 받기</button>
+    <button class="btn" id="ai-analyze-btn" style="width:100%;" onclick="requestAIAnalysis()" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:7px;"><i class="ai-ico" style="width:16px;height:16px;vertical-align:-2px;"></i>AI 분석 받기</button>
   </div>
 
   <!-- C: 결과 영역 -->
@@ -1374,7 +1388,7 @@
 <!-- AI 자동 일정 짜기 모달 -->
 <div class="overlay" id="autosched-modal">
   <div class="sheet" style="max-height:88vh;display:flex;flex-direction:column;">
-    <div class="sheet-title" style="display:flex;align-items:center;gap:7px;"><i data-lucide="sparkles" style="width:17px;height:17px;color:var(--primary);"></i>AI 일정 자동 짜기</div>
+    <div class="sheet-title" style="display:flex;align-items:center;gap:7px;"><i class="ai-ico" style="width:17px;height:17px;color:var(--primary);"></i>AI 일정 자동 짜기</div>
     <div class="fg">
       <label>오늘 뭘 할 건지 편하게 적어주세요</label>
       <textarea id="as-input" rows="3" placeholder="예: 오전에 운동하고 점심 먹고 오후에 3시간 공부, 저녁엔 책 읽기" style="resize:none;font-family:inherit;"></textarea>
@@ -1431,14 +1445,14 @@
 
 <!-- AI 비서 — 어느 탭에서든 뜨는 버튼 -->
 <button id="agent-fab" class="agent-fab" onclick="openAgent()" title="AI 비서">
-  <i data-lucide="sparkles"></i>
+  <i class="ai-ico"></i>
 </button>
 
 <!-- AI 비서 대화 시트 (앱 전체에서 이 하나만 사용) -->
 <div class="overlay" id="agent-modal">
   <div class="sheet agent-sheet">
     <div class="sheet-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
-      <span style="display:inline-flex;align-items:center;gap:7px;"><i data-lucide="sparkles" style="width:17px;height:17px;color:var(--primary);"></i>AI 비서</span>
+      <span style="display:inline-flex;align-items:center;gap:7px;"><i class="ai-ico" style="width:17px;height:17px;color:var(--primary);"></i>AI 비서</span>
       <span style="display:flex;align-items:center;gap:2px;">
         <button class="icon-btn" onclick="openAgentHistory()" title="지난 대화"><i data-lucide="history" style="width:16px;height:16px;"></i></button>
         <button class="icon-btn" onclick="clearAgentChat()" title="이 날짜 대화 지우기"><i data-lucide="trash-2" style="width:15px;height:15px;"></i></button>
@@ -1454,7 +1468,7 @@
     </div>
     <!-- 대화가 없을 때 비어 보이지 않게, 오늘 상태를 요약해 보여줘요 -->
     <div class="agent-empty" id="agent-empty">
-      <div class="agent-empty-icon"><i data-lucide="sparkles"></i></div>
+      <div class="agent-empty-icon"><i class="ai-ico"></i></div>
       <div class="agent-empty-title">무엇을 도와드릴까요?</div>
       <div class="agent-empty-sub" id="agent-empty-sub"></div>
       <div class="agent-empty-stats" id="agent-empty-stats"></div>
@@ -1537,7 +1551,7 @@
   <div class="sheet">
     <div class="sheet-title" id="add-modal-title">습관 추가</div>
     <div class="fg">
-      <label style="display:flex;align-items:center;gap:5px;"><i data-lucide="sparkles" style="width:13px;height:13px;color:var(--primary);"></i>AI로 입력 (말하듯 적어보세요)</label>
+      <label style="display:flex;align-items:center;gap:5px;"><i class="ai-ico" style="width:13px;height:13px;color:var(--primary);"></i>AI로 입력 (말하듯 적어보세요)</label>
       <div style="display:flex;gap:6px;">
         <input id="ai-habit-nl" placeholder="예: 매일 아침 7시에 물 마시기" style="flex:1;" onkeydown="if(event.key==='Enter')aiParseHabit()"/>
         <button class="btn btn-sm" id="ai-parse-btn" onclick="aiParseHabit()" style="flex:0 0 auto;">AI</button>
@@ -1841,7 +1855,7 @@ async function onFbAuthChange(user) {
     $('user-name').textContent = (user.displayName || '사용자').split(' ')[0];
     await loadFromCloud();
     render(); updateHdrXP();
-    navApply(navStyleNow());
+    navApply(navStyleNow()); aiIconApply();
     showToast((user.displayName || '사용자').split(' ')[0] + '님 환영해요.');
   } else {
     $('login-btn').style.display = '';
@@ -2518,8 +2532,8 @@ function addXP(amt) {
   saveUser(u);
   updateHdrXP();
   if (after > before) {
-    const opened = navOnLevelUp(after);
-    showToast(`레벨 업 — ${lvInfo(u.xp).name} (Lv.${after})` + (opened ? ` · 새 탭바 '${opened.name}'가 열렸어요` : ''));
+    const opened = navOnLevelUp(after), icon = aiIconOnLevelUp(after);
+    showToast(`레벨 업 — ${lvInfo(u.xp).name} (Lv.${after})` + (opened ? ` · 새 탭바 '${opened.name}'가 열렸어요` : '') + (icon ? ` · 새 AI 아이콘 '${icon.name}'` : ''));
   }
   showXPFloat(amt);
 }
@@ -3009,6 +3023,53 @@ function renderNavPicker() {
     return `<button type="button" class="ns-opt${s.id === cur ? ' on' : ''}" ${open ? `onclick="setNavStyle('${s.id}')"` : 'disabled'}>
       <b>${s.name}</b><span>${open ? (s.id === cur ? '쓰는 중' : s.desc) : `Lv.${s.lv} ${LVS[s.lv-1].name}에서 열려요`}</span></button>`;
   }).join('');
+}
+
+// ── AI 아이콘 (레벨로 하나씩 열림) ──
+// 24칸 격자 · 선 굵기 1.75. 화면에서는 CSS mask 로 글자색을 입혀요.
+const AI_ICONS = [
+  { id:'talk',   lv:1, name:'말하는 노드',   desc:'말 걸면 처리해 주는 비서',
+    svg:'<path fill="none" stroke="#000" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M6.5 4.5h11a3 3 0 0 1 3 3v6.5a3 3 0 0 1-3 3H11l-4.5 3.5V17a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3Z"/><path fill="none" stroke="#000" stroke-width="1.3" stroke-linecap="round" d="M8.3 12.4 12 9.6l3.7 2.8"/><circle cx="8.3" cy="12.4" r="1.4"/><circle cx="12" cy="9.6" r="1.4"/><circle cx="15.7" cy="12.4" r="1.4"/>' },
+  { id:'net',    lv:2, name:'작은 신경망',   desc:'층을 지나 답 하나로 모여요',
+    svg:'<path fill="none" stroke="#000" stroke-width="1.15" stroke-linecap="round" opacity=".7" d="M4.5 7 12 5.5M4.5 7 12 12M4.5 7 12 18.5M4.5 17 12 5.5M4.5 17 12 12M4.5 17 12 18.5M12 5.5 19.5 12M12 12 19.5 12M12 18.5 19.5 12"/><circle cx="4.5" cy="7" r="1.55"/><circle cx="4.5" cy="17" r="1.55"/><circle cx="12" cy="5.5" r="1.55"/><circle cx="12" cy="12" r="1.55"/><circle cx="12" cy="18.5" r="1.55"/><circle cx="19.5" cy="12" r="2.1"/>' },
+  { id:'orbit',  lv:4, name:'궤도',         desc:'곁을 도는 작은 별 하나',
+    svg:'<ellipse fill="none" stroke="#000" stroke-width="1.5" cx="12" cy="12" rx="9.6" ry="3.4" transform="rotate(-26 12 12)"/><circle cx="12" cy="12" r="3.2"/><circle cx="17.65" cy="6.81" r="1.75"/>' },
+  { id:'cursor', lv:6, name:'움직이는 커서', desc:'화면을 돌아다니며 직접 해 줘요',
+    svg:'<path fill="none" stroke="#000" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M9 4.5 9 17l3.3-3.1 2.4 5.1 2.3-1.1-2.4-5h4.6Z"/><path fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" opacity=".6" d="M3.5 8.5h2.5M2.8 12h3.2M4 15.5h2"/>' },
+];
+// 작은따옴표로 감싸요: 고르기 칸에서 style="..." 안에 그대로 넣기 때문
+const aiIconUrl = ic => `url('data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${ic.svg}</svg>`).replace(/'/g, '%27')}')`;
+function aiIconNow() {
+  const u = loadUser(), lv = lvInfo(u.xp || 0).lv;
+  const open = AI_ICONS.filter(x => x.lv <= lv);
+  return (open.find(x => x.id === u.aiIcon) || open[open.length - 1]).id;
+}
+function aiIconApply() {
+  const ic = AI_ICONS.find(x => x.id === aiIconNow());
+  document.documentElement.style.setProperty('--ai-ico', aiIconUrl(ic));
+}
+function setAiIcon(id) {
+  const ic = AI_ICONS.find(x => x.id === id), u = loadUser();
+  if (!ic || lvInfo(u.xp || 0).lv < ic.lv) return;
+  u.aiIcon = id; saveUser(u);
+  aiIconApply(); renderAiIconPicker();
+}
+function renderAiIconPicker() {
+  const el = $('ai-icon-picker'); if (!el) return;
+  const lv = lvInfo(loadUser().xp || 0).lv, cur = aiIconNow();
+  el.innerHTML = AI_ICONS.map(ic => {
+    const open = ic.lv <= lv;
+    return `<button type="button" class="ns-opt ai-opt${ic.id === cur ? ' on' : ''}" ${open ? `onclick="setAiIcon('${ic.id}')"` : 'disabled'}>
+      <i class="ai-ico" style="-webkit-mask-image:${aiIconUrl(ic)};mask-image:${aiIconUrl(ic)}"></i>
+      <span style="display:grid;gap:2px;"><b>${ic.name}</b><span>${open ? (ic.id === cur ? '쓰는 중' : ic.desc) : `Lv.${ic.lv} ${LVS[ic.lv-1].name}에서 열려요`}</span></span></button>`;
+  }).join('');
+}
+// 레벨이 올라 새 아이콘이 열리면 바로 바꿔 끼워요
+function aiIconOnLevelUp(newLv) {
+  const ic = AI_ICONS.find(x => x.lv === newLv); if (!ic) return null;
+  const u = loadUser(); u.aiIcon = ic.id; saveUser(u);
+  aiIconApply();
+  return ic;
 }
 
 // 레벨이 올라 새 모양이 열리면 바로 바꿔 끼우고 알려줘요
@@ -4098,6 +4159,7 @@ function renderHeatmap(habits) {
 // ── GROWTH ────────────────────────────────────────────────
 function renderGrowth() {
   renderNavPicker();
+  renderAiIconPicker();
   const u=loadUser(), info=lvInfo(u.xp);
   $('g-level').textContent   = `Lv. ${info.lv}`;
   $('g-lname').textContent   = `${info.name} ${info.e}`;
@@ -6632,7 +6694,7 @@ function renderAgentLog(){
     if(m.role==='user') return `<div class="agent-msg user">${esc(m.text)}</div>`;
     // 비서 말풍선엔 아이콘을 붙여 누가 한 말인지 한눈에 보이게 해요
     let html=`<div class="agent-bot-row">
-      <div class="agent-avatar"><i data-lucide="sparkles"></i></div>
+      <div class="agent-avatar"><i class="ai-ico"></i></div>
       <div class="agent-msg bot${m.err?' err':''}">${esc(m.text)}`;
     if(m.actions && m.actions.length){
       html+=`<div class="agent-actions">`+m.actions.map(agentActionLabel).join('')+`</div>`;
@@ -6677,7 +6739,7 @@ async function sendAgent(){
   const log=$('agent-log');
   log.insertAdjacentHTML('beforeend',
     `<div class="agent-bot-row" id="agent-pending">
-       <div class="agent-avatar"><i data-lucide="sparkles"></i></div>
+       <div class="agent-avatar"><i class="ai-ico"></i></div>
        <div class="agent-msg bot"><span class="ai-spin"></span> 생각하는 중...</div>
      </div>`);
   if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -7360,6 +7422,7 @@ function initPWA() {
   $('hdr-date').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
   updateHdrXP();
   navApply(navStyleNow(), true);   // 탭바 모양 (레벨에 따라 열린 것)
+  aiIconApply();                   // AI 아이콘 (레벨에 따라 열린 것)
   render();
   restoreLastTab();      // 잠깐 나갔다 온 거면 보던 탭으로 되돌려놔요
   scheduleNotifs();

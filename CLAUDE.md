@@ -139,6 +139,18 @@ lives in the 성장 tab (`renderNavPicker()`); on level-up `navOnLevelUp()` swit
 newly opened style and the toast says so. `switchTab()` drives the animation through
 `navSelect(i)` — don't move the `.active` class on nav buttons by hand. Test: `test/navcheck.mjs`.
 
+## AI Icon (레벨로 열리는 AI 아이콘)
+
+Every AI spot (the AI button, the 비서 sheet title and avatar, "AI 분석 받기" and the like) uses
+`<i class="ai-ico">`, not a Lucide icon. `.ai-ico` paints `currentColor` through a CSS mask set to
+the `--ai-ico` custom property, so dynamic templates pick up the current icon with no extra call.
+`AI_ICONS` holds four hand-drawn 24-grid icons unlocked by level (talk Lv.1, net Lv.2, orbit Lv.4,
+cursor Lv.6). `user.aiIcon` holds the pick (synced with `K.u`); `aiIconNow()` falls back to the
+newest unlocked one; `aiIconApply()` sets `--ai-ico` (called from `init()` and after login). The
+picker lives in the 성장 tab (`renderAiIconPicker()`), and `aiIconOnLevelUp()` switches to a newly
+opened icon and the level-up toast names it. The 핵심 (importance 3) marker on memos is not an AI
+spot and stays a Lucide sparkle. Test: `test/aiiconcheck.mjs`.
+
 ## Swipe Between Tabs
 
 Swiping sideways on a phone moves to the next/previous tab in tab-bar order (left swipe = next),
