@@ -210,7 +210,7 @@ function card(w, ghost) {
   el.className = 'w' + (ghost ? ' ghost' : '');
   const bar = document.createElement('div'); bar.className = 'bar';
   const t = document.createElement('span'); t.className = 't'; t.textContent = w.title;
-  const b = document.createElement('span'); b.className = 'badge'; b.textContent = ghost ? '미리보기' : '나만 보여요 · AI가 짠 코드';
+  const b = document.createElement('span'); b.className = 'badge'; b.textContent = ghost ? '미리보기' : 'AI가 짠 코드';
   bar.append(t, b);
   if (!ghost) {
     const x = document.createElement('button'); x.className = 'x'; x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', '이 기능 지우기');
@@ -344,7 +344,7 @@ async function apply() {
     ol.style.transition = cur.style.transition = 'opacity .3s'; ol.style.opacity = cur.style.opacity = '0';
     await wait(320); ol.remove(); cur.remove();
   }
-  $('toast').textContent = `"${w.title}" 붙였어 · 나만 보여`;
+  $('toast').textContent = `"${w.title}" 붙였어`;
   $('toast').classList.add('on'); setTimeout(() => $('toast').classList.remove('on'), 3500);
 }
 

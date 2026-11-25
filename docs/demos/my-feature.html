@@ -204,7 +204,7 @@ function card(p, ghost) {
       <div class="r">안 한 날<span class="bar"><b style="width:62%"></b></span><span class="v">3.1</span></div>
       <small>기분 평균 (5점) · 운동한 날 12일, 안 한 날 9일 · 예시 데이터</small></div>`;
   }
-  w.innerHTML = `<div class="top"><span class="ttl" data-ttl>${ghost ? esc(p.title) : ''}</span><span class="badge">나만 보여요 · AI가 만듦</span>${ghost ? '' : '<button class="x" type="button" aria-label="이 카드 지우기">×</button>'}</div>${body}`;
+  w.innerHTML = `<div class="top"><span class="ttl" data-ttl>${ghost ? esc(p.title) : ''}</span><span class="badge">AI가 만듦</span>${ghost ? '' : '<button class="x" type="button" aria-label="이 카드 지우기">×</button>'}</div>${body}`;
   if (!ghost) wire(w, p);
   return w;
 }
@@ -239,7 +239,7 @@ function ask(text) {
     const kind = { counter: '숫자 세기', dday: 'D-day', check: '체크리스트', cmp: '비교 그래프' }[p.kind];
     sheet.innerHTML = `<div class="bub"><span class="who">AI</span>${p.say}</div>
       <div class="spec"><div><span>부품</span><span>${kind}</span></div><div><span>이름</span><span>${esc(p.title)}</span></div>
-      <div><span>위치</span><span>오늘 탭 맨 위 (반투명으로 보이는 자리)</span></div><div><span>보이는 사람</span><span>나만</span></div></div>
+      <div><span>위치</span><span>오늘 탭 맨 위 (반투명으로 보이는 자리)</span></div></div>
       <div class="acts"><button class="no" type="button" id="no">취소</button><button class="ok" type="button" id="ok">이대로 적용</button></div>`;
     $('no').onclick = () => { closeSheet(); };
     $('ok').onclick = apply;
@@ -307,7 +307,7 @@ async function apply() {
 function done(real, p) {
   busy = false;
   lastAdded = real;
-  $('toast-t').textContent = `"${p.title}" 붙였어 · 나만 보여`;
+  $('toast-t').textContent = `"${p.title}" 붙였어`;
   $('toast').classList.add('on');
   clearTimeout(done.t);
   done.t = setTimeout(() => $('toast').classList.remove('on'), 4000);
