@@ -1,0 +1,311 @@
+<title>Neural Weave 3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* 레이아웃: 위에 큰 무대 하나, 아래 상태 버튼과 크기별. 어두운 한 가지 모습 */
+:root {
+  --bg: #0b0c10;
+  --stage: #0e0f14;
+  --edge: #22242c;
+  --fg: #e9e4da;
+  --mute: #8a8578;
+  --warm: #f0b56a;
+  --font: 'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); line-height: 1.5; }
+.wrap { max-width: 880px; margin: 0 auto; padding-block: 28px 60px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 20px; }
+header { display: grid; gap: 4px; }
+.k { font-family: var(--mono); font-size: 12px; color: var(--warm); letter-spacing: .08em; }
+h1 { margin: 0; font-size: clamp(26px, 5vw, 34px); font-weight: 600; letter-spacing: -.01em; }
+header p { margin: 0; color: var(--mute); font-size: 14px; max-width: 62ch; }
+.stage { background: var(--stage); border: 1px solid var(--edge); border-radius: 18px; padding: 10px; display: grid; gap: 10px; }
+#main { display: block; width: 100%; aspect-ratio: 16 / 11; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 6px 6px; }
+.bar button { font: inherit; font-size: 13px; color: var(--fg); background: none; border: 1px solid var(--edge); border-radius: 999px; padding: 6px 13px; cursor: pointer; }
+.bar button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.bar .go { border-color: var(--warm); color: var(--warm); }
+.bar .sp { flex: 1; }
+.bar .st { font-family: var(--mono); font-size: 11.5px; color: var(--mute); }
+button:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+.desc { margin: 0 6px 6px; font-size: 13px; color: var(--mute); min-height: 2.8em; }
+.sizes { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-end; padding: 18px; background: var(--stage); border: 1px solid var(--edge); border-radius: 18px; }
+.size { display: grid; gap: 8px; justify-items: center; }
+.size span { font-family: var(--mono); font-size: 11px; color: var(--mute); text-align: center; }
+.size canvas { display: block; }
+.notes { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--mute); font-size: 13px; }
+.notes b { color: var(--fg); font-weight: 500; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="k">AI 상징 · 3차</div>
+    <h1>Neural Weave 3</h1>
+    <p>층마다 노드를 줄 세운 선분을 비틀어 놓고 곧은 선으로 이었어. 가운데 허리로 모였다가 다시 펼쳐지는 리본이 기본 모양이야. 계산은 진짜 신경망 계산이고, 가까운 자리끼리 더 세게 이어져 있어서 불이 한 구역씩 살아나.</p>
+  </header>
+
+  <section class="stage" aria-label="큰 그림">
+    <canvas id="main" aria-label="Neural Weave 3"></canvas>
+    <div class="bar">
+      <button type="button" data-s="idle">대기</button>
+      <button type="button" data-s="think">계산 중</button>
+      <button type="button" data-s="done">답 완료</button>
+      <button type="button" class="go" id="flow">▶ 한 번 흘려보기</button>
+      <span class="sp"></span>
+      <span class="st" id="stat"></span>
+    </div>
+    <p class="desc" id="desc"></p>
+  </section>
+
+  <section class="sizes" aria-label="작은 크기">
+    <div class="size"><canvas id="s120" style="width:120px;height:120px"></canvas><span>120 · 리본 줄인 판</span></div>
+    <div class="size"><canvas id="s56" style="width:56px;height:56px"></canvas><span>56 · 쌍곡면 아이콘</span></div>
+    <div class="size"><canvas id="s28" style="width:28px;height:28px"></canvas><span>28</span></div>
+  </section>
+
+  <ul class="notes">
+    <li><b>모양</b>: 허리를 잘록하게, 양 끝 기둥은 짧고 옅게. 허리 위치 · 노드 간격 · 중심은 일부러 살짝 비대칭. 허리와 양 끝의 핵심 매듭만 조금 크게.</li>
+    <li><b>계산 중</b>: 한 번 계산할 때마다 그 층에서 가장 많이 실어 나른 선만 켜져. 허리 쪽은 덩어리처럼, 바깥은 가늘게. 노드들이 허리 쪽으로 모였다 풀렸다 하는 파도가 층을 따라 지나가.</li>
+    <li><b>답 완료</b>: 한 줄 경로 대신, 가장 센 출력에 가장 크게 보탠 선 몇 갈래의 묶음이 잠깐 남았다가 풀려. 이 작은 시뮬레이션 신경망의 계산이지 실제 AI 내부는 아니야.</li>
+  </ul>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+const D2R = Math.PI / 180;
+const hash = (a, b, c) => { const x = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453; return x - Math.floor(x); };
+const INK = [233, 228, 218], WARM = [240, 181, 106], PALE = [255, 246, 228];
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a.toFixed(3)})`;
+
+// ── 모양 규칙 ──
+// 리본: 층 선분을 허리(tw)를 지나며 비틀고, 허리에서 가장 짧게. 비대칭은 정해진 사인 규칙으로만.
+function makeModel(spec) {
+  const { counts, tw, twist, waist, endLen, yaw, pitch, persp, asym } = spec;
+  const L = counts.length, nodes = [], layers = [];
+  for (let l = 0; l < L; l++) {
+    const t = L === 1 ? .5 : l / (L - 1), n = counts[l], ids = [];
+    const far = Math.abs(t - tw) / Math.max(tw, 1 - tw);           // 허리에서 0, 끝에서 1
+    const len = endLen * (waist + (1 - waist) * Math.pow(far, .85));
+    const th = (t - tw) * twist * D2R;
+    const y0 = asym * .06 * Math.sin(2.1 * l + .5);
+    const gam = 1 + asym * .14 * Math.sin(1.7 * l + .3);
+    for (let i = 0; i < n; i++) {
+      let u = n === 1 ? 0 : (i / (n - 1)) * 2 - 1;
+      u = Math.sign(u) * Math.pow(Math.abs(u), gam) * len / 2;
+      const key = (l === 0 || l === L - 1 || Math.abs(t - tw) < .5 / (L - 1)) && Math.abs(i - (n - 1) / 2) < .75;
+      ids.push(nodes.length);
+      nodes.push({ l, i, t, x: -1 + 2 * t, u, th, y0, key, px: 0, py: 0, d: 0, a: 0, ph: hash(l, i, 3) * 6.283 });
+    }
+    layers.push(ids);
+  }
+  const edges = [], inn = nodes.map(() => []);
+  for (let l = 0; l < L - 1; l++) for (const a of layers[l]) for (const b of layers[l + 1]) {
+    const na = nodes[a], nb = nodes[b];
+    const pa = counts[l] > 1 ? na.i / (counts[l] - 1) : .5, pb = counts[l + 1] > 1 ? nb.i / (counts[l + 1] - 1) : .5;
+    const near = Math.exp(-((pa - pb) ** 2) / .06);                 // 가까운 자리끼리 세게
+    const w = .12 + .88 * near * (.55 + .45 * hash(a, b, 7));
+    const sw = (hash(a * 3 + 1, b * 5 + 2, 11) < .28 ? -1 : 1) * w; // 진짜 가중치
+    inn[b].push(edges.length);
+    edges.push({ a, b, w, sw, act: 0, tgt: 0, bundle: 0, tm: (na.t + nb.t) / 2 });
+  }
+  const cy = Math.cos(yaw * D2R), sy = Math.sin(yaw * D2R), cp = Math.cos(pitch * D2R), sp = Math.sin(pitch * D2R);
+  return { spec, L, nodes, layers, edges, inn, cy, sy, cp, sp, persp,
+    val: new Float32Array(nodes.length), bias: Float32Array.from(nodes, n => (hash(n.l, n.i, 13) - .5) * .25), t0: -99, fit: null };
+}
+
+// 3D → 화면. squeeze: 허리 쪽으로 모이는 정도(층마다 다름)
+function project(m, squeeze) {
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const n of m.nodes) {
+    const u = n.u * (1 - squeeze(n));
+    const X = n.x, Y = u * Math.cos(n.th) + n.y0, Z = u * Math.sin(n.th);
+    const x1_ = X * m.cy + Z * m.sy, z1_ = -X * m.sy + Z * m.cy;
+    const y2 = Y * m.cp - z1_ * m.sp, z2 = Y * m.sp + z1_ * m.cp;
+    const s = 1 / (1 + z2 * m.persp * .4);
+    n.px = x1_ * s; n.py = y2 * s; n.z = z2;
+  }
+  if (!m.fit) {   // 처음 한 번 맞춘 틀을 계속 써요(모였다 풀릴 때 크기가 흔들리지 않게)
+    for (const n of m.nodes) { x0 = Math.min(x0, n.px); x1 = Math.max(x1, n.px); y0 = Math.min(y0, n.py); y1 = Math.max(y1, n.py); z0 = Math.min(z0, n.z); z1 = Math.max(z1, n.z); }
+    m.fit = { mx: (x0 + x1) / 2, my: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0, z0, zr: Math.max(1e-6, z1 - z0) };
+  }
+  for (const n of m.nodes) n.d = Math.min(1, Math.max(0, (n.z - m.fit.z0) / m.fit.zr));
+}
+
+// ── 계산 규칙 (진짜 순전파) ──
+const LAG = .045;
+function forward(m, input, T) {
+  const { layers, inn, edges, val, bias, nodes } = m;
+  layers[0].forEach((i, k) => { val[i] = input[k]; });
+  const raw = new Float32Array(edges.length);
+  for (let l = 1; l < m.L; l++) for (const j of layers[l]) {
+    let z = bias[j];
+    const sc = 1.6 / Math.sqrt(inn[j].length);
+    for (const k of inn[j]) { const c = edges[k].sw * val[edges[k].a] * sc; raw[k] = c; z += c; }
+    val[j] = Math.tanh(z);
+  }
+  // 층마다 가장 많이 실어 나른 위쪽 일부만 켜요
+  for (let l = 0; l < m.L - 1; l++) {
+    const ks = edges.map((e, k) => k).filter(k => nodes[edges[k].a].l === l);
+    const mags = ks.map(k => Math.abs(raw[k])).sort((a, b) => b - a);
+    const cut = mags[Math.floor(mags.length * .14)] || 0, top = mags[0] || 1;
+    for (const k of ks) { const v = Math.abs(raw[k]); edges[k].tgt = v > cut ? .25 + .75 * (v - cut) / Math.max(1e-6, top - cut) : 0; }
+  }
+  m.t0 = T;
+}
+// 답 완료: 가장 센 출력에서 거꾸로, 층마다 그 값 쪽으로 가장 크게 보탠 선 몇 갈래(묶음)
+function bundle(m) {
+  const { layers, inn, edges, val } = m;
+  for (const e of edges) e.bundle = 0;
+  const out = layers[m.L - 1];
+  let front = [out.reduce((b, i) => Math.abs(val[i]) > Math.abs(val[b]) ? i : b, out[0])];
+  for (let l = m.L - 1; l > 0; l--) {
+    const next = new Set();
+    for (const j of front) {
+      const sg = Math.sign(val[j]) || 1;
+      inn[j].map(k => [k, edges[k].sw * val[edges[k].a] * sg]).sort((a, b) => b[1] - a[1]).slice(0, l > m.L / 2 ? 2 : 1)
+        .forEach(([k, v]) => { if (v > 0) { edges[k].bundle = 1; next.add(edges[k].a); } });
+    }
+    front = [...next].slice(0, 3);
+  }
+}
+
+// ── 상태 ──
+const STATES = {
+  idle:  '구조만 고요히 있어. 노드가 아주 천천히 숨 쉬듯 허리 쪽으로 조금 모였다 풀려.',
+  think: '계산 중. 앞 층부터 차례로, 많이 실어 나른 선만 켜져. 노드들이 허리로 모였다 풀렸다 하는 파도가 층을 따라 지나가.',
+  done:  '답 완료. 나머지는 가라앉고, 가장 센 출력에 가장 크게 보탠 선 몇 갈래가 잠깐 남았다가 풀려.',
+};
+let state = 'idle', T = 0, stT = 0, passes = 0, seq = null, sq = 0, doneA = 0;
+const models = [];
+const rnd = Math.random;
+let prevOut = null;
+function newInput(m) {
+  const n = m.layers[0].length, out = m.layers[m.L - 1];
+  return Array.from({ length: n }, (_, k) => {
+    const fresh = Math.sin(T * 1.3 + k * .9) * .6 + (rnd() - .5) * .8;      // 이웃끼리 비슷한 입력
+    return prevOut ? .6 * m.val[out[Math.floor(k * out.length / n)]] + .4 * fresh : fresh;
+  });
+}
+function pass() { passes++; for (const m of models) { forward(m, newInput(m), T); } prevOut = true; $('stat').textContent = `계산 ${passes}번째`; }
+function setState(s, fromSeq) {
+  if (!fromSeq) seq = null;
+  state = s; stT = 0;
+  document.querySelectorAll('[data-s]').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === s));
+  $('desc').textContent = STATES[s];
+  if (s === 'think') { passes = 0; prevOut = null; pass(); }
+  if (s === 'done') { pass(); for (const m of models) { bundle(m); for (const e of m.edges) if (!e.bundle) e.tgt = 0; } doneA = 1; }
+  if (s === 'idle') { for (const m of models) for (const e of m.edges) e.tgt = 0; $('stat').textContent = ''; }
+}
+
+function update(dt) {
+  T += dt; stT += dt;
+  const period = .34;
+  if (state === 'think' && stT >= period) { stT -= period; pass(); }
+  if (state === 'done') { doneA = Math.max(0, doneA - dt / 2.4); if (!seq && stT > 2.6) setState('idle'); }
+  const tsq = state === 'think' ? 1 : 0;
+  sq += (tsq - sq) * Math.min(1, dt * (tsq ? 2.5 : 1.2));
+  for (const m of models) for (const e of m.edges) {
+    const reached = RM || T - m.t0 >= m.nodes[e.a].l * LAG;
+    const tgt = state === 'done' ? (e.bundle ? doneA : 0) : reached ? e.tgt : e.act;
+    e.act += (tgt - e.act) * Math.min(1, dt * (tgt > e.act ? 22 : (state === 'done' ? 5 : 7)));
+  }
+  if (seq && seq[0][1] && stT > seq[0][1]) { seq.shift(); setState(seq[0][0], true); if (seq.length === 1) seq = null; }
+}
+
+// ── 그리기 ──
+function draw(cv, m, S, o) {
+  const W = Math.round(S * DPR);
+  if (cv.width !== W || cv.height !== Math.round(W * o.ar)) { cv.width = W; cv.height = Math.round(W * o.ar); }
+  const H = cv.height, ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+  const wave = n => RM ? 0 : .012 * Math.sin(T * .9 + n.l * .7) + sq * (.10 + .07 * Math.sin(T * 2.4 - n.l * .85));
+  project(m, wave);
+  const f = m.fit, sc = Math.min(W * .9 / f.w, H * .86 / f.h), cx = W / 2, cyy = H / 2;
+  for (const n of m.nodes) { n.sx = cx + (n.px - f.mx) * sc; n.sy = cyy + (n.py - f.my) * sc; }
+  const px = DPR, N = m.nodes;
+  // 바탕 선: 진하기 8칸 × 가까움/멂
+  const B = 8, base = Array.from({ length: B * 2 }, () => new Path2D());
+  const dim = 1 - .5 * sq - .35 * (state === 'done' ? doneA : 0);
+  for (const e of m.edges) {
+    const a = N[e.a], b = N[e.b], dep = (a.d + b.d) / 2, end = Math.abs(e.tm - m.spec.tw) / Math.max(m.spec.tw, 1 - m.spec.tw);
+    const v = e.w * (1 - .45 * dep) * (1 - .35 * Math.pow(end, 2));      // 끝 기둥은 옅게
+    const p = base[(dep > .5 ? B : 0) + Math.min(B - 1, Math.floor(v * B))];
+    p.moveTo(a.sx, a.sy); p.lineTo(b.sx, b.sy);
+  }
+  ctx.lineCap = 'round';
+  for (let g = 0; g < 2; g++) for (let i = 0; i < B; i++) {
+    ctx.lineWidth = o.lw * (g ? .75 : 1) * px;
+    ctx.strokeStyle = rgba(INK, o.alpha * (.12 + .7 * (i + .5) / B) * dim);
+    ctx.stroke(base[g * B + i]);
+  }
+  // 켜진 선: 앞 층부터 그어지듯. 허리 쪽은 굵게(덩어리), 바깥은 가늘게
+  ctx.globalCompositeOperation = 'lighter';
+  for (const e of m.edges) {
+    if (e.act < .03) continue;
+    const a = N[e.a], b = N[e.b];
+    const p = RM ? 1 : Math.min(1, Math.max(0, (T - m.t0 - a.l * LAG) / LAG));
+    const k = state === 'done' ? 1 : p;
+    const mid = 1 - Math.min(1, Math.abs(e.tm - m.spec.tw) * 2.2);
+    const col = state === 'done' ? PALE : WARM;
+    const x2 = a.sx + (b.sx - a.sx) * k, y2 = a.sy + (b.sy - a.sy) * k;
+    if (mid > .35 && o.mass) {
+      ctx.lineWidth = o.lw * (3 + 4 * mid) * px; ctx.strokeStyle = rgba(col, .05 * e.act * mid);
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    ctx.lineWidth = o.lw * (.9 + .9 * mid) * px; ctx.strokeStyle = rgba(col, (.35 + .6 * e.act) * Math.min(1, e.act * 1.6));
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(x2, y2); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // 노드: 작고 선명하게. 핵심 매듭만 조금 크게
+  if (o.nr) {
+    const lit = new Float32Array(N.length);
+    for (const e of m.edges) { if (e.act > lit[e.b]) lit[e.b] = e.act; if (e.act > lit[e.a]) lit[e.a] = e.act * .7; }
+    for (let i = 0; i < N.length; i++) {
+      const n = N[i], r = o.nr * px * (1.05 - .35 * n.d) * (n.key ? 1.15 : 1);
+      ctx.fillStyle = rgba(INK, o.alpha * (.55 + .4 * (1 - n.d)) * (1 - .25 * sq));
+      ctx.beginPath(); ctx.arc(n.sx, n.sy, r, 0, 6.283); ctx.fill();
+      if (lit[i] > .2) {
+        ctx.fillStyle = rgba(state === 'done' ? PALE : WARM, Math.min(1, lit[i]));
+        ctx.beginPath(); ctx.arc(n.sx, n.sy, r * (1 + .35 * lit[i]), 0, 6.283); ctx.fill();
+      }
+    }
+  }
+}
+
+// ── 모델들 ──
+const MAIN = makeModel({ counts: [9, 8, 7, 5, 6, 8, 9], tw: .46, twist: 84, waist: .26, endLen: 1.55, yaw: -20, pitch: 13, persp: .22, asym: 1 });
+const MINI = makeModel({ counts: [6, 5, 4, 3, 4, 5, 6], tw: .46, twist: 84, waist: .3, endLen: 1.55, yaw: -20, pitch: 13, persp: .2, asym: 1 });
+const ICON = makeModel({ counts: [7, 3, 7], tw: .5, twist: 70, waist: .22, endLen: 1.7, yaw: -10, pitch: 8, persp: .12, asym: .3 });
+models.push(MAIN, MINI, ICON);
+
+const mainCv = $('main');
+let mainW = 800;
+const measure = () => { mainW = Math.max(280, mainCv.clientWidth); };
+addEventListener('resize', measure);
+let last = performance.now(), fr = 0;
+function loop(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  update(dt);
+  draw(mainCv, MAIN, mainW, { ar: 11 / 16, lw: .7, nr: 1.6, alpha: 1, mass: true });
+  if (fr++ % 2 === 0) {
+    draw($('s120'), MINI, 120, { ar: 1, lw: .6, nr: 1.0, alpha: 1, mass: false });
+    draw($('s56'), ICON, 56, { ar: 1, lw: .75, nr: 1.1, alpha: 1, mass: false });
+    draw($('s28'), ICON, 28, { ar: 1, lw: .7, nr: .8, alpha: 1, mass: false });
+  }
+  requestAnimationFrame(loop);
+}
+document.querySelectorAll('[data-s]').forEach(b => b.addEventListener('click', () => setState(b.dataset.s)));
+$('flow').addEventListener('click', () => { seq = [['think', 3.2], ['done', 2.6], ['idle', 0]]; setState('think', true); });
+setState('idle'); measure();
+requestAnimationFrame(loop);
+})();
+</script>
