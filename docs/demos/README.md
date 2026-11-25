@@ -9,6 +9,7 @@ claude.ai 아티팩트로 올렸던 데모 페이지의 원본이에요. 작업 
 | `neural-weave-1.html` | Neural Weave 1차: 진짜 계산, 순차 점등, 경로 | https://claude.ai/artifact/HCikijUUXk8PLhCn4cuDLP |
 | `neural-weave-2.html` | Neural Weave 2차: GPT 원칙 반영, 층을 비틀어 공간에 놓음 | https://claude.ai/artifact/DjXpoeKyheAD7My1XgrNd9 |
 | `neural-weave-3.html` | Neural Weave 3차: 허리 있는 비틀린 리본, 구역 반응, 모였다 풀리기, 쌍곡면 아이콘 | https://claude.ai/artifact/4iHGBJEetaB8kqVfwZXogF |
+| `ai-icon.html` | AI 아이콘 후보 6개 (+ 지금 쓰는 반짝이) | https://claude.ai/artifact/BddTS11d4FqJEav5yakzbk |
 | `agent-build-loading.html` | 조립 로딩 | https://claude.ai/artifact/DVS2GPg1yyYhkdwnSkPmY1 |
 | `my-feature.html` | 나만의 기능: AI한테 말하면 맞춤 기능 카드를 내 화면에만 붙임 (블록 조립) | https://claude.ai/artifact/Pru2ykXaRcWLztBMDSjDFi |
 | `my-feature-b.html` | 나만의 기능 B: AI가 코드를 직접 짜서 격리 상자에서 실행 (claude.ai 의 AI 사용) | https://claude.ai/artifact/2w8SFWC77J6coSujWWodAg |
