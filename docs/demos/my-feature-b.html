@@ -1,0 +1,354 @@
+<title>나만의 기능 B</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 왼쪽 폰(요청 → AI가 코드 작성 → 미리보기 → 적용), 오른쪽 설명 · 안전장치. 어두운 한 가지 모습 */
+:root {
+  --pg: #0b0c10;
+  --edge: #262934;
+  --fg: #ece9e2;
+  --mute: #8f8c99;
+  --acc: #f2c879;
+  --app: #0f1014;
+  --card: #17191f;
+  --line: #24272f;
+  --ai: #9fd8c4;
+  --code: #0a0b0e;
+  --font: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--pg); color: var(--fg); font-family: var(--font); line-height: 1.5; }
+.wrap { max-width: 1000px; margin: 0 auto; padding-block: 26px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 780px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+.side { display: grid; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--acc); }
+h1 { margin: 0; font-size: clamp(26px, 5vw, 36px); font-weight: 900; }
+h2 { margin: 6px 0 0; font-size: 15px; }
+.side p { margin: 0; color: var(--mute); font-size: 14px; }
+.side ul, .side ol { margin: 0; padding-left: 20px; display: grid; gap: 5px; font-size: 13.5px; color: var(--mute); }
+.side b { color: var(--fg); font-weight: 500; }
+.ex { display: flex; flex-wrap: wrap; gap: 8px; }
+.ex button { font: inherit; font-size: 13px; color: var(--fg); background: transparent; border: 1px solid var(--edge); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.ex button:hover { border-color: var(--ai); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.status { font-size: 12.5px; color: var(--mute); border-left: 2px solid var(--edge); padding-left: 10px; }
+
+/* 폰 */
+.phone { position: relative; width: min(360px, 100%); height: 760px; border-radius: 38px; background: var(--app); border: 1px solid var(--edge); overflow: hidden; }
+.scroll { position: absolute; inset: 0 0 76px; overflow-y: auto; scrollbar-width: none; padding: 30px 16px 20px; display: grid; align-content: start; gap: 10px; }
+.scroll::-webkit-scrollbar { display: none; }
+.hd { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.hd b { font-size: 26px; font-weight: 900; }
+.hd span { font-size: 13px; color: var(--mute); }
+.sec { font-size: 12px; color: var(--mute); margin: 8px 2px 0; }
+.habit { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; font-size: 14px; }
+.chk { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #3a3e4a; flex: none; }
+.chk.on { background: var(--acc); border-color: var(--acc); }
+.mine { display: grid; gap: 10px; }
+.mine:empty { display: none; }
+.w { position: relative; border-radius: 18px; border: 1px solid var(--line); background: var(--card); overflow: hidden; transition: opacity .25s; }
+.w.ghost { border: 1.5px dashed var(--ai); opacity: .6; }
+.w .bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px 0; }
+.w .bar .t { flex: 1; font-size: 12px; color: var(--mute); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.w .badge { font-size: 10px; color: var(--ai); border: 1px solid #3c5a51; border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+.w .x { background: none; border: 0; color: var(--mute); font-size: 16px; cursor: pointer; padding: 0 2px; line-height: 1; }
+.w iframe { display: block; width: 100%; height: 80px; border: 0; background: transparent; color-scheme: dark; }
+
+.ask { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 54px; display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 14px; border-radius: 20px; background: #1a1c23; border: 1px solid var(--line); z-index: 4; }
+.ask input { flex: 1; min-width: 0; background: none; border: 0; color: var(--fg); font: inherit; font-size: 14px; }
+.ask input::placeholder { color: #6f6c79; }
+.ask button, .acts button { font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; border-radius: 14px; }
+.ask button { height: 40px; padding: 0 14px; border: 0; background: var(--ai); color: #0d1a16; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; max-height: 78%; background: #15171d; border-top: 1px solid var(--line); border-radius: 22px 22px 0 0; padding: 16px; display: grid; gap: 10px; grid-template-rows: auto minmax(0, 1fr) auto; transform: translateY(105%); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.sheet.open { transform: none; }
+.bub { font-size: 13.5px; line-height: 1.6; }
+.bub .who { display: block; font-size: 11px; color: var(--ai); font-weight: 700; }
+.codebox { margin: 0; min-height: 0; overflow: auto; background: var(--code); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 400 10.5px/1.55 var(--mono); color: #b9c4c0; white-space: pre-wrap; word-break: break-all; }
+.codebox:empty { display: none; }
+.acts { display: grid; gap: 8px; }
+.acts .row { display: flex; gap: 8px; }
+.acts .row button { flex: 1; height: 42px; }
+.ok { background: var(--ai); color: #0d1a16; border: 0; }
+.no { background: none; color: var(--fg); border: 1px solid var(--line); }
+.fix { display: flex; gap: 6px; }
+.fix input { flex: 1; min-width: 0; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: #1c1f26; color: var(--fg); font: inherit; font-size: 13px; padding: 0 10px; }
+.fix button { height: 38px; padding: 0 12px; background: #262a33; color: var(--fg); border: 1px solid var(--line); }
+.toast { position: absolute; left: 50%; bottom: 82px; transform: translateX(-50%); z-index: 5; background: #22252e; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 13px; white-space: nowrap; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.toast.on { opacity: 1; }
+.ov { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
+.ol { position: absolute; border: 1.5px solid var(--ai); border-radius: 18px; }
+.cur { position: absolute; left: 0; top: 0; will-change: transform; }
+.cur .tag { position: absolute; left: 11px; top: 14px; padding: 1px 6px; border-radius: 6px; background: var(--ai); color: #0d1a16; font: 700 10px var(--font); white-space: nowrap; }
+</style>
+
+<div class="wrap">
+  <div class="phone" id="phone">
+    <div class="scroll" id="scroll">
+      <div class="hd"><b>오늘</b><span id="today"></span></div>
+      <div class="mine" id="mine"></div>
+      <div class="sec">습관</div>
+      <div class="habit"><i class="chk on"></i>물 한 컵 마시기</div>
+      <div class="habit"><i class="chk"></i>스트레칭 5분</div>
+      <div class="habit"><i class="chk on"></i>책 10쪽 읽기</div>
+    </div>
+    <form class="ask" id="ask">
+      <input id="q" autocomplete="off" placeholder="원하는 기능을 말해봐" aria-label="원하는 기능">
+      <button type="submit">만들기</button>
+    </form>
+    <div class="toast" id="toast"></div>
+    <div class="sheet" id="sheet" role="dialog" aria-label="AI가 만드는 중">
+      <div class="bub" id="bub"></div>
+      <pre class="codebox" id="code"></pre>
+      <div class="acts" id="acts"></div>
+    </div>
+    <div class="ov" id="ov"></div>
+  </div>
+
+  <div class="side">
+    <div class="eyebrow">사용자 아이디어 · B 방법 데모</div>
+    <h1>나만의 기능 B</h1>
+    <p>B 방법은 미리 만든 부품을 고르는 게 아니라 <b>AI가 그 기능의 코드를 직접 짜.</b> 그래서 부품에 없는 것도 만들 수 있어. 아래 예시를 누르거나 폰 입력창에 아무거나 써 봐. AI가 코드를 쓰는 모습이 그대로 보이고, 미리보기를 확인한 다음 적용해.</p>
+    <div class="ex" id="ex">
+      <button type="button">하늘 사진 대신 오늘 기분을 날씨로 보여줘</button>
+      <button type="button">이번 달 습관 체크를 잔디처럼 보여줘</button>
+      <button type="button">25분 집중 타이머</button>
+      <button type="button">요일별로 내가 제일 잘 지키는 습관</button>
+    </div>
+    <p class="status" id="status">AI 연결 확인 중…</p>
+
+    <h2>흐름</h2>
+    <ol>
+      <li><b>말하기</b> → AI가 코드를 짜는 게 실시간으로 보여</li>
+      <li><b>미리보기</b>: 점선 카드 안에서 실제로 돌아가</li>
+      <li><b>고쳐줘</b>: "버튼 작게", "주간도 보여줘"처럼 말로 수정</li>
+      <li><b>이대로 적용</b> → 커서가 붙여 줘. 새로고침해도 남아 있어 (이 브라우저에만)</li>
+    </ol>
+
+    <h2>안전장치</h2>
+    <ul>
+      <li>AI가 짠 코드는 <b>격리된 상자(sandbox iframe)</b> 안에서만 돌아가. 앱 화면 · 저장소 · 로그인에 손을 못 대.</li>
+      <li>인터넷 접속 금지. 외부 파일도 못 불러와.</li>
+      <li>내 기록은 <b>읽기 전용 복사본</b>만 받아. 원본 습관 기록은 못 바꿔.</li>
+      <li>자기 위젯 상태(카운터 숫자 등)만 따로 저장할 수 있어.</li>
+      <li>미리보기 → 내가 승인해야 붙어. × 로 언제든 지워.</li>
+    </ul>
+    <p class="status">기록은 예시 데이터(최근 30일 습관 3개 · 기분)야. AI 호출은 이 페이지를 보는 사람의 Claude 사용량을 써서, 처음 한 번 허락을 물어봐.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const phone = $('phone'), mine = $('mine'), sheet = $('sheet');
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const now = new Date();
+$('today').textContent = `${now.getMonth() + 1}월 ${now.getDate()}일`;
+
+// ── 예시 기록 (최근 30일). 위젯은 이 복사본만 읽어요 ──
+const hash = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
+const DATA = (() => {
+  const names = ['물 한 컵 마시기', '스트레칭 5분', '책 10쪽 읽기'], rates = [.85, .55, .7];
+  const habits = names.map(n => ({ name: n, checked: {} })), moods = {}, memos = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i), key = ymd(d), wd = d.getDay();
+    habits.forEach((h, k) => { if (hash(i, k) < rates[k] - (wd === 1 ? .25 : 0)) h.checked[key] = true; });
+    moods[key] = 1 + Math.floor(hash(i, 9) * 5);
+  }
+  memos.push({ date: ymd(now), text: '퇴근길 노을이 예뻤다' });
+  return { today: ymd(now), habits, moods, memos };
+})();
+
+// ── 격리된 위젯 상자 ──
+const BOOT = `<script>
+(function(){
+  var ready; window.app = { data: null, state: null, ready: new Promise(function(r){ ready = r; }),
+    save: function(s){ parent.postMessage({ t: 'save', s: s }, '*'); } };
+  addEventListener('message', function(e){ if (e.data && e.data.t === 'init') { app.data = e.data.data; app.state = e.data.state; ready(); } });
+  function h(){ parent.postMessage({ t: 'h', h: Math.ceil(document.documentElement.getBoundingClientRect().height) }, '*'); }
+  addEventListener('load', h); new ResizeObserver(h).observe(document.documentElement); setInterval(h, 1000);
+})();
+<\/script>`;
+const CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:">`;
+const BASE = `<meta name="color-scheme" content="dark"><style>html{color-scheme:dark}html,body{margin:0;background:transparent;color:#ece9e2;font:14px/1.5 system-ui,-apple-system,'Noto Sans KR',sans-serif}</style>`;
+const frames = new Map(); // contentWindow → {iframe, id}
+
+function makeFrame(id, code) {
+  const f = document.createElement('iframe');
+  f.setAttribute('sandbox', 'allow-scripts');
+  f.setAttribute('title', '나만의 기능');
+  f.srcdoc = `<!doctype html><html><head><meta charset="utf-8">${CSP}${BASE}${BOOT}</head><body>${code}</body></html>`;
+  f.addEventListener('load', () => {
+    frames.set(f.contentWindow, { f, id });
+    f.contentWindow.postMessage({ t: 'init', data: JSON.parse(JSON.stringify(DATA)), state: loadState(id) }, '*');
+  });
+  return f;
+}
+addEventListener('message', e => {
+  const hit = frames.get(e.source);
+  if (!hit || !e.data) return;
+  if (e.data.t === 'h') hit.f.style.height = Math.min(520, Math.max(40, +e.data.h || 0)) + 'px';
+  if (e.data.t === 'save' && hit.id) saveState(hit.id, e.data.s);
+});
+
+// ── 이 브라우저에만 저장 ──
+const KEY = 'myfeature-b-v1';
+const loadAll = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+const saveAll = list => { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch {} };
+const loadState = id => { try { return JSON.parse(localStorage.getItem(KEY + ':' + id)); } catch { return null; } };
+const saveState = (id, s) => { try { localStorage.setItem(KEY + ':' + id, JSON.stringify(s ?? null).slice(0, 20000)); } catch {} };
+
+function card(w, ghost) {
+  const el = document.createElement('div');
+  el.className = 'w' + (ghost ? ' ghost' : '');
+  const bar = document.createElement('div'); bar.className = 'bar';
+  const t = document.createElement('span'); t.className = 't'; t.textContent = w.title;
+  const b = document.createElement('span'); b.className = 'badge'; b.textContent = ghost ? '미리보기' : '나만 보여요 · AI가 짠 코드';
+  bar.append(t, b);
+  if (!ghost) {
+    const x = document.createElement('button'); x.className = 'x'; x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', '이 기능 지우기');
+    x.onclick = () => { el.remove(); saveAll(loadAll().filter(v => v.id !== w.id)); try { localStorage.removeItem(KEY + ':' + w.id); } catch {} };
+    bar.append(x);
+  }
+  el.append(bar, makeFrame(ghost ? null : w.id, w.code));
+  return el;
+}
+loadAll().forEach(w => mine.append(card(w, false)));
+
+// ── AI ──
+let sample = null;
+(async () => {
+  sample = window.claude ? await window.claude.use('sample') : null;
+  $('status').textContent = sample ? 'AI 연결됨. 아무 기능이나 말해 봐.' : '이 보기에서는 AI를 부를 수 없어. claude.ai 안에서 열어야 해.';
+})();
+
+const RULES = `너는 습관 기록 앱 안에 들어갈 작은 위젯을 만드는 개발자야. 사용자가 원하는 기능을 HTML · CSS · JS 한 덩어리로 만들어.
+
+규칙
+- 너비 약 328px 카드 안에 들어가. 배경은 투명(바깥이 어두운 카드 #17191f). 글자색 #ece9e2, 흐린 글자 #8f8c99, 강조색 #9fd8c4, 보조 #f2c879. 둥근 모서리 · 여백은 넉넉히, 높이는 내용만큼(최대 480px).
+- 외부 파일, 라이브러리, fetch, 이미지 URL 금지. 그림이 필요하면 CSS나 인라인 SVG.
+- 기록은 전역 app 으로 읽어. 먼저 await app.ready 한 다음:
+  app.data = { today: "YYYY-MM-DD", habits: [{ name, checked: { "YYYY-MM-DD": true } }], moods: { "YYYY-MM-DD": 1~5 }, memos: [{ date, text }] } (읽기 전용, 최근 30일)
+  app.state = 이 위젯이 전에 저장한 값 또는 null
+  app.save(obj) = 이 위젯 상태 저장 (카운터 숫자, 설정 등)
+- 날짜는 로컬 날짜 문자열로 다뤄. toISOString() 쓰지 마.
+- 한국어 UI. 지어낸 점수나 가짜 데이터를 실제 기록처럼 보여주지 마. 기록이 부족하면 그렇다고 써.
+- 만들 수 없거나 위험한 요청이면 코드 없이 이유만.
+
+답 형식 (정확히 이대로):
+TITLE: 20자 이내 이름
+DESC: 무엇을 만들었는지 한 문장
+\`\`\`html
+(코드)
+\`\`\``;
+
+function parse(text) {
+  const title = (text.match(/TITLE:\s*(.+)/) || [])[1]?.trim().slice(0, 30) || '나만의 기능';
+  const desc = (text.match(/DESC:\s*(.+)/) || [])[1]?.trim() || '';
+  const code = (text.match(/```(?:html)?\s*\n([\s\S]*?)```/) || [])[1] || '';
+  return { title, desc, code: code.trim() };
+}
+
+let ghostEl = null, draft = null, ctl = null, busy = false;
+const setActs = html => { $('acts').innerHTML = html; };
+function openSheet() { sheet.classList.add('open'); }
+function closeSheet() {
+  ctl?.abort(); ctl = null;
+  sheet.classList.remove('open');
+  if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+  draft = null; busy = false;
+}
+
+async function generate(request, prev) {
+  if (busy) return;
+  if (!sample) { $('status').textContent = '이 보기에서는 AI를 부를 수 없어. claude.ai 안에서 열어야 해.'; return; }
+  busy = true;
+  if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+  openSheet();
+  $('bub').innerHTML = '<span class="who">AI</span>';
+  $('bub').append(prev ? `고치는 중: "${request}"` : `"${request}" 만드는 중… 코드를 짜고 있어.`);
+  $('code').textContent = '생각하는 중…';
+  setActs('<div class="row"><button class="no" type="button" id="stop">멈추기</button></div>');
+  $('stop').onclick = closeSheet;
+  ctl = new AbortController();
+  const input = prev
+    ? `${RULES}\n\n지금 위젯 (TITLE: ${prev.title})\n\`\`\`html\n${prev.code}\n\`\`\`\n\n사용자의 수정 요청: ${request}\n같은 형식으로 고친 전체 코드를 줘.`
+    : `${RULES}\n\n사용자 요청: ${request}`;
+  try {
+    const { text } = await sample(input, {
+      signal: ctl.signal, cache: false,
+      onText: ({ text }) => { $('code').textContent = text; $('code').scrollTop = $('code').scrollHeight; },
+    });
+    const r = parse(text);
+    if (!r.code) {
+      $('bub').innerHTML = '<span class="who">AI</span>'; $('bub').append(r.desc || '이건 만들 수 없대.');
+      $('code').textContent = '';
+      setActs('<div class="row"><button class="no" type="button" id="close">알겠어</button></div>');
+      $('close').onclick = closeSheet; busy = false; return;
+    }
+    draft = { id: Math.random().toString(36).slice(2, 10), request, ...r };
+    $('bub').innerHTML = '<span class="who">AI</span>'; $('bub').append(`${r.desc} 위에 점선 카드가 미리보기야. 직접 눌러 봐.`);
+    $('code').textContent = r.code;
+    ghostEl = card(draft, true);
+    mine.prepend(ghostEl);
+    $('scroll').scrollTo({ top: 0, behavior: RM ? 'auto' : 'smooth' });
+    setActs(`<div class="fix"><input id="fixq" placeholder="고칠 점 (예: 버튼 작게)" aria-label="고칠 점"><button type="button" id="fixb">고쳐줘</button></div>
+      <div class="row"><button class="no" type="button" id="no">취소</button><button class="ok" type="button" id="ok">이대로 적용</button></div>`);
+    $('no').onclick = closeSheet;
+    $('ok').onclick = apply;
+    $('fixb').onclick = () => { const v = $('fixq').value.trim(); if (v) { busy = false; generate(v, draft); } };
+    busy = false;
+  } catch (e) {
+    busy = false;
+    if (e.code === 'cancelled') return;
+    const msg = { not_granted: 'AI 사용을 허락하지 않아서 못 만들었어.', rate_limited: '지금 너무 많이 불렀어. 조금 뒤에 다시 해줘.', refused: '이 요청은 AI가 거절했어. 다르게 말해 줘.', sampling_disabled: '이 계정에서는 AI를 쓸 수 없어.' }[e.code] || '중간에 끊겼어. 다시 해 줘.';
+    $('bub').innerHTML = '<span class="who">AI</span>'; $('bub').append(msg);
+    $('code').textContent = e.text || '';
+    setActs('<div class="row"><button class="no" type="button" id="close">닫기</button></div>');
+    $('close').onclick = closeSheet;
+  }
+}
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const tween = (ms, fn) => new Promise(res => { const t0 = performance.now(); const f = t => { const k = Math.min(1, (t - t0) / ms), e = 1 - (1 - k) ** 3; fn(e); k < 1 ? requestAnimationFrame(f) : res(); }; requestAnimationFrame(f); });
+const rel = el => { const r = el.getBoundingClientRect(), p = phone.getBoundingClientRect(); return { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height }; };
+
+async function apply() {
+  if (!draft || !ghostEl) return;
+  const w = draft, spot = rel(ghostEl);
+  sheet.classList.remove('open');
+  const real = card(w, false);
+  ghostEl.replaceWith(real); ghostEl = null; draft = null;
+  saveAll([w, ...loadAll()]);
+  if (!RM) {
+    real.style.opacity = '0';
+    const ov = $('ov'), cur = document.createElement('div');
+    cur.className = 'cur';
+    cur.innerHTML = '<svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"><path d="M1 1 L1 15 L4.6 11.6 L7.2 17 L9.6 15.9 L7.1 10.6 L12 10.6 Z" fill="#fff" stroke="#9fd8c4" stroke-width="1.4" stroke-linejoin="round"/></svg><span class="tag">AI</span>';
+    ov.append(cur);
+    const put = (x, y) => { cur.style.transform = `translate(${x}px,${y}px)`; };
+    const sx = phone.clientWidth / 2, sy = phone.clientHeight - 40;
+    put(sx, sy); await wait(250);
+    await tween(420, k => put(sx + (spot.x - sx) * k, sy + (spot.y - sy) * k - Math.sin(Math.PI * k) * 40));
+    const ol = document.createElement('div'); ol.className = 'ol'; ol.style.left = spot.x + 'px'; ol.style.top = spot.y + 'px'; ov.append(ol);
+    await tween(420, k => { ol.style.width = spot.w * k + 'px'; ol.style.height = spot.h * k + 'px'; put(spot.x + spot.w * k, spot.y + spot.h * k); });
+    real.style.transition = 'opacity .3s'; real.style.opacity = '1';
+    await wait(300);
+    ol.style.transition = cur.style.transition = 'opacity .3s'; ol.style.opacity = cur.style.opacity = '0';
+    await wait(320); ol.remove(); cur.remove();
+  }
+  $('toast').textContent = `"${w.title}" 붙였어 · 나만 보여`;
+  $('toast').classList.add('on'); setTimeout(() => $('toast').classList.remove('on'), 3500);
+}
+
+$('ask').addEventListener('submit', e => { e.preventDefault(); const v = $('q').value.trim(); if (!v) return; $('q').value = ''; generate(v); });
+$('ex').addEventListener('click', e => { const b = e.target.closest('button'); if (b) generate(b.textContent); });
+})();
+</script>

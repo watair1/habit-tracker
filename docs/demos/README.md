@@ -10,6 +10,7 @@ claude.ai 아티팩트로 올렸던 데모 페이지의 원본이에요. 작업 
 | `neural-weave-2.html` | Neural Weave 2차: GPT 원칙 반영, 층을 비틀어 공간에 놓음 | https://claude.ai/artifact/DjXpoeKyheAD7My1XgrNd9 |
 | `agent-build-loading.html` | 조립 로딩 | https://claude.ai/artifact/DVS2GPg1yyYhkdwnSkPmY1 |
 | `my-feature.html` | 나만의 기능: AI한테 말하면 맞춤 기능 카드를 내 화면에만 붙임 (블록 조립) | https://claude.ai/artifact/Pru2ykXaRcWLztBMDSjDFi |
+| `my-feature-b.html` | 나만의 기능 B: AI가 코드를 직접 짜서 격리 상자에서 실행 (claude.ai 의 AI 사용) | https://claude.ai/artifact/2w8SFWC77J6coSujWWodAg |
 | `themes.html` | 테마 6개 · 1안 카드형 / 2안 풍경형 | https://claude.ai/artifact/Vo1zAhV4co89dxTiqkCWsm |
 
 `../img/neural-weave-1vs2.png`: 1차와 2차 비교 캡처 (위: 1차 배치 · 리본 · 쌍곡면 / 아래: 물결 띠 · 기다림 · 도착 경로)
