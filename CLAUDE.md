@@ -139,6 +139,16 @@ lives in the 성장 tab (`renderNavPicker()`); on level-up `navOnLevelUp()` swit
 newly opened style and the toast says so. `switchTab()` drives the animation through
 `navSelect(i)` — don't move the `.active` class on nav buttons by hand. Test: `test/navcheck.mjs`.
 
+## Swipe Between Tabs
+
+Swiping sideways on a phone moves to the next/previous tab in tab-bar order (left swipe = next),
+stopping at the ends. It ignores short, slow (>700ms), or mostly-vertical swipes, swipes that start
+within 24px of the screen edge (the phone's back gesture), and swipes that start on inputs, inside
+anything that scrolls sideways, on the week-plan grid or timeline events, on the tab bar, while a
+modal is open, or while the AI agent is playing. It clicks the real nav button, so `switchTab()` and
+the tab-bar animation run as usual; the new tab slides in from the swipe side (`.swipe-next` /
+`.swipe-prev`). Test: `test/swipecheck.mjs`.
+
 ## XP & Level System
 
 Levels (XP thresholds): 새싹(0) → 도전자(100) → 습관인(250) → 마스터(500) → 레전드(900) → 신화(1500)

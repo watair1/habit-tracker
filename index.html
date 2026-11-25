@@ -162,6 +162,12 @@
     .tab { display: none; padding: 16px 16px 10px; max-width: 500px; margin: 0 auto; }
     .tab.active { display: block; animation: tabIn .3s cubic-bezier(0.32,0.72,0,1); }
     @keyframes tabIn { from { opacity: 0; transform: translateY(14px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    /* 옆으로 쓸어 넘길 때: 쓸어 온 쪽에서 밀려 들어와요 */
+    .tab.active.swipe-next { animation: tabFromRight .26s cubic-bezier(0.32,0.72,0,1); }
+    .tab.active.swipe-prev { animation: tabFromLeft .26s cubic-bezier(0.32,0.72,0,1); }
+    @keyframes tabFromRight { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+    @keyframes tabFromLeft  { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .tab.active.swipe-next, .tab.active.swipe-prev { animation: none; } }
 
     /* CARDS */
     .card { background: #141414; border-radius: var(--r); padding: 16px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 14px; transition: transform .15s, border-color .2s; }
@@ -3216,6 +3222,51 @@ function gotoTab(name) {
     .find(b => (b.getAttribute('onclick') || '').includes(`'${name}'`));
   if (btn) btn.click();
 }
+
+// ── 옆으로 쓸어서 탭 넘기기 ──
+// 왼쪽으로 쓸면 다음 탭, 오른쪽으로 쓸면 이전 탭. 끝에서는 멈춰요.
+// 세로 스크롤 · 입력칸 · 가로로 밀리는 칸 · 드래그하는 칸 · 열린 창 · AI 비서 재생 중에는 무시해요.
+const SWIPE = { min: 60, ratio: 1.8, maxMs: 700, edge: 24 };
+let _sw = null;
+function swipeBlocked(t) {
+  if (document.querySelector('.overlay.open')) return true;
+  if (typeof AG !== 'undefined' && AG.running) return true;
+  if (!t || !t.closest) return true;
+  if (t.closest('input, textarea, select, [contenteditable], .wk-cell, .tl-ev, .navbar, #agent-modal')) return true;
+  for (let el = t; el && el !== document.body; el = el.parentElement) {
+    if (el.scrollWidth > el.clientWidth + 2) {
+      const ox = getComputedStyle(el).overflowX;
+      if (ox === 'auto' || ox === 'scroll') return true;   // 가로로 밀리는 칸 안
+    }
+  }
+  return false;
+}
+document.addEventListener('touchstart', e => {
+  _sw = null;
+  if (e.touches.length !== 1) return;
+  const p = e.touches[0];
+  if (p.clientX < SWIPE.edge || p.clientX > innerWidth - SWIPE.edge) return;   // 폰 가장자리 '뒤로 가기' 제스처
+  if (swipeBlocked(e.target)) return;
+  _sw = { x: p.clientX, y: p.clientY, t: Date.now() };
+}, { passive: true });
+document.addEventListener('touchmove', e => { if (_sw && e.touches.length > 1) _sw = null; }, { passive: true });
+document.addEventListener('touchend', e => {
+  const s = _sw; _sw = null;
+  if (!s || !e.changedTouches.length) return;
+  const p = e.changedTouches[0], dx = p.clientX - s.x, dy = p.clientY - s.y;
+  if (Date.now() - s.t > SWIPE.maxMs || Math.abs(dx) < SWIPE.min || Math.abs(dx) < Math.abs(dy) * SWIPE.ratio) return;
+  if (String(getSelection && getSelection())) return;      // 글자 고르던 중
+  const btns = navBtns(), cur = btns.findIndex(b => b.classList.contains('active'));
+  const next = cur + (dx < 0 ? 1 : -1);
+  if (cur < 0 || next < 0 || next >= btns.length) return;
+  btns[next].click();
+  const tab = document.querySelector('.tab.active');
+  if (tab) {
+    tab.classList.remove('swipe-next', 'swipe-prev');
+    tab.classList.add(dx < 0 ? 'swipe-next' : 'swipe-prev');
+    tab.addEventListener('animationend', () => tab.classList.remove('swipe-next', 'swipe-prev'), { once: true });
+  }
+}, { passive: true });
 // 해당 카드로 스크롤하고 잠깐 테두리를 밝혀 어디인지 알려줍니다.
 function flashTo(sel) {
   setTimeout(() => {
