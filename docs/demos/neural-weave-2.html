@@ -1,0 +1,408 @@
+<title>Neural Weave 2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 왼쪽 무대(그림 · 상태 · 크기별), 오른쪽 시작점 · 조절판. 폰에서는 위아래. 일부러 어두운 한 가지 모습만 */
+:root {
+  --bg: #0b0c12;
+  --panel: #12141d;
+  --stage: #151826;
+  --edge: #242738;
+  --fg: #ece8df;
+  --mute: #8e8a9c;
+  --accent: #f5b66e;
+  --font: 'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: grid; gap: 6px; margin-bottom: 22px; max-width: 70ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--accent); }
+h1 { margin: 0; font-size: clamp(28px, 5vw, 40px); font-weight: 600; letter-spacing: -.01em; }
+header p { margin: 0; color: var(--mute); font-size: 14px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 20px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--edge); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.card h2 { margin: 0; font-size: 13px; font-weight: 500; color: var(--mute); }
+.stage { background: radial-gradient(110% 80% at 50% 40%, var(--stage), var(--panel) 72%); }
+#main { display: block; width: 100%; max-width: 560px; aspect-ratio: 1; margin: 0 auto; }
+.stats { font-family: var(--mono); font-size: 12px; color: var(--mute); text-align: center; font-variant-numeric: tabular-nums; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button, .btn { font: inherit; font-size: 13px; color: var(--fg); background: transparent; border: 1px solid var(--edge); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn.go { border-color: var(--accent); color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.desc { margin: 0; font-size: 13px; color: var(--mute); min-height: 2.6em; }
+.sizes { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-end; }
+.size { display: grid; gap: 6px; justify-items: center; }
+.size span { font-family: var(--mono); font-size: 11px; color: var(--mute); }
+.presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.preset { font: inherit; font-size: 12px; color: var(--fg); background: var(--stage); border: 1px solid var(--edge); border-radius: 10px; padding: 8px 4px 6px; display: grid; justify-items: center; gap: 4px; cursor: pointer; text-align: center; }
+.preset[aria-pressed="true"] { border-color: var(--accent); }
+.preset canvas { width: 72px; height: 72px; }
+.ctrl { display: grid; gap: 14px; }
+.row { display: grid; gap: 4px; }
+.row .top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.row output { font-family: var(--mono); font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.row small { color: var(--mute); font-size: 11.5px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+select { font: inherit; font-size: 13px; color: var(--fg); background: var(--stage); border: 1px solid var(--edge); border-radius: 8px; padding: 6px 8px; }
+pre { margin: 0; font-family: var(--mono); font-size: 11px; color: var(--mute); background: var(--bg); border: 1px solid var(--edge); border-radius: 8px; padding: 10px; white-space: pre-wrap; word-break: break-all; max-height: 140px; overflow: auto; }
+.rules { margin: 0; padding-left: 18px; font-size: 13px; color: var(--mute); display: grid; gap: 4px; }
+.rules b { color: var(--fg); font-weight: 500; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">AI 상징 · 2차</div>
+    <h1>Neural Weave 2</h1>
+    <p>층마다 노드를 줄 세운 선분 하나로 보고, 그 선분을 층마다 조금씩 비틀어 공간에 놓았어. 비틀린 두 선분을 직선으로 이으면 휘어진 면이 생겨. 선은 전부 곧은데 곡선 무늬가 나와. 계산은 1차와 같은 진짜 신경망 계산이야.</p>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="card stage" aria-label="큰 그림">
+        <canvas id="main" aria-label="Neural Weave 2 그림"></canvas>
+        <div class="stats" id="stats"></div>
+        <div class="seg" id="states" role="group" aria-label="상태"></div>
+        <div class="seg"><button class="btn go" id="flow" type="button">▶ 한 번 흘려보기</button></div>
+        <p class="desc" id="state-desc"></p>
+      </section>
+      <section class="card" aria-label="크기별">
+        <h2>작은 크기</h2>
+        <div class="sizes">
+          <div class="size"><canvas id="s120" style="width:120px;height:120px"></canvas><span>120</span></div>
+          <div class="size"><canvas id="s56" style="width:56px;height:56px"></canvas><span>56</span></div>
+        </div>
+      </section>
+      <section class="card" aria-label="반영한 원칙">
+        <h2>GPT 원칙에서 반영한 것</h2>
+        <ul class="rules">
+          <li><b>계산 규칙과 모양 규칙 분리</b>: 계산은 그대로, 노드 위치만 새 규칙(층마다 비틀기 · 깊이 · 치우침)</li>
+          <li><b>꺼져 있어도 구조가 보이게</b>: 대기 상태에서도 선이 가늘게 다 보여</li>
+          <li><b>깊이</b>: 가까운 선은 진하고 굵게, 먼 선은 옅고 가늘게. 입력층 · 출력층 노드는 조금 크게</li>
+          <li><b>빛 절제</b>: 큰 빛무리 없이 작고 선명한 점. 아주 센 노드만 살짝 번짐</li>
+          <li><b>경로 표현</b>: "AI의 생각"이 아니라 이 작은 시뮬레이션 신경망에서 고른 활성화 경로 하나</li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card" aria-label="시작점">
+        <h2>시작점</h2>
+        <div class="presets" id="presets"></div>
+      </section>
+      <section class="card" aria-label="조절">
+        <h2>모양 규칙</h2>
+        <div class="ctrl" id="controls"></div>
+      </section>
+      <section class="card" aria-label="설정">
+        <h2>지금 설정</h2>
+        <pre id="json"></pre>
+        <div class="seg"><button class="btn" id="copy" type="button">설정 복사</button></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const D2R = Math.PI / 180;
+const LINE = '232,228,218', GLOW = '255,196,120', PATHC = '255,248,232';
+
+const DEF = { layers: 6, maxN: 9, minN: 4, profile: 'diamond', twist: 32, gamma: 1, shift: .25, arch: .15,
+  yaw: -30, pitch: 14, persp: .5, contrast: .65, density: .55 };
+const PRESETS = [
+  { name: '리본',       p: { layers: 6, maxN: 9, minN: 9, profile: 'flat', twist: 30, shift: 0, arch: 0, yaw: -32, pitch: 12 } },
+  { name: '비틀린 탑',   p: { layers: 8, maxN: 8, minN: 3, profile: 'diamond', twist: 22, shift: .3, arch: .2, yaw: -58, pitch: 22 } },
+  { name: '쌍곡면',     p: { layers: 3, maxN: 14, minN: 14, profile: 'flat', twist: 70, shift: 0, arch: 0, yaw: -22, pitch: 16, contrast: .3, density: .7 } },
+  { name: '겹 렌즈',     p: { layers: 7, maxN: 9, minN: 4, profile: 'diamond', twist: 60, shift: .2, gamma: .75, yaw: -35, pitch: 18 } },
+  { name: '물결 띠',     p: { layers: 9, maxN: 7, minN: 4, profile: 'wave', twist: 18, shift: .35, arch: .25, yaw: -40, pitch: 10 } },
+  { name: '1차 (비교용)', p: { layers: 5, maxN: 9, minN: 3, profile: 'diamond', twist: 0, shift: 0, arch: 0, yaw: 0, pitch: 0, persp: 0, gamma: 1 } },
+];
+let P = { ...DEF, ...PRESETS[0].p }, presetIdx = 0;
+const hash = (a, b, c) => { const x = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453; return x - Math.floor(x); };
+
+function counts(p) {
+  const L = p.layers, hi = p.maxN, lo = Math.min(p.minN, hi);
+  return Array.from({ length: L }, (_, l) => {
+    const t = L === 1 ? .5 : l / (L - 1);
+    let f = 1;
+    if (p.profile === 'diamond') f = Math.sin(Math.PI * t);
+    else if (p.profile === 'wave') f = .5 + .5 * Math.cos(2 * Math.PI * t);
+    else if (p.profile === 'rise') f = t;
+    return Math.max(1, Math.round(lo + (hi - lo) * f));
+  });
+}
+
+// ── 모양 규칙: 층마다 선분을 비틀어 공간에 놓고, 비스듬히 바라봐요 ──
+function build(p) {
+  const ns = counts(p), L = ns.length, maxN = Math.max(...ns), raw = [];
+  const cy = Math.cos(p.yaw * D2R), sy = Math.sin(p.yaw * D2R), cp = Math.cos(p.pitch * D2R), sp = Math.sin(p.pitch * D2R);
+  for (let l = 0; l < L; l++) {
+    const t = L === 1 ? .5 : l / (L - 1), n = ns[l];
+    const X = -1 + 2 * t, len = 1.6 * Math.pow(n / maxN, .7), th = p.twist * l * D2R;
+    const off = p.shift * Math.sin(l * 1.7) * .5, archY = p.arch * Math.sin(Math.PI * t);
+    for (let i = 0; i < n; i++) {
+      let u = n === 1 ? 0 : (i / (n - 1) - .5) * 2;
+      u = Math.sign(u) * Math.pow(Math.abs(u), p.gamma) * len / 2 + off;
+      const Y = u * Math.cos(th) + archY, Z = u * Math.sin(th);
+      const x1 = X * cy + Z * sy, z1 = -X * sy + Z * cy;
+      const y2 = Y * cp - z1 * sp, z2 = Y * sp + z1 * cp;
+      const s = 1 / (1 + z2 * p.persp * .45);
+      raw.push({ x: x1 * s, y: y2 * s, z: z2, l, i });
+    }
+  }
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const r of raw) { x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x); y0 = Math.min(y0, r.y); y1 = Math.max(y1, r.y); z0 = Math.min(z0, r.z); z1 = Math.max(z1, r.z); }
+  const sc = 1.72 / Math.max(x1 - x0, y1 - y0, .01), mx = (x0 + x1) / 2, my = (y0 + y1) / 2, zr = Math.max(z1 - z0, 1e-6);
+  const nodes = raw.map(r => ({ x: (r.x - mx) * sc, y: (r.y - my) * sc, d: (r.z - z0) / zr, l: r.l, i: r.i, end: r.l === 0 || r.l === L - 1 }));
+  const start = []; { let c = 0; for (const n of ns) { start.push(c); c += n; } }
+  const edges = [];
+  for (let l = 0; l < L - 1; l++)
+    for (let i = 0; i < ns[l]; i++)
+      for (let j = 0; j < ns[l + 1]; j++)
+        edges.push({ a: start[l] + i, b: start[l + 1] + j, w: 1 + (Math.pow(hash(l * 31 + i, j, 3), 3) - 1) * p.contrast });
+  return { ns, nodes, edges };
+}
+
+// ── 계산 규칙 (1차와 같음) ──
+const STATES = {
+  idle:   { label: '대기',   desc: '계산하지 않는 상태. 구조만 가늘게 보여.' },
+  send:   { label: '보냄',   desc: '메시지가 입력값이 돼서 첫 계산을 해. 입력층부터 한 층씩 선이 그어지듯 켜져.' },
+  think:  { label: '기다림', desc: '방금 나온 출력을 다시 입력에 섞어서 계산을 반복해. 켜지는 길이 매번 조금씩 달라.' },
+  arrive: { label: '도착',   desc: '나머지가 가라앉고 경로 하나가 그어져. 이 작은 시뮬레이션 신경망에서, 각 노드 값에 가장 크게 보탠 선을 출력부터 거꾸로 따라간 경로야. AI의 실제 생각 과정은 아니야.' },
+  settle: { label: '안정',   desc: '남은 불빛이 꺼지면서 끝나.' },
+};
+const LAG = .06, PLAG = .12, HOLD = 1.2;
+let state = 'idle', stT = 0, seq = null, T = 0, passes = 0, sim = null, M = null;
+const rnd = Math.random, F = n => new Float32Array(n);
+
+function makeSim(m) {
+  const N = m.nodes.length, inn = Array.from({ length: N }, () => []);
+  m.edges.forEach((e, k) => { inn[e.b].push(k); e.sw = (hash(e.a * 7 + 1, e.b * 3 + 2, 11) < .5 ? -1 : 1) * (.25 + .75 * e.w); });
+  const layers = Array.from({ length: m.ns.length }, () => []);
+  m.nodes.forEach((n, i) => layers[n.l].push(i));
+  return { m, inn, layers, L: m.ns.length, bias: Float32Array.from(m.nodes, n => (hash(n.l, n.i, 13) - .5) * .3),
+    val: F(N), cur: F(m.edges.length), old: F(m.edges.length), nCur: F(N), nOld: F(N), t0: -99, path: null, busy: 0 };
+}
+const prog = (s, l) => RM ? 1 : Math.max(0, Math.min(1, (T - s.t0 - l * LAG) / LAG));
+const nodeOn = (s, l) => l === 0 ? T >= s.t0 : prog(s, l - 1) >= 1;
+const pathProg = (s, i) => RM ? 1 : Math.max(0, Math.min(1, (T - s.path.t0 - i * PLAG) / PLAG));
+function retire(s) {
+  s.m.edges.forEach((e, k) => { const v = s.cur[k] * prog(s, s.m.nodes[e.a].l); if (v > s.old[k]) s.old[k] = v; s.cur[k] = 0; });
+  s.m.nodes.forEach((n, i) => { const v = nodeOn(s, n.l) ? s.nCur[i] : 0; if (v > s.nOld[i]) s.nOld[i] = v; s.nCur[i] = 0; });
+}
+function forward(s, input) {
+  retire(s);
+  const { m, layers, inn, val, cur, bias } = s, raw = F(m.edges.length);
+  layers[0].forEach((i, k) => { val[i] = input[k]; });
+  for (let l = 1; l < s.L; l++) for (const j of layers[l]) {
+    let z = bias[j];
+    const sc = 1.4 / Math.sqrt(Math.max(1, inn[j].length));
+    for (const k of inn[j]) { const c = m.edges[k].sw * val[m.edges[k].a] * sc; raw[k] = c; z += c; }
+    val[j] = Math.tanh(z);
+  }
+  const mx = F(s.L);
+  m.edges.forEach((e, k) => { const l = m.nodes[e.b].l; mx[l] = Math.max(mx[l], Math.abs(raw[k])); });
+  m.edges.forEach((e, k) => { const l = m.nodes[e.b].l; cur[k] = mx[l] ? (Math.abs(raw[k]) / mx[l]) ** 3 : 0; });
+  m.nodes.forEach((n, i) => { s.nCur[i] = Math.abs(val[i]) ** 1.5; });
+  s.t0 = T; s.path = null;
+}
+// 경로: 출력에서 |값|이 가장 큰 노드부터, 그 노드 값과 같은 방향으로 가장 크게 보탠 선을 거꾸로 따라가요
+function decide(s) {
+  const out = s.layers[s.L - 1];
+  let j = out.reduce((b, i) => Math.abs(s.val[i]) > Math.abs(s.val[b]) ? i : b, out[0]);
+  const edges = [], nodes = [j];
+  for (let l = s.L - 1; l > 0; l--) {
+    let best = -1, bv = -Infinity;
+    const sg = Math.sign(s.val[j]) || 1;
+    for (const k of s.inn[j]) { const v = s.m.edges[k].sw * s.val[s.m.edges[k].a] * sg; if (v > bv) { bv = v; best = k; } }
+    if (best < 0) break;
+    edges.unshift(best); j = s.m.edges[best].a; nodes.unshift(j);
+  }
+  retire(s);
+  s.path = { edges, nodes, t0: T, alpha: 1 };
+}
+function newInput(s, mixPrev) {
+  const n = s.layers[0].length, out = s.layers[s.L - 1];
+  return Array.from({ length: n }, (_, k) => {
+    const fresh = rnd() * 2 - 1;
+    if (!mixPrev || s.L < 2) return fresh;
+    return .65 * s.val[out[Math.floor(k * out.length / n)]] + .35 * fresh;
+  });
+}
+function pass(mixPrev) { passes++; forward(sim, newInput(sim, mixPrev)); paintStats(); }
+function setState(name, fromSeq) {
+  if (!fromSeq) seq = null;
+  state = name; stT = 0; paintStates();
+  if (name === 'send') { passes = 0; pass(false); }
+  if (name === 'arrive') { passes++; forward(sim, newInput(sim, true)); decide(sim); }
+  if (name === 'settle' || name === 'idle') retire(sim);
+  if (name === 'idle') passes = 0;
+  paintStats();
+}
+const period = () => (sim.L - 1) * LAG + .1;
+const pathTime = () => sim.L * PLAG + HOLD;
+function update(dt) {
+  T += dt; stT += dt;
+  if (state === 'think' && stT >= period()) { stT -= period(); pass(true); }
+  if (state === 'arrive' && !seq && stT > pathTime()) setState('settle');
+  const rate = state === 'arrive' ? 7 : (state === 'settle' || state === 'idle') ? 2.2 : 9;
+  const d = RM ? 0 : Math.exp(-dt * rate);
+  for (let k = 0; k < sim.old.length; k++) sim.old[k] *= d;
+  for (let i = 0; i < sim.nOld.length; i++) sim.nOld[i] *= d;
+  if (sim.path && state !== 'arrive') { sim.path.alpha *= RM ? 0 : Math.exp(-dt * 2.2); if (sim.path.alpha < .01) sim.path = null; }
+  const tgt = state === 'idle' || state === 'settle' ? 0 : 1;
+  sim.busy += (tgt - sim.busy) * (RM ? 1 : Math.min(1, dt * 4));
+  if (seq && seq[0][1] && stT > seq[0][1]) { seq.shift(); setState(seq[0][0], true); if (seq.length === 1) seq = null; }
+}
+
+// ── 그리기 ──
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+function render(cv, m, p, o, s) {
+  const S = o.S, W = Math.round(S * DPR);
+  if (cv.width !== W) { cv.width = cv.height = W; }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, W);
+  const k = W / 2; ctx.setTransform(k, 0, 0, k, k, k);
+  const px = 2 / S, N = m.nodes;
+  const seg = (path, a, b, t = 1) => { if (t <= 0) return; path.moveTo(a.x, a.y); path.lineTo(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t); };
+  // 바탕 선: 깊이(가까움/멂) 2묶음 × 진하기 8칸
+  const B = 8, base = Array.from({ length: 2 * B }, () => new Path2D());
+  const A = 5, lit = Array.from({ length: A }, () => new Path2D());
+  const busy = s ? s.busy : 0;
+  m.edges.forEach((e, ei) => {
+    const a = N[e.a], b = N[e.b], dep = (a.d + b.d) / 2;
+    const v = (.2 + .8 * e.w) * (1 - .6 * dep);
+    base[(dep > .5 ? B : 0) + Math.min(B - 1, Math.floor(v * B))].moveTo(a.x, a.y), base[(dep > .5 ? B : 0) + Math.min(B - 1, Math.floor(v * B))].lineTo(b.x, b.y);
+    if (!s) return;
+    if (s.old[ei] > .12) seg(lit[Math.min(A - 1, Math.floor(s.old[ei] * A))], a, b);
+    if (s.cur[ei] > .12) seg(lit[Math.min(A - 1, Math.floor(s.cur[ei] * A))], a, b, prog(s, a.l));
+  });
+  ctx.lineCap = 'round';
+  for (let g = 0; g < 2; g++) for (let i = 0; i < B; i++) {
+    ctx.lineWidth = o.lw * (g ? .7 : 1.1) * px;
+    ctx.strokeStyle = `rgba(${LINE},${(p.density * (i + .5) / B * (1 - .45 * busy)).toFixed(3)})`;
+    ctx.stroke(base[g * B + i]);
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineWidth = o.lw * 1.25 * px;
+  for (let i = 0; i < A; i++) { ctx.strokeStyle = `rgba(${GLOW},${(.2 + .75 * (i + 1) / A).toFixed(3)})`; ctx.stroke(lit[i]); }
+  const onPath = new Map();
+  if (s && s.path) {
+    const pa = s.path.alpha, pp = new Path2D();
+    s.path.edges.forEach((ei, i) => { const e = m.edges[ei]; seg(pp, N[e.a], N[e.b], pathProg(s, i)); });
+    s.path.nodes.forEach((ni, i) => { if (i === 0 ? pathProg(s, 0) > 0 : pathProg(s, i - 1) >= 1) onPath.set(ni, pa); });
+    ctx.lineWidth = o.lw * 4 * px; ctx.strokeStyle = `rgba(${GLOW},${(.12 * pa).toFixed(3)})`; ctx.stroke(pp);
+    ctx.lineWidth = o.lw * 1.9 * px; ctx.strokeStyle = `rgba(${PATHC},${(.95 * pa).toFixed(3)})`; ctx.stroke(pp);
+  }
+  // 노드: 작고 선명하게. 입력 · 출력층은 조금 크게
+  ctx.globalCompositeOperation = 'source-over';
+  N.forEach(n => {
+    const r = o.nr * (1.15 - .5 * n.d) * (n.end ? 1.35 : 1);
+    ctx.fillStyle = `rgba(${LINE},${(.5 + .45 * (1 - n.d)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(n.x, n.y, r * px, 0, 6.283); ctx.fill();
+  });
+  if (s) {
+    ctx.globalCompositeOperation = 'lighter';
+    N.forEach((n, i) => {
+      let a = Math.max(s.nOld[i], nodeOn(s, n.l) ? s.nCur[i] : 0);
+      if (onPath.has(i)) a = Math.max(a, 1.2 * onPath.get(i));
+      if (a < .15) return;
+      const r = o.nr * (1.15 - .5 * n.d) * (n.end ? 1.35 : 1);
+      if (a > .7) { ctx.fillStyle = `rgba(${GLOW},${(.16 * a).toFixed(3)})`; ctx.beginPath(); ctx.arc(n.x, n.y, r * 3 * px, 0, 6.283); ctx.fill(); }
+      ctx.fillStyle = onPath.has(i) ? `rgba(${PATHC},${Math.min(1, a).toFixed(3)})` : `rgba(${GLOW},${Math.min(1, a).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r * (1.1 + .4 * a) * px, 0, 6.283); ctx.fill();
+    });
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function paintStats() {
+  $('stats').textContent = `층 ${M.ns.length}개 · 노드 ${M.nodes.length}개 · 연결선 ${M.edges.length}개 · 층별 노드 ${M.ns.join('-')}` + (passes ? ` · 계산 ${passes}번째` : '');
+}
+function rebuild() {
+  M = build(P); sim = makeSim(M);
+  $('json').textContent = JSON.stringify(P);
+  paintStats();
+}
+
+const mainCv = $('main');
+let mainS = 480;
+const measure = () => { mainS = Math.max(220, Math.round(mainCv.clientWidth)); };
+addEventListener('resize', measure);
+let last = performance.now(), frame = 0;
+function loop(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  update(dt);
+  render(mainCv, M, P, { S: mainS, lw: Math.max(.55, mainS / 700), nr: mainS / 230 }, sim);
+  if (frame++ % 2 === 0) {
+    render($('s120'), M, P, { S: 120, lw: .45, nr: .75 }, sim);
+    render($('s56'), M, P, { S: 56, lw: .35, nr: .5 }, sim);
+  }
+  requestAnimationFrame(loop);
+}
+
+// ── 조절판 ──
+const RANGES = [
+  ['layers', '층 수', 2, 10, 1, v => v],
+  ['maxN', '가장 많은 노드', 2, 14, 1, v => v],
+  ['minN', '가장 적은 노드', 1, 14, 1, v => v],
+  ['twist', '층마다 비틀기', 0, 90, 1, v => v + '°', '층 선분을 이만큼씩 돌려 놓아. 0이면 1차처럼 납작해.'],
+  ['shift', '치우침', 0, 1, .05, v => (+v).toFixed(2), '층마다 노드 무리의 중심을 사인 규칙으로 조금씩 옮겨. 비대칭적인 질서.'],
+  ['gamma', '노드 모임', .5, 1.6, .05, v => (+v).toFixed(2), '1보다 작으면 가장자리로, 크면 가운데로 모여.'],
+  ['arch', '아치', -.5, .5, .05, v => (+v).toFixed(2)],
+  ['yaw', '보는 각도 (좌우)', -80, 80, 1, v => v + '°'],
+  ['pitch', '보는 각도 (위아래)', -40, 40, 1, v => v + '°'],
+  ['persp', '원근', 0, 1, .05, v => (+v).toFixed(2)],
+  ['contrast', '강약 대비', 0, 1, .05, v => (+v).toFixed(2), '선 진하기 = 가중치 크기.'],
+  ['density', '선 진하기', .1, 1, .05, v => (+v).toFixed(2)],
+];
+$('controls').innerHTML = `
+  <div class="row"><div class="top"><label for="c-profile">층마다 노드 수 모양</label></div>
+    <select id="c-profile"><option value="diamond">가운데가 많음</option><option value="flat">일정</option><option value="wave">물결</option><option value="rise">점점 많아짐</option></select></div>
+  ${RANGES.map(([k, lab, mn, mx, st, , help]) => `
+  <div class="row"><div class="top"><label for="c-${k}">${lab}</label><output id="o-${k}" for="c-${k}"></output></div>
+    <input type="range" id="c-${k}" min="${mn}" max="${mx}" step="${st}">${help ? `<small>${help}</small>` : ''}</div>`).join('')}`;
+function sync() {
+  for (const [k, , , , , fmt] of RANGES) { $('c-' + k).value = P[k]; $('o-' + k).textContent = fmt(P[k]); }
+  $('c-profile').value = P.profile;
+  for (const b of $('presets').children) b.setAttribute('aria-pressed', +b.dataset.i === presetIdx);
+}
+function changed(fromPreset) { if (!fromPreset) presetIdx = -1; sync(); rebuild(); }
+for (const [k] of RANGES) $('c-' + k).addEventListener('input', e => { P[k] = +e.target.value; changed(); });
+$('c-profile').addEventListener('change', e => { P.profile = e.target.value; changed(); });
+
+$('presets').innerHTML = PRESETS.map((pr, i) => `<button type="button" class="preset" data-i="${i}"><canvas id="pv${i}"></canvas>${pr.name}</button>`).join('');
+PRESETS.forEach((pr, i) => { const p = { ...DEF, ...pr.p }; render($('pv' + i), build(p), p, { S: 72, lw: .4, nr: .55 }, null); });
+$('presets').addEventListener('click', e => {
+  const b = e.target.closest('.preset'); if (!b) return;
+  presetIdx = +b.dataset.i; P = { ...DEF, ...PRESETS[presetIdx].p }; changed(true);
+});
+
+$('states').innerHTML = Object.entries(STATES).map(([k, s]) => `<button type="button" data-s="${k}">${s.label}</button>`).join('');
+function paintStates() {
+  for (const b of $('states').children) b.setAttribute('aria-pressed', b.dataset.s === state);
+  $('state-desc').textContent = STATES[state].desc;
+}
+$('states').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setState(b.dataset.s); });
+$('flow').addEventListener('click', () => { seq = [['send', .4], ['think', 3], ['arrive', pathTime()], ['settle', 1.5], ['idle', 0]]; setState('send', true); });
+$('copy').addEventListener('click', () => {
+  const txt = 'Neural Weave 2 설정: ' + $('json').textContent;
+  const sel = () => { const r = document.createRange(); r.selectNodeContents($('json')); const g = getSelection(); g.removeAllRanges(); g.addRange(r); };
+  try { navigator.clipboard.writeText(txt).then(() => { $('copy').textContent = '복사했어'; setTimeout(() => $('copy').textContent = '설정 복사', 1500); }, sel); } catch { sel(); }
+});
+
+changed(true); paintStates(); measure();
+requestAnimationFrame(loop);
+})();
+</script>

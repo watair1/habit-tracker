@@ -1,0 +1,407 @@
+<title>에이전트 조립 로딩</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 레이아웃: 가운데 폰 화면 하나, 아래 조절 버튼. 일부러 어두운 한 가지 모습만 씀 */
+:root {
+  --bg: #0b0c11;
+  --panel: #12141b;
+  --edge: #262935;
+  --fg: #ece9e2;
+  --mute: #8d8a9b;
+  --accent: #f5b66e;
+  --app-bg: #0d0e12;
+  --app-card: #16181f;
+  --app-line: #23262f;
+  --font: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 18px; }
+header { display: grid; gap: 4px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--accent); }
+h1 { margin: 0; font-size: clamp(24px, 5vw, 32px); font-weight: 700; text-wrap: balance; }
+header p { margin: 0; color: var(--mute); font-size: 14px; max-width: 60ch; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+.btn { font: inherit; font-size: 13px; color: var(--fg); background: transparent; border: 1px solid var(--edge); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.btn.go { border-color: var(--accent); color: var(--accent); }
+.btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sep { width: 1px; height: 20px; background: var(--edge); }
+.notes { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; color: var(--mute); max-width: 60ch; justify-self: center; }
+.notes b { color: var(--fg); font-weight: 500; }
+
+/* ── 폰 속 앱 ── */
+.phone { position: relative; width: min(360px, 100%); height: 720px; margin: 0 auto; border-radius: 36px;
+  background: var(--app-bg); border: 1px solid var(--edge); overflow: hidden; }
+.app { position: absolute; inset: 0; padding: 26px 16px 0; display: flex; flex-direction: column; gap: 10px; }
+.hd { display: flex; align-items: baseline; gap: 10px; min-height: 34px; }
+.hd h3 { margin: 0; font-size: 24px; font-weight: 700; min-height: 34px; }
+.hd span { font-size: 13px; color: var(--mute); }
+.bx { opacity: 0; transform: scale(.985); transition: opacity .2s, transform .2s; }
+.bx.on { opacity: 1; transform: none; }
+.card { background: var(--app-card); border: 1px solid var(--app-line); border-radius: 16px; padding: 12px 14px; }
+.head { display: flex; align-items: center; gap: 14px; height: 76px; }
+.ring { width: 44px; height: 44px; flex: none; }
+.ring circle { fill: none; stroke-width: 5; }
+.ring .bg { stroke: #2a2d37; }
+.ring .fg { stroke: var(--accent); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.head b { display: block; font-size: 15px; min-height: 22px; }
+.head p { margin: 0; font-size: 12px; color: var(--mute); min-height: 18px; }
+.sec { font-size: 12px; color: var(--mute); margin: 4px 2px -2px; min-height: 18px; }
+.habit { display: flex; align-items: center; gap: 12px; height: 52px; }
+.chk { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #3a3e4a; flex: none; }
+.chk.done { background: var(--accent); border-color: var(--accent); }
+.habit span { flex: 1; font-size: 14px; min-height: 20px; }
+.habit.done span { color: var(--mute); }
+.habit em { font-style: normal; font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.mood { display: grid; gap: 10px; }
+.mood .lab { font-size: 13px; min-height: 19px; }
+.dots { display: flex; justify-content: space-between; }
+.md { width: 34px; height: 34px; border-radius: 50%; opacity: 0; transform: scale(.4); transition: opacity .15s, transform .25s cubic-bezier(.3,1.6,.5,1); }
+.md.on { opacity: 1; transform: none; }
+.md.pick { box-shadow: 0 0 0 3px var(--app-bg), 0 0 0 5px var(--accent); }
+.memo { display: flex; gap: 12px; align-items: center; }
+.memo span { flex: 1; font-size: 13px; line-height: 1.55; min-height: 40px; }
+.photo { width: 64px; height: 64px; border-radius: 10px; flex: none; opacity: 0;
+  background: linear-gradient(180deg, #2a2350 0%, #b0507a 48%, #f3a25c 70%, #3b2a2a 71%, #1d1716 100%); }
+.photo.on { opacity: 1; }
+.tab { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 58px; border-radius: 20px;
+  display: flex; justify-content: space-around; align-items: center; padding: 0; }
+.ti { width: 22px; height: 22px; border-radius: 7px; background: #3a3d48; opacity: 0; transform: scale(.4); transition: opacity .15s, transform .25s cubic-bezier(.3,1.6,.5,1); }
+.ti.on { opacity: 1; transform: none; }
+.ti.cur { background: var(--accent); }
+
+/* ── 에이전트 겹 ── */
+.ov { position: absolute; inset: 0; pointer-events: none; z-index: 5; transition: opacity .35s; }
+.ov.fade { opacity: 0; }
+.ol { position: absolute; border: 1.5px solid var(--c); border-radius: 5px; }
+.ol .h { position: absolute; width: 6px; height: 6px; background: var(--app-bg); border: 1.5px solid var(--c); border-radius: 1px; }
+.ol .sz { position: absolute; right: 0; bottom: -15px; font: 500 9px var(--mono); color: var(--c); white-space: nowrap; }
+.gd { position: absolute; background: var(--c); opacity: .45; transition: opacity .3s; }
+.gd.x { left: 0; right: 0; height: 1px; }
+.gd.y { top: 0; bottom: 0; width: 1px; }
+.typing::after { content: ''; display: inline-block; width: 1.5px; height: 1.05em; margin-left: 1px; vertical-align: -.15em; background: var(--c); }
+.ghost { position: absolute; width: 64px; height: 64px; border-radius: 10px; z-index: 8;
+  background: linear-gradient(180deg, #2a2350 0%, #b0507a 48%, #f3a25c 70%, #3b2a2a 71%, #1d1716 100%);
+  box-shadow: 0 10px 24px rgba(0,0,0,.55); border: 1.5px solid var(--c); }
+.ag { position: absolute; left: 0; top: 0; z-index: 10; will-change: transform; }
+.ag svg { display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.ag .tag { position: absolute; left: 11px; top: 14px; padding: 1px 6px; border-radius: 6px; background: var(--c); color: #121212;
+  font: 700 10px var(--font); white-space: nowrap; }
+
+/* ── 진행 막대 ── */
+.pill { position: absolute; left: 50%; bottom: 82px; transform: translateX(-50%); z-index: 9;
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 999px;
+  background: rgba(22,24,32,.92); border: 1px solid var(--edge); font: 500 10px var(--mono); color: var(--mute);
+  white-space: nowrap; transition: opacity .4s, transform .4s; }
+.pill.gone { opacity: 0; transform: translateX(-50%) translateY(8px); }
+.faces { display: flex; }
+.faces i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #16181f; margin-left: -5px; background: var(--c); transition: transform .2s; }
+.faces i:first-child { margin-left: 0; }
+.pill.pulse .faces i { transform: scale(1.25); }
+.bar { width: 54px; height: 3px; border-radius: 2px; background: #2a2d37; overflow: hidden; }
+.bar b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff5d5d, #ffd34d, #7dff9a, #5ee0ff, #a98bff, #ff7ab6); }
+.st { color: var(--fg); }
+.st.done { color: #7dff9a; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">로딩 애니메이션 · 데모</div>
+    <h1>에이전트 조립 로딩</h1>
+    <p>앱을 켤 때 오늘 탭을 에이전트들이 직접 조립하는 모습이야. 상자는 드래그해서 만들고, 글자는 타이핑하고, 사진은 화면 밖에서 끌어와. 다 끝나면 한꺼번에 멈추고 아래 진행 막대로 빨려 들어가.</p>
+  </header>
+
+  <div class="phone" id="phone">
+    <div class="app" id="app">
+      <div class="hd"><h3 id="t-title" data-text="오늘"></h3><span id="t-date" data-text="11월 23일 일요일"></span></div>
+      <div class="card head bx" id="b-head">
+        <svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle class="bg" cx="22" cy="22" r="18"/><circle class="fg" id="ring" cx="22" cy="22" r="18"/></svg>
+        <div><b id="t-prog" data-text="2/4 완료"></b><p id="t-quote" data-text="작게 시작해도 이어지면 커져요."></p></div>
+      </div>
+      <div class="card habit done bx" id="b-h1"><i class="chk done"></i><span id="t-h1" data-text="물 한 컵 마시기"></span><em>12일</em></div>
+      <div class="card habit done bx" id="b-h2"><i class="chk done"></i><span id="t-h2" data-text="책 10쪽 읽기"></span><em>5일</em></div>
+      <div class="card habit bx" id="b-h3"><i class="chk"></i><span id="t-h3" data-text="스트레칭 5분"></span><em>3일</em></div>
+      <div class="card habit bx" id="b-h4"><i class="chk"></i><span id="t-h4" data-text="영어 단어 20개"></span><em>1일</em></div>
+      <div class="card mood bx" id="b-mood">
+        <div class="lab" id="t-mood" data-text="오늘 기분은 어때요?"></div>
+        <div class="dots">
+          <i class="md" style="background:#5b6b9a"></i><i class="md" style="background:#7a86a8"></i><i class="md pick" style="background:#c9a77a"></i><i class="md" style="background:#e9b26a"></i><i class="md" style="background:#f39a5a"></i>
+        </div>
+      </div>
+      <div class="card memo bx" id="b-memo"><span id="t-memo" data-text="퇴근길 노을이 진짜 예뻤다. 내일도 걸어서 가야지."></span><div class="photo" id="ph"></div></div>
+      <div class="card tab bx" id="b-tab"><i class="ti cur"></i><i class="ti"></i><i class="ti"></i><i class="ti"></i><i class="ti"></i></div>
+    </div>
+    <div class="ov" id="ov"></div>
+    <div class="pill gone" id="pill">
+      <span class="faces" id="faces"></span><span id="cnt">에이전트 8</span><span class="bar"><b id="bar"></b></span><span id="num">0/0</span><span class="st" id="st">조립 중</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn go" id="replay" type="button">↻ 다시 보기</button>
+    <span class="sep"></span>
+    <button class="btn" type="button" data-sp=".4">느리게</button>
+    <button class="btn" type="button" data-sp="1" aria-pressed="true">보통</button>
+    <button class="btn" type="button" data-sp="1.8">빠르게</button>
+  </div>
+  <ul class="notes">
+    <li><b>상자</b>: 커서가 모서리를 잡고 드래그해서 만들어. 크기 숫자와 가이드 선이 따라와.</li>
+    <li><b>글자</b>: 그 자리에서 한 글자씩 타이핑해.</li>
+    <li><b>사진</b>: 화면 밖에서 집어 와서 메모 칸에 놓아.</li>
+    <li><b>끝</b>: 먼저 끝난 에이전트는 다른 데를 거들다가, 전부 끝나면 같이 멈추고 진행 막대로 들어가.</li>
+  </ul>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const phone = $('phone'), ov = $('ov'), pill = $('pill');
+
+const AGENTS = [
+  { id: 'layout', name: '레이아웃', c: '#ff5d5d' },
+  { id: 'ring',   name: '진행 링',  c: '#a98bff' },
+  { id: 'h1',     name: '습관',     c: '#ffd34d' },
+  { id: 'h2',     name: '습관',     c: '#7dff9a' },
+  { id: 'text',   name: '글자',     c: '#f2f2f2' },
+  { id: 'mood',   name: '기분',     c: '#ff7ab6' },
+  { id: 'memo',   name: '메모',     c: '#5ee0ff' },
+  { id: 'photo',  name: '사진',     c: '#ff9a4c' },
+];
+// 에이전트마다 할 일 목록. need = 그 상자가 생길 때까지 기다리기
+const PLANS = {
+  layout: [['box', 'b-head'], ['box', 'b-tab'], ['pop', '#b-tab .ti']],
+  ring:   [['need', 'b-head'], ['ring', 'ring'], ['type', 't-prog']],
+  h1:     [['box', 'b-h1'], ['box', 'b-h3'], ['type', 't-h1'], ['type', 't-h3']],
+  h2:     [['box', 'b-h2'], ['box', 'b-h4'], ['type', 't-h2'], ['type', 't-h4']],
+  text:   [['type', 't-title'], ['type', 't-date'], ['need', 'b-head'], ['type', 't-quote']],
+  mood:   [['box', 'b-mood'], ['type', 't-mood'], ['pop', '#b-mood .md']],
+  memo:   [['box', 'b-memo'], ['type', 't-memo']],
+  photo:  [['edge'], ['need', 'b-memo'], ['image', 'ph']],
+};
+const TOTAL = Object.values(PLANS).flat().filter(s => s[0] !== 'need' && s[0] !== 'edge').length;
+
+let SPEED = 1, run = 0, frozen = false, done = 0, ready = {}, agents = [];
+
+// ── 시간 도구 ──
+const easeIO = k => k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+const easeOut = k => 1 - (1 - k) ** 3;
+const easeIn = k => k * k * k;
+function tween(ms, fn, ease = easeIO, force = false) {
+  const my = run;
+  return new Promise(res => {
+    if (frozen && !force) return res();
+    const t0 = performance.now(), d = Math.max(1, ms / SPEED);
+    const f = now => {
+      if (my !== run || (frozen && !force)) return res();
+      const k = Math.min(1, (now - t0) / d);
+      fn(ease(k));
+      k < 1 ? requestAnimationFrame(f) : res();
+    };
+    requestAnimationFrame(f);
+  });
+}
+const wait = ms => tween(ms, () => {}, k => k);
+const rel = el => { const r = el.getBoundingClientRect(), p = phone.getBoundingClientRect(); return { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height }; };
+function need(id) { if (!ready[id]) { let r; ready[id] = new Promise(x => r = x); ready[id].res = r; } return ready[id]; }
+function mark(id) { need(id).res(); }
+function tick() {
+  done++;
+  $('bar').style.width = (done / TOTAL * 100) + '%';
+  $('num').textContent = `${done}/${TOTAL}`;
+}
+
+// ── 에이전트 ──
+const CURSOR = c => `<svg width="14" height="18" viewBox="0 0 14 18"><path d="M1 1 L1 15 L4.6 11.6 L7.2 17 L9.6 15.9 L7.1 10.6 L12 10.6 Z" fill="#fff" stroke="${c}" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+function makeAgent(a, i) {
+  const el = document.createElement('div');
+  el.className = 'ag'; el.style.setProperty('--c', a.c);
+  el.innerHTML = CURSOR(a.c) + `<span class="tag">${a.name}</span>`;
+  ov.appendChild(el);
+  return { ...a, el, x: 0, y: 0, s: 1, o: 1, bow: i % 2 ? 1 : -1 };
+}
+function put(a, x, y) { a.x = x; a.y = y; a.el.style.transform = `translate(${x}px,${y}px) scale(${a.s})`; a.el.style.opacity = a.o; }
+function fly(a, x, y, ms = 240) {
+  const x0 = a.x, y0 = a.y, dx = x - x0, dy = y - y0, len = Math.hypot(dx, dy) || 1;
+  const bow = a.bow * Math.min(36, len * .18), cx = (x0 + x) / 2 - dy / len * bow, cy = (y0 + y) / 2 + dx / len * bow;
+  const d = ms * Math.max(.55, Math.min(1.4, len / 220));
+  return tween(d, k => { const u = 1 - k; put(a, u * u * x0 + 2 * u * k * cx + k * k * x, u * u * y0 + 2 * u * k * cy + k * k * y); });
+}
+function div(cls, c, parent = ov) { const d = document.createElement('div'); d.className = cls; d.style.setProperty('--c', c); parent.appendChild(d); return d; }
+
+// ── 할 일 종류 ──
+async function doBox(a, id) {
+  const el = $(id), r = rel(el);
+  await fly(a, r.x, r.y);
+  const ol = div('ol', a.c), sz = div('sz', a.c, ol), gx = div('gd x', a.c), gy = div('gd y', a.c);
+  ol.style.left = r.x + 'px'; ol.style.top = r.y + 'px';
+  await tween(320, k => {
+    const w = r.w * k, h = r.h * k;
+    ol.style.width = w + 'px'; ol.style.height = h + 'px';
+    gx.style.top = (r.y + h) + 'px'; gy.style.left = (r.x + w) + 'px';
+    sz.textContent = `${Math.round(w)}×${Math.round(h)}`;
+    put(a, r.x + w, r.y + h);
+  }, easeOut);
+  for (const [l, t] of [[-4, -4], ['calc(100% - 3px)', -4], [-4, 'calc(100% - 3px)'], ['calc(100% - 3px)', 'calc(100% - 3px)']]) {
+    const h = div('h', a.c, ol); h.style.left = typeof l === 'number' ? l + 'px' : l; h.style.top = typeof t === 'number' ? t + 'px' : t;
+  }
+  gx.style.opacity = gy.style.opacity = 0;
+  setTimeout(() => { gx.remove(); gy.remove(); }, 400);
+  el.classList.add('on');
+  mark(id); tick();
+}
+async function doType(a, id) {
+  const el = $(id), text = el.dataset.text;
+  let r = rel(el);
+  await fly(a, r.x, r.y + r.h * .55);
+  el.style.setProperty('--c', a.c); el.classList.add('typing');
+  for (const ch of text) {
+    if (frozen) break;
+    el.textContent += ch;
+    const range = document.createRange(); range.selectNodeContents(el);
+    const rr = range.getBoundingClientRect(), p = phone.getBoundingClientRect();
+    put(a, rr.right - p.left + 2, rr.bottom - p.top - 8);
+    await wait(ch === ' ' ? 20 : 34);
+  }
+  el.textContent = text;
+  el.classList.remove('typing');
+  tick();
+}
+async function doPop(a, sel) {
+  for (const el of document.querySelectorAll(sel)) {
+    const r = rel(el);
+    await fly(a, r.x + r.w / 2, r.y + r.h / 2, 110);
+    el.classList.add('on');
+  }
+  tick();
+}
+async function doRing(a, id) {
+  const c = $(id), r = rel(c.ownerSVGElement), C = 2 * Math.PI * 18, cx = r.x + r.w / 2, cy = r.y + r.h / 2, R = r.w / 2 * 18 / 22;
+  await fly(a, cx, cy - R);
+  const goal = .5;
+  await tween(520, k => {
+    c.style.strokeDashoffset = C * (1 - goal * k);
+    const ang = -Math.PI / 2 + 2 * Math.PI * goal * k;
+    put(a, cx + R * Math.cos(ang), cy + R * Math.sin(ang));
+  });
+  tick();
+}
+async function doEdge(a) { await fly(a, phone.clientWidth - 6, 380, 260); }
+async function doImage(a, id) {
+  const slot = $(id), r = rel(slot), W = phone.clientWidth;
+  const sy = r.y - 10;
+  await fly(a, W - 6, sy + 30, 180);
+  const g = div('ghost', a.c);
+  const place = (x, y, s = 1) => { g.style.transform = `translate(${x}px,${y}px) scale(${s})`; };
+  place(W + 4, sy, .9);
+  await tween(160, k => place(W + 4 - 70 * k, sy, .9));
+  const x0 = W - 66, y0 = sy;
+  put(a, x0 + 30, y0 + 30);
+  await tween(380, k => {
+    const x = x0 + (r.x - x0) * k, y = y0 + (r.y - y0) * k - Math.sin(Math.PI * k) * 26;
+    place(x, y, .9 + .1 * k); put(a, x + 30, y + 30);
+  });
+  slot.classList.add('on'); g.remove();
+  tick();
+}
+async function roam(a) {
+  // 할 일이 끝나도 멈추지 않고 이미 만든 곳을 거들어요
+  while (!frozen) {
+    const ons = [...document.querySelectorAll('#app .bx.on')];
+    if (!ons.length) { await wait(120); continue; }
+    const r = rel(ons[(Math.random() * ons.length) | 0]);
+    await fly(a, r.x + 20 + Math.random() * Math.max(10, r.w - 60), r.y + 8 + Math.random() * Math.max(6, r.h - 16), 260);
+    await wait(140 + Math.random() * 220);
+  }
+}
+async function work(a, delay) {
+  // 다 같이 출발하지 않고 엇갈려서 시작해요
+  await wait(delay);
+  for (const [kind, arg] of PLANS[a.id]) {
+    // 할 일 사이에 잠깐씩 쉬어서 타이밍이 서로 엇갈리게
+    if (kind !== 'need') await wait(70 + Math.random() * 170);
+    if (kind === 'need') await need(arg);
+    else if (kind === 'box') await doBox(a, arg);
+    else if (kind === 'type') await doType(a, arg);
+    else if (kind === 'pop') await doPop(a, arg);
+    else if (kind === 'ring') await doRing(a, arg);
+    else if (kind === 'edge') await doEdge(a);
+    else if (kind === 'image') await doImage(a, arg);
+  }
+}
+
+// ── 처음부터 다시 ──
+function reset() {
+  run++; frozen = false; done = 0; ready = {};
+  ov.innerHTML = ''; ov.classList.remove('fade');
+  document.querySelectorAll('#app .on').forEach(e => e.classList.remove('on'));
+  document.querySelectorAll('[data-text]').forEach(e => { e.textContent = ''; e.classList.remove('typing'); });
+  const C = 2 * Math.PI * 18; $('ring').style.strokeDasharray = C; $('ring').style.strokeDashoffset = C;
+  $('faces').innerHTML = AGENTS.map(a => `<i style="--c:${a.c}"></i>`).join('');
+  $('cnt').textContent = `에이전트 ${AGENTS.length}`;
+  $('bar').style.width = '0'; $('num').textContent = `0/${TOTAL}`;
+  $('st').textContent = '조립 중'; $('st').classList.remove('done');
+  pill.classList.remove('pulse'); pill.classList.add('gone');
+  agents = AGENTS.map(makeAgent);
+}
+function showAll() {
+  document.querySelectorAll('#app .bx, #app .md, #app .ti, #ph').forEach(e => e.classList.add('on'));
+  document.querySelectorAll('[data-text]').forEach(e => { e.textContent = e.dataset.text; });
+  $('ring').style.strokeDashoffset = 2 * Math.PI * 18 * .5;
+  agents.forEach(a => a.el.remove());
+}
+
+async function start() {
+  reset();
+  const my = run;
+  if (RM) { showAll(); return; }
+  // 1. 한가운데 뭉쳐서 등장
+  const cx = phone.clientWidth / 2 - 20, cy = 300;
+  agents.forEach((a, i) => { a.s = .2; a.o = 0; put(a, cx + (i % 3) * 14 - 14 + Math.random() * 10, cy + Math.floor(i / 3) * 16 - 16 + Math.random() * 8); });
+  pill.classList.remove('gone');
+  await tween(260, k => agents.forEach(a => { a.s = .2 + .8 * k; a.o = k; put(a, a.x, a.y); }), easeOut);
+  await wait(160);
+  if (my !== run) return;
+  // 2. 흩어져서 각자 일하기. 먼저 끝나면 거들기
+  let left = agents.length, allDone;
+  const finished = new Promise(r => allDone = r);
+  const order = agents.map((_, i) => i).sort(() => Math.random() - .5);
+  agents.forEach((a, i) => work(a, order[i] * 130).then(() => { if (--left === 0) allDone(); else roam(a); }));
+  await finished;
+  if (my !== run) return;
+  // 3. 전부 끝: 한꺼번에 멈춤
+  frozen = true;
+  $('st').textContent = '완료'; $('st').classList.add('done');
+  await tween(240, () => {}, k => k, true);
+  // 4. 진행 막대로 쫙 빨려 들어감
+  const pr = rel($('faces')), tx = pr.x + pr.w / 2 - 4, ty = pr.y + pr.h / 2 - 6;
+  ov.classList.add('fade');
+  await Promise.all(agents.map((a, i) => new Promise(res => setTimeout(() => {
+    const x0 = a.x, y0 = a.y;
+    tween(430, k => { a.s = 1 - .75 * k; a.o = 1 - k * k; put(a, x0 + (tx - x0) * k, y0 + (ty - y0) * k); }, easeIn, true).then(res);
+  }, i * 22 / SPEED))));
+  if (my !== run) return;
+  // ov 를 비우되, 에이전트 겹은 다시 보이게
+  ov.innerHTML = ''; ov.classList.remove('fade');
+  pill.classList.add('pulse');
+  setTimeout(() => pill.classList.remove('pulse'), 220);
+  await tween(700, () => {}, k => k, true);
+  if (my === run) pill.classList.add('gone');
+}
+
+$('replay').addEventListener('click', start);
+document.querySelectorAll('[data-sp]').forEach(b => b.addEventListener('click', () => {
+  SPEED = +b.dataset.sp;
+  document.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', x === b));
+}));
+setTimeout(start, 400);
+})();
+</script>

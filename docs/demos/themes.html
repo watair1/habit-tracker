@@ -1,0 +1,331 @@
+<title>여섯 개의 하늘</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 레이아웃: 위 테마 칩, 가운데 큰 폰 + 옆 설명, 아래 6개 나란히. 페이지 자체는 어두운 한 가지 모습 */
+:root {
+  --pg: #0b0c10;
+  --pg-panel: #13151b;
+  --pg-edge: #262934;
+  --pg-fg: #ece9e2;
+  --pg-mute: #8f8c99;
+  --pg-acc: #f2c879;
+  --font: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--pg); color: var(--pg-fg); font-family: var(--font); line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 26px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 22px; }
+header { display: grid; gap: 4px; }
+.eyebrow-pg { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--pg-acc); }
+h1 { margin: 0; font-size: clamp(26px, 5vw, 36px); font-weight: 900; letter-spacing: -.01em; text-wrap: balance; }
+header p { margin: 0; color: var(--pg-mute); font-size: 14px; max-width: 64ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 13px; color: var(--pg-fg); background: transparent; border: 1px solid var(--pg-edge);
+  border-radius: 999px; padding: 6px 12px 6px 8px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.chip i { width: 16px; height: 16px; border-radius: 50%; }
+.chip[aria-pressed="true"] { border-color: var(--pg-fg); background: #1d2028; }
+.chip:focus-visible, .mini:focus-visible { outline: 2px solid var(--pg-acc); outline-offset: 2px; }
+.main { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.story { display: grid; gap: 14px; align-content: start; max-width: 46ch; }
+.story h2 { margin: 0; font-size: 28px; font-weight: 900; }
+.story .sub { margin: 0; color: var(--pg-mute); font-size: 14px; }
+.sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.sw div { border: 1px solid var(--pg-edge); border-radius: 10px; overflow: hidden; font-size: 11px; }
+.sw b { display: block; height: 34px; }
+.sw span { display: block; padding: 4px 8px; color: var(--pg-mute); font-family: var(--mono); }
+.story ul { margin: 0; padding-left: 18px; color: var(--pg-mute); font-size: 13px; display: grid; gap: 4px; }
+.minis { display: grid; grid-template-columns: repeat(3, 180px); justify-content: center; gap: 22px 28px; }
+@media (max-width: 640px) { .minis { grid-template-columns: repeat(2, 180px); gap: 18px 12px; } }
+@media (max-width: 400px) { .minis { grid-template-columns: 180px; } }
+.mini { font: inherit; color: var(--pg-fg); background: none; border: 0; padding: 0; cursor: pointer; display: grid; gap: 8px; justify-items: center; }
+.mini .box { width: 180px; height: 380px; overflow: hidden; border-radius: 22px; text-align: left; }
+.mini .box .phone { transform: scale(.5); transform-origin: 0 0; pointer-events: none; }
+.mini[aria-pressed="true"] .box { outline: 2px solid var(--pg-fg); outline-offset: 3px; }
+.mini span { font-size: 13px; }
+.sect { font-size: 13px; color: var(--pg-mute); margin: 8px 0 -6px; }
+
+/* ── 폰 속 앱 (테마 토큰으로만 칠함) ── */
+.phone { position: relative; width: 360px; height: 760px; border-radius: 40px; overflow: hidden;
+  background: var(--bg); color: var(--text); border: 1px solid var(--pg-edge); font-family: var(--font); }
+.big .phone { max-width: 100%; }
+.scroll { position: absolute; inset: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: 96px; }
+.scroll::-webkit-scrollbar { display: none; }
+.hero { position: relative; height: 250px; background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 55%, var(--glow) 100%); }
+.hero svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero .txt { position: absolute; left: 20px; top: 44px; right: 20px; }
+.hero .date { font-size: 12px; font-weight: 500; letter-spacing: .04em; color: var(--herosub); }
+.hero h3 { margin: 6px 0 0; font-size: 27px; line-height: 1.22; font-weight: 900; letter-spacing: -.02em; color: var(--herotext); }
+.glass { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 10px 28px var(--shadow); }
+.body { padding: 0 14px; display: grid; gap: 10px; margin-top: -54px; position: relative; }
+.sum { padding: 16px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; }
+.ring { width: 58px; height: 58px; grid-row: span 2; }
+.ring circle { fill: none; stroke-width: 6; }
+.ring .bgc { stroke: var(--track); }
+.ring .fgc { stroke: var(--acc); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.num { font-size: 30px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.num small { font-size: 14px; font-weight: 700; color: var(--mute); margin-left: 4px; }
+.delta { font-size: 12px; color: var(--mute); }
+.delta .up { color: var(--up); font-weight: 700; }
+.week { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; }
+.week div { display: grid; gap: 4px; justify-items: center; font-size: 10px; color: var(--mute); }
+.week b { width: 100%; height: 26px; border-radius: 6px; background: var(--track); position: relative; overflow: hidden; }
+.week b::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--v); background: var(--acc); opacity: .85; }
+.week .today b { outline: 1.5px solid var(--acc); outline-offset: 1px; }
+.week .today { color: var(--text); font-weight: 700; }
+.sec { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 4px 0; }
+.sec h4 { margin: 0; font-size: 17px; font-weight: 800; }
+.sec span { font-size: 12px; color: var(--mute); }
+.habit { display: flex; align-items: center; gap: 12px; padding: 14px 14px; border-radius: 18px; }
+.chk { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--track); flex: none; display: grid; place-items: center; }
+.chk.on { background: var(--acc); border-color: var(--acc); }
+.chk.on::after { content: ''; width: 10px; height: 6px; border-left: 2px solid var(--onacc); border-bottom: 2px solid var(--onacc); transform: rotate(-45deg) translate(1px, -1px); }
+.habit .nm { flex: 1; font-size: 15px; font-weight: 500; }
+.habit.done .nm { color: var(--mute); }
+.habit .st { font-size: 12px; color: var(--acc2); font-weight: 700; font-variant-numeric: tabular-nums; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mood { padding: 14px; display: grid; gap: 10px; }
+.mood .lab, .memo .lab { font-size: 12px; color: var(--mute); font-weight: 500; }
+.mood .face { font-size: 22px; font-weight: 900; }
+.mood .row { display: flex; gap: 5px; }
+.mood .row i { flex: 1; height: 8px; border-radius: 4px; background: var(--track); }
+.mood .row i.on { background: var(--acc2); }
+.memo { padding: 14px; display: grid; gap: 8px; }
+.memo p { margin: 0; font-size: 13px; line-height: 1.5; }
+.photo { height: 70px; border-radius: 12px; background: linear-gradient(180deg, var(--sky2), var(--glow) 70%, var(--h2) 71%, var(--h3)); }
+.tab { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 62px; display: flex; justify-content: space-around; align-items: center; border-radius: 24px; z-index: 3; }
+.tab i { width: 22px; height: 22px; border-radius: 7px; background: var(--track); }
+.tab i.cur { background: var(--acc); box-shadow: 0 0 16px var(--acc); }
+
+/* ── 2안: 풍경형 (상자를 줄이고 풍경 속에 내용을 놓음) ── */
+.serif { font-family: 'Gowun Batang', 'Nanum Myeongjo', serif; }
+.v2 .sky { background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 52%, var(--glow) 100%); }
+.v2 .top { padding: 54px 24px 0; }
+.v2 .date { font-size: 12px; letter-spacing: .06em; color: var(--herosub); font-weight: 500; }
+.v2 h3 { margin: 8px 0 0; font-size: 36px; line-height: 1.16; font-weight: 700; color: var(--herotext); letter-spacing: -.01em; }
+.v2 .land { display: block; width: 100%; height: 210px; margin-top: -26px; }
+.v2 .cap { display: flex; align-items: baseline; gap: 10px; padding: 4px 24px 0; }
+.v2 .cap b { font-size: 40px; font-weight: 900; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+.v2 .cap span { font-size: 13px; color: var(--mute); }
+.v2 .cap .up { color: var(--up); font-weight: 700; }
+.v2 .list { padding: 22px 24px 0; }
+.v2 .lab2 { font-size: 11.5px; letter-spacing: .12em; color: var(--mute); font-weight: 500; }
+.v2 .row { display: flex; align-items: center; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.v2 .row .chk { width: 26px; height: 26px; }
+.v2 .row .nm { flex: 1; font-size: 18px; font-weight: 500; letter-spacing: -.01em; }
+.v2 .row .st { font: 500 11px var(--mono); color: var(--acc2); }
+.v2 .doneline { display: flex; align-items: center; gap: 8px; padding: 13px 0 0; font-size: 13px; color: var(--mute); }
+.v2 .doneline .chk { width: 16px; height: 16px; border-width: 1.5px; }
+.v2 .doneline .chk.on::after { width: 6px; height: 4px; border-width: 1.5px; }
+.v2 .notes { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 18px; padding: 30px 24px 0; align-items: center; }
+.v2 .word { display: block; font-size: 34px; font-weight: 700; margin-top: 2px; }
+.v2 .moodbar { display: flex; gap: 4px; margin-top: 10px; }
+.v2 .moodbar i { width: 18px; height: 4px; border-radius: 2px; background: var(--track); }
+.v2 .moodbar i.on { background: var(--acc2); }
+.v2 .pola { background: #f3eee4; padding: 6px 6px 24px; border-radius: 3px; transform: rotate(4deg); box-shadow: 0 12px 26px var(--shadow); position: relative; }
+.v2 .pola .photo { height: 92px; border-radius: 1px; }
+.v2 .pola span { position: absolute; left: 0; right: 0; bottom: 5px; text-align: center; font-size: 11px; color: #3b3428; }
+.v2 .quote { padding: 26px 24px 0; }
+.v2 .quote p { margin: 6px 0 0; font-size: 17px; line-height: 1.75; }
+.v2 .pillnav { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 20px; padding: 13px 20px; border-radius: 999px; z-index: 3; }
+.v2 .pillnav i { width: 18px; height: 18px; border-radius: 6px; background: var(--track); }
+.v2 .pillnav i.cur { background: var(--acc); box-shadow: 0 0 14px var(--acc); }
+.ver { display: inline-flex; border: 1px solid var(--pg-edge); border-radius: 999px; padding: 3px; gap: 3px; }
+.ver button { font: inherit; font-size: 13px; color: var(--pg-fg); background: none; border: 0; border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.ver button[aria-pressed="true"] { background: var(--pg-fg); color: var(--pg); }
+.ver button:focus-visible { outline: 2px solid var(--pg-acc); outline-offset: 2px; }
+
+/* ── 테마 6개 ── */
+[data-theme=dawn]   { --sky1:#0f1a2b; --sky2:#2d3d5a; --glow:#e9b2a6; --sun:#ffe9de; --star:.55; --h1:#2a3853; --h2:#1d2a42; --h3:#111a2b;
+  --bg:#111a2b; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.09); --shadow:rgba(0,0,0,.35); --text:#eef2f6; --mute:#93a1b5;
+  --herotext:#ffffff; --herosub:#d8dde8; --acc:#9fd8c4; --acc2:#f0b8a9; --onacc:#0f1d1a; --track:rgba(255,255,255,.1); --up:#6fdc95; --down:#ff7272; }
+[data-theme=dusk]   { --sky1:#130f27; --sky2:#3b2b60; --glow:#e39ab2; --sun:#ffd7ca; --star:.75; --h1:#2e2453; --h2:#221a40; --h3:#150f29;
+  --bg:#150f29; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.09); --shadow:rgba(0,0,0,.4); --text:#f2eefb; --mute:#a59dc2;
+  --herotext:#ffffff; --herosub:#e2d9f3; --acc:#c9b8ff; --acc2:#f2a6b8; --onacc:#1b1433; --track:rgba(255,255,255,.1); --up:#6fdc95; --down:#ff7272; }
+[data-theme=sunset] { --sky1:#28142e; --sky2:#8f3c58; --glow:#f39a5d; --sun:#ffd59b; --star:.2; --h1:#5c2b3b; --h2:#3a1c2b; --h3:#1d1017;
+  --bg:#1d1017; --card:rgba(255,236,226,.07); --line:rgba(255,236,226,.1); --shadow:rgba(0,0,0,.4); --text:#fbefe9; --mute:#c49e9e;
+  --herotext:#fff6ee; --herosub:#ffd9c8; --acc:#ff9f80; --acc2:#ffd27a; --onacc:#2a120d; --track:rgba(255,236,226,.12); --up:#72dc95; --down:#ff7a7a; }
+[data-theme=moss]   { --sky1:#0c130f; --sky2:#223020; --glow:#b9c483; --sun:#f1f3cf; --star:.6; --h1:#28361f; --h2:#1b2716; --h3:#0f170e;
+  --bg:#0f170e; --card:rgba(240,255,220,.055); --line:rgba(240,255,220,.08); --shadow:rgba(0,0,0,.4); --text:#eef1e4; --mute:#9aa68a;
+  --herotext:#fbfdf2; --herosub:#d9dfc6; --acc:#bac87c; --acc2:#e4d69c; --onacc:#151b0c; --track:rgba(240,255,220,.1); --up:#7fe0a0; --down:#ff7a7a; }
+[data-theme=river]  { --sky1:#061316; --sky2:#0f3a41; --glow:#7edcd2; --sun:#ebfbf7; --star:.45; --h1:#12383b; --h2:#0c292c; --h3:#071a1c;
+  --bg:#071a1c; --card:rgba(220,255,252,.055); --line:rgba(220,255,252,.08); --shadow:rgba(0,0,0,.4); --text:#e8f6f6; --mute:#86a9ab;
+  --herotext:#f4fffd; --herosub:#c9eeea; --acc:#41c8ca; --acc2:#ffb26b; --onacc:#06191a; --track:rgba(220,255,252,.1); --up:#7fe0a0; --down:#ff7a7a; }
+[data-theme=spring] { --sky1:#cfe2e6; --sky2:#f3ecd4; --glow:#ffe5a3; --sun:#ffcf55; --star:0; --h1:#c9d7aa; --h2:#adc093; --h3:#f4efe2;
+  --bg:#f4efe2; --card:rgba(255,255,255,.72); --line:rgba(70,60,20,.08); --shadow:rgba(90,70,20,.12); --text:#2a2618; --mute:#7c765f;
+  --herotext:#2a2618; --herosub:#5b5640; --acc:#d6a52a; --acc2:#6f9a5b; --onacc:#2a2010; --track:rgba(70,60,20,.09); --up:#2f9e5b; --down:#d84848; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow-pg">색 · 테마 · 1차 비교</div>
+    <h1>여섯 개의 하늘</h1>
+    <p>후보 색 6개를 실제 오늘 탭에 입혀 봤어. 2안(풍경형)은 상자를 줄이고 풍경 속에 내용을 놓은 버전이야. 해가 곧 오늘 진행률이라 습관을 할수록 해가 떠올라. 색만 바꾼 게 아니라 하늘, 언덕, 카드, 글자까지 테마마다 같이 바뀌어. 큰 제목, 유리판 카드, 맨 위 풍경 그림도 같이 넣어서 "풍성해지면 어떤지"도 볼 수 있게 했어.</p>
+  </header>
+
+  <div class="ver" id="ver" role="group" aria-label="화면 안"><button type="button" data-v="2">2안 · 풍경형</button><button type="button" data-v="1">1안 · 카드형</button></div>
+  <div class="chips" id="chips" role="group" aria-label="테마 고르기"></div>
+
+  <section class="main">
+    <div class="big" id="big"></div>
+    <div class="story">
+      <h2 id="s-name"></h2>
+      <p class="sub" id="s-sub"></p>
+      <div class="sw" id="s-sw"></div>
+      <ul>
+        <li>맨 위 그림은 그 테마의 하늘이야. 나중에 Landscape(풍경이 자라기)가 들어갈 자리.</li>
+        <li>2안: 해 높이 = 오늘 진행률(점선이 해가 갈 길), 언덕 위 불빛 7개 = 이번 주.</li>
+        <li>카드는 반투명 유리판이라 뒤의 하늘이 살짝 비쳐.</li>
+        <li>▲ 상승은 초록, ▼ 하락은 빨강. 화살표와 숫자에만 써.</li>
+        <li>폰 화면 안은 위아래로 스크롤 돼.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="sect">여섯 개 나란히 (눌러서 크게 보기)</div>
+  <div class="minis" id="minis"></div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const THEMES = [
+  { id: 'dawn',   name: '새벽 · 청자',     sub: '해 뜨기 직전, 남색 하늘 아래 분홍빛 지평선. 강조색은 고려청자의 옅은 비취.', sw: [['#111a2b','바탕'],['#2d3d5a','하늘'],['#e9b2a6','지평선'],['#9fd8c4','청자']] },
+  { id: 'dusk',   name: '황혼 · 저녁 보라', sub: '해가 막 진 뒤 보랏빛 하늘. 별이 가장 많이 보이는 테마.',                     sw: [['#150f29','바탕'],['#3b2b60','하늘'],['#e39ab2','지평선'],['#c9b8ff','저녁 보라']] },
+  { id: 'sunset', name: '노을',             sub: '해가 지는 순간. 가장 따뜻하고 감성적인 테마. 강조색은 살구빛 코랄.',          sw: [['#1d1017','바탕'],['#8f3c58','하늘'],['#f39a5d','노을'],['#ff9f80','코랄']] },
+  { id: 'moss',   name: '밤숲 · 이끼',       sub: '달 뜬 숲. 오래 쌓여야 자라는 이끼색이 강조색.',                              sw: [['#0f170e','바탕'],['#223020','하늘'],['#b9c483','달빛'],['#bac87c','이끼']] },
+  { id: 'river',  name: '물가 · 물총새',     sub: '새벽 강가. 물총새의 청록 등과 주황 배를 그대로 가져왔어.',                   sw: [['#071a1c','바탕'],['#0f3a41','하늘'],['#41c8ca','물총새'],['#ffb26b','배 주황']] },
+  { id: 'spring', name: '봄 아침 · 송화',    sub: '유일한 밝은 테마. 송홧가루 노랑과 새잎 초록.',                               sw: [['#f4efe2','바탕'],['#cfe2e6','하늘'],['#ffcf55','해'],['#d6a52a','송화']] },
+];
+
+const STARS = Array.from({ length: 22 }, (_, i) => {
+  const x = (Math.sin(i * 91.7) * .5 + .5) * 360, y = (Math.sin(i * 47.3) * .5 + .5) * 110 + 6, r = i % 4 ? .8 : 1.3;
+  return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="#fff" />`;
+}).join('');
+
+const PHONE1 = `
+<div class="phone">
+  <div class="scroll">
+    <div class="hero">
+      <svg viewBox="0 0 360 250" preserveAspectRatio="none" aria-hidden="true">
+        <g style="opacity:var(--star)">${STARS}</g>
+        <circle cx="262" cy="150" r="44" fill="var(--sun)" opacity=".18"/>
+        <circle cx="262" cy="150" r="22" fill="var(--sun)"/>
+        <path d="M0 168 Q60 140 120 156 T240 146 T360 158 V250 H0Z" fill="var(--h1)"/>
+        <path d="M0 192 Q80 162 165 184 T360 178 V250 H0Z" fill="var(--h2)"/>
+        <path d="M0 222 Q95 196 195 214 T360 208 V250 H0Z" fill="var(--h3)"/>
+      </svg>
+      <div class="txt">
+        <div class="date">11월 25일 수요일</div>
+        <h3>오늘도 한 칸,<br>쌓아볼까요</h3>
+      </div>
+    </div>
+    <div class="body">
+      <div class="glass sum">
+        <svg class="ring" viewBox="0 0 58 58" aria-hidden="true"><circle class="bgc" cx="29" cy="29" r="23"/><circle class="fgc" cx="29" cy="29" r="23" stroke-dasharray="144.5" stroke-dashoffset="72"/></svg>
+        <div class="num">2/4<small>완료</small></div>
+        <div class="delta">이번 주 완료율 <span class="up">▲ 12%</span> 지난주보다</div>
+        <div class="week">
+          <div><b style="--v:100%"></b>월</div><div><b style="--v:75%"></b>화</div><div class="today"><b style="--v:50%"></b>수</div>
+          <div><b style="--v:0%"></b>목</div><div><b style="--v:0%"></b>금</div><div><b style="--v:0%"></b>토</div><div><b style="--v:0%"></b>일</div>
+        </div>
+      </div>
+      <div class="sec"><h4>습관</h4><span>2개 남음</span></div>
+      <div class="glass habit"><i class="chk"></i><span class="nm">스트레칭 5분</span><span class="st">3일째</span></div>
+      <div class="glass habit"><i class="chk"></i><span class="nm">영어 단어 20개</span><span class="st">1일째</span></div>
+      <div class="glass habit done"><i class="chk on"></i><span class="nm">물 한 컵 마시기</span><span class="st">12일째</span></div>
+      <div class="glass habit done"><i class="chk on"></i><span class="nm">책 10쪽 읽기</span><span class="st">5일째</span></div>
+      <div class="sec"><h4>오늘의 기록</h4><span>기분 · 메모</span></div>
+      <div class="duo">
+        <div class="glass mood"><span class="lab">기분</span><span class="face">괜찮음</span><div class="row"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+        <div class="glass memo"><span class="lab">메모</span><div class="photo"></div></div>
+      </div>
+      <div class="glass memo"><span class="lab">한 줄</span><p>퇴근길 노을이 진짜 예뻤다. 내일도 걸어서 가야지.</p></div>
+    </div>
+  </div>
+  <div class="glass tab"><i class="cur"></i><i></i><i></i><i></i><i></i></div>
+</div>`;
+
+
+const PHONE2 = `
+<div class="phone v2">
+  <div class="scroll">
+    <div class="sky">
+      <div class="top">
+        <div class="date">11월 25일 수요일</div>
+        <h3 class="serif">오늘도<br>한 칸씩</h3>
+      </div>
+      <svg class="land" viewBox="0 0 360 210" preserveAspectRatio="none" aria-hidden="true">
+        <g style="opacity:var(--star)">${STARS}</g>
+        <path d="M200 168 Q262 20 330 168" fill="none" stroke="var(--herotext)" stroke-opacity=".28" stroke-width="1" stroke-dasharray="2 5"/>
+        <circle cx="236" cy="112" r="34" fill="var(--sun)" opacity=".16"/>
+        <circle cx="236" cy="112" r="17" fill="var(--sun)"/>
+        <path d="M0 150 Q60 124 120 140 T240 132 T360 144 V210 H0Z" fill="var(--h1)"/>
+        <path d="M0 172 Q80 146 165 166 T360 160 V210 H0Z" fill="var(--h2)"/>
+        <path d="M0 194 Q95 172 195 188 T360 182 V210 H0Z" fill="var(--h3)"/>
+        ${[1,1,.5,0,0,0,0].map((v,i)=>{const x=44+i*46,y=198;return `<circle cx="${x}" cy="${y}" r="${i===2?5:3.5}" fill="${v?'var(--acc)':'none'}" fill-opacity="${v===.5?.55:1}" stroke="var(--acc)" stroke-opacity="${v?1:.45}" stroke-width="1.2"/>${v?`<circle cx="${x}" cy="${y}" r="9" fill="var(--acc)" opacity=".18"/>`:''}`}).join('')}
+      </svg>
+    </div>
+    <div class="cap"><b>2/4</b><span>해가 절반쯤 떴어요 · 이번 주 <span class="up">▲ 12%</span></span></div>
+    <div class="list">
+      <div class="lab2">남은 습관</div>
+      <div class="row"><i class="chk"></i><span class="nm">스트레칭 5분</span><span class="st">3일째</span></div>
+      <div class="row"><i class="chk"></i><span class="nm">영어 단어 20개</span><span class="st">1일째</span></div>
+      <div class="doneline"><i class="chk on"></i>끝낸 것 · 물 한 컵 마시기, 책 10쪽 읽기</div>
+    </div>
+    <div class="notes">
+      <div><span class="lab2">오늘 기분</span><span class="word serif">괜찮음</span><div class="moodbar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+      <div class="pola"><div class="photo"></div><span class="serif">퇴근길</span></div>
+    </div>
+    <div class="quote"><span class="lab2">한 줄</span><p class="serif">퇴근길 노을이 진짜 예뻤다.<br>내일도 걸어서 가야지.</p></div>
+  </div>
+  <nav class="glass pillnav"><i class="cur"></i><i></i><i></i><i></i><i></i></nav>
+</div>`;
+
+let ver = '2';
+try { ver = localStorage.getItem('theme-ver') || ver; } catch {}
+const PH = () => ver === '1' ? PHONE1 : PHONE2;
+
+let cur = 'dawn';
+try { cur = localStorage.getItem('theme-demo') || cur; } catch {}
+
+$('chips').innerHTML = THEMES.map(t => `<button class="chip" type="button" data-t="${t.id}"><i style="background:${t.sw[3][0]}"></i>${t.name}</button>`).join('');
+function draw() {
+  $('minis').innerHTML = THEMES.map(t => `<button class="mini" type="button" data-t="${t.id}" aria-label="${t.name} 크게 보기"><div class="box" data-theme="${t.id}">${PH()}</div><span>${t.name}</span></button>`).join('');
+  $('big').innerHTML = PH();
+  document.querySelectorAll('#ver button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ver));
+}
+draw();
+$('ver').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  ver = b.dataset.v;
+  try { localStorage.setItem('theme-ver', ver); } catch {}
+  draw(); pick(cur);
+});
+
+function pick(id) {
+  cur = id;
+  const t = THEMES.find(x => x.id === id);
+  $('big').dataset.theme = id;
+  $('s-name').textContent = t.name;
+  $('s-sub').textContent = t.sub;
+  $('s-sw').innerHTML = t.sw.map(([c, n]) => `<div><b style="background:${c}"></b><span>${n} ${c}</span></div>`).join('');
+  document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === id));
+  try { localStorage.setItem('theme-demo', id); } catch {}
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-t]');
+  if (!b) return;
+  pick(b.dataset.t);
+  if (b.classList.contains('mini')) $('big').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+pick(cur);
+})();
+</script>
